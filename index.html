@@ -113,12 +113,37 @@
     .hcard{padding:9px 5px} .hcard b{font-size:14px} .hcard span{font-size:12px} .hcard svg{width:34px;height:34px} .hcard kbd{display:none}
     .card{padding:14px 16px} .card ul{font-size:14px}
   }
+  /* ---------- home screen ---------- */
+  #overlay.homebg{background:rgba(245,238,223,.94)}
+  .home{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:44px 14px 14px;line-height:1.3;overflow:auto}
+  .home .title{width:min(560px,92%,calc((100vh - 330px) * 2));min-width:min(260px,92%);aspect-ratio:2/1;image-rendering:pixelated;image-rendering:crisp-edges;border-radius:10px;border:3px solid var(--char);box-shadow:0 6px 0 rgba(35,33,30,.25);background:#f5eedf;object-fit:contain;position:static;inset:auto;height:auto;cursor:default;touch-action:auto;display:block}
+  .home .bestline{font-size:15px;color:var(--muted);text-align:center} .home .bestline b{color:var(--char);font-variant-numeric:tabular-nums}
+  .home .menu{display:flex;flex-direction:column;gap:7px;width:min(270px,90%)}
+  .home .menu button{justify-content:center;font-size:16px;padding:10px 14px;border-radius:10px;background:var(--panel)}
+  .home .menu button.primary{background:var(--ink);border-color:var(--ink);color:#fff;font-size:18px;font-weight:700}
+  .home .menu button small{font-weight:400;opacity:.8}
+  .home .menu button.primary small{color:#dfe5ff}
+  .home .corner{position:absolute;top:10px;display:flex;gap:6px} .home .corner.l{left:10px} .home .corner.r{right:10px}
+  .home .corner button{background:var(--panel);font-size:14px;padding:6px 10px;border-radius:999px}
+  .home .ver{position:absolute;bottom:6px;right:10px;font-size:11px;color:#a8997c}
+  body.athome .bar > *{opacity:.35;pointer-events:none}
+  body.athome.compact .bar{visibility:hidden}
+  @media (max-height:520px) and (min-width:560px){ .home{flex-direction:row;flex-wrap:wrap;gap:8px 18px;padding-top:42px} .home .title{width:min(52%,calc((100vh - 70px) * 2))} .home .left{display:flex;flex-direction:column;align-items:center;gap:6px} .home .menu button{padding:7px 12px;font-size:14px} .home .menu button.primary{font-size:16px} }
+  .home .left{display:contents}
+  @media (max-height:520px) and (min-width:560px){ .home .left{display:flex;flex-direction:column;align-items:center;gap:6px;flex:0 1 auto;width:min(52%,calc((100vh - 70px) * 2))} .home .left .title{width:100%} }
+  .players .prow{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .players .prow .who{flex:1;min-width:120px;font-size:15px} .players .prow .who small{display:block;color:var(--muted);font-size:12px}
+  .players .prow.cur .who b::after{content:' · playing';font-weight:400;font-size:12px;color:#1f7a3d}
+  .players .prow button{font-size:13px;padding:5px 9px}
+  .players input{font:inherit;font-size:15px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;flex:1;min-width:0;background:#fff;-webkit-user-select:text;user-select:text}
+  .players .add{display:flex;gap:6px;margin:12px 0 4px}
+  .card button.danger{background:var(--red);border-color:var(--red);color:#fff}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="bar">
-    <span class="logo">Wet Ink</span><span class="tag">test 27</span>
+    <span class="logo">Wet Ink</span><span class="tag">test 28</span>
     <div class="meter"><span class="lbl">Ink</span>
       <div class="tube" id="tube"><b id="inkfill"></b></div><span class="chip res" id="cRes" title="Reservoir: bigger ink tank" style="display:none"></span>
       <span class="chip" id="cLast" title="Lasting"><u>L</u><i></i><i></i><em></em></span>
@@ -132,6 +157,7 @@
     <div class="stat stratum" title="Each boss arena you pass starts a harder stratum">Stratum <b id="sStr">1</b></div>
     <div class="stat best">Best <b id="sBest">0 m</b></div>
     <div class="group right">
+      <button id="bHome" title="Home (H or Esc): pauses the run">&#8962;<span class="lbl">Home</span></button>
       <button id="bCab" title="Trophies"><svg viewBox="0 0 14 14"><path d="M3 1h8v4a4 4 0 0 1-8 0zM1 2h2v3a2 2 0 0 1-2-2zm10 0h2v1a2 2 0 0 1-2 2zM6 9h2v2h2v2H4v-2h2z"/></svg><b id="sCab">0</b></button>
       <button id="bTune" title="Tuning (T)">&#9881;</button>
       <button id="bHelp">?</button>
@@ -265,7 +291,21 @@ let forms, trophies, chRng, nextChamber, reelQ = [], slowUntil2 = 0, freezeUntil
 const FORM_MAX = 96;   // a formation may rise this many rows above its floor, so rows that close to the newest floor are not final yet
 const tt = (c, r) => (c < 0 || c >= COLS || r < 0 || r >= terrain.length) ? 0 : terrain[r][c];   // terrain type: 1 rock, 2 sponge, 3 cracked floor, 4 landed spike
 const BH = 20, HALF = 11;   // brute height and half width
-try { best = +localStorage.getItem('wetink_best') || 0; } catch (e) {}
+// ---------------- players: optional, each keeps their own best and trophies on this device ----------------
+// The first player uses the original save keys, so an existing save simply becomes "Player 1".
+let profiles = { list: [{ id: 'p0', name: 'Player 1' }], cur: 'p0' };
+try {
+  const sv = JSON.parse(localStorage.getItem('wetink_players') || 'null');
+  const list = sv && Array.isArray(sv.list) ? sv.list.filter(q => q && typeof q.id === 'string' && /^p[0-9a-z]+$/.test(q.id)).map(q => ({ id: q.id, name: String(q.name || 'Player').slice(0, 20) || 'Player' })) : [];
+  if (list.length) profiles = { list, cur: list.some(q => q.id === sv.cur) ? sv.cur : list[0].id };
+} catch (e) {}
+const saveProfiles = () => { try { localStorage.setItem('wetink_players', JSON.stringify(profiles)); } catch (e) {} };
+const keyFor = (id, k) => id === 'p0' ? k : k + '@' + id;
+const pkey = k => keyFor(profiles.cur, k);
+const curPlayer = () => profiles.list.find(q => q.id === profiles.cur) || profiles.list[0];
+const loadBest = id => { try { return +localStorage.getItem(keyFor(id, 'wetink_best')) || 0; } catch (e) { return 0; } };
+const saveBest = () => { try { localStorage.setItem(pkey('wetink_best'), String(best)); } catch (e) {} };
+best = loadBest(profiles.cur);
 
 // ---------------- seeded randomness ----------------
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -1490,8 +1530,9 @@ function drawTrophy(c2, t, x, y, k, only) {      // x, y = top-left; k = pixel s
   for (let yy = 0; yy < 11; yy++) for (let xx = 0; xx < 9; xx++) { const v = g[yy * 9 + xx]; if (!v || (only && !only(xx))) continue; c2.fillStyle = v === 1 ? t.body : v === 2 ? t.accent : t.eye; c2.fillRect(x + xx * k, y + yy * k, k, k); }
 }
 let cab = [];                                  // the cabinet: [{ s: seed, d: depth, c: cave, t: time }]
-try { const sv = JSON.parse(localStorage.getItem('wetink_cabinet') || '[]'); if (Array.isArray(sv)) cab = sv.filter(e => e && typeof e.s === 'number'); } catch (e) {}
-const cabLocal = () => { try { localStorage.setItem('wetink_cabinet', JSON.stringify(cab.slice(-2000))); } catch (e) {} };
+function loadCab(id) { try { const sv = JSON.parse(localStorage.getItem(keyFor(id, 'wetink_cabinet')) || '[]'); if (Array.isArray(sv)) return sv.filter(e => e && typeof e.s === 'number'); } catch (e) {} return []; }
+cab = loadCab(profiles.cur);
+const cabLocal = () => { try { localStorage.setItem(pkey('wetink_cabinet'), JSON.stringify(cab.slice(-2000))); } catch (e) {} };
 // Where the viewer's Claude account allows it, the cabinet is also kept there, so it follows them between devices.
 let cloudRef = null, cloudBusy = false, cloudDirty = false, cloudTried = false;
 function mergeCab(list) {
@@ -1503,23 +1544,31 @@ function mergeCab(list) {
 async function cloudSave() {
   if (!cloudRef) return;
   if (cloudBusy) { cloudDirty = true; return; }            // one write at a time
-  cloudBusy = true;
-  try { do { cloudDirty = false; await cloudRef.set({ v: 1, items: cab.slice(-2000) }); } while (cloudDirty); }
-  catch (e) { cloudRef = null; }                           // this viewer may not write: the browser copy carries on alone
+  cloudBusy = true; const ref = cloudRef;
+  try { do { cloudDirty = false; await ref.set({ v: 1, items: cab.slice(-2000) }); } while (cloudDirty && cloudRef === ref); }
+  catch (e) { if (cloudRef === ref) cloudRef = null; }                           // this viewer may not write: the browser copy carries on alone
   cloudBusy = false;
 }
 async function cloudInit() {
-  if (cloudTried) return; cloudTried = true;
+  if (cloudTried) return; cloudTried = true; const who = profiles.cur;
   try {
     if (!window.claude || typeof window.claude.use !== 'function') return;
     const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
     if (!db || !user) return;
     const id = await user.id(); if (!id) return;
-    const ref = db.doc('data/users/' + id + '/cabinet'), snap = await ref.get();
+    const ref = db.doc('data/users/' + id + '/' + (who === 'p0' ? 'cabinet' : 'cabinet-' + who)), snap = await ref.get();
+    if (who !== profiles.cur) return;                      // the player changed while this was loading
     const remote = snap.exists ? (snap.data().items || []) : [], before = cab.length;
     mergeCab(remote); cabLocal(); cloudRef = ref; hudC = {};
     if (cab.length !== remote.length || before !== cab.length) cloudSave();
   } catch (e) {}
+}
+function usePlayer(id) {                    // switch who is playing: their best, their cabinet
+  if (!profiles.list.some(q => q.id === id)) return;
+  profiles.cur = id; saveProfiles();
+  best = loadBest(id); cab = loadCab(id);
+  cloudRef = null; cloudTried = false; cloudDirty = false; hudC = {};
+  cloudInit();
 }
 function winTrophy(tr) {
   tr.taken = true; stats.trophies++;
@@ -1574,13 +1623,13 @@ function showCabinet() {
   if (hand) return;
   const wasPaused = paused; if (state === 'play' && !paused) togglePause();
   const list = cab.slice(-240).reverse();
-  overlay.className = '';
+  overlay.className = homeOpen ? 'homebg' : '';
   overlay.innerHTML = '<div class="cab"><h2>Trophies <small>' + cab.length + '</small></h2><p>' + (cloudRef ? 'Kept in your Claude account, and in this browser.' : 'Kept in this browser on this device.') + (cab.length > list.length ? ' Showing the newest ' + list.length + '.' : '') + '</p>' +
     (list.length ? '<div class="cgrid">' + list.map((e, i) => { const t = mkTrophy(e.s), esc = v => String(v).replace(/[&<>]/g, ''), bn = e.b ? esc(e.n || '').split('|') : null; return `<div class="tcard${e.b ? ' boss' : ''}"><canvas width="66" height="78" data-i="${i}"></canvas>${e.b ? '<em>Boss</em>' : ''}<b>${bn ? bn[0] : t.name}</b><span>${bn ? bn[1] || '' : t.place}</span><small>${e.d} m · cave ${e.c}</small></div>`; }).join('') + '</div>'
                  : '<p class="empty">Nothing here yet. Trophies wait in out-of-the-way places: on top of formations, on high shelves, and at the summit of the giant in each chamber.</p>') +
     '<div class="row"><button class="primary" id="cDone">Close</button></div></div>';
   overlay.querySelectorAll('canvas').forEach(cv2 => { const c2 = cv2.getContext('2d'); drawTrophy(c2, mkTrophy(list[+cv2.dataset.i].s), 6, 6, 6); });
-  $('cDone').onclick = () => { if (state === 'play') { overlay.className = 'hide'; if (!wasPaused && paused) togglePause(); } else if (state === 'ready') showIntro(); else gameOver(); };
+  $('cDone').onclick = () => backOut(wasPaused);
 }
 
 // ---------------- bosses: a sealed arena every few hundred metres ----------------
@@ -2531,23 +2580,185 @@ function newWorld(s) {
   genBand();
   $('bPause').textContent = 'Pause';
 }
-function startGame(s) { sfx.init(); cloudInit(); newWorld(s); state = 'play'; overlay.className = 'hide'; hudC = {}; }
+function startGame(s) { leaveHome(); sfx.init(); cloudInit(); newWorld(s); state = 'play'; overlay.className = 'hide'; hudC = {}; }
 function gameOver() {
   state = 'over'; cur = null;
   const d = depthM(), isBest = d > best;
-  if (isBest) { best = d; try { localStorage.setItem('wetink_best', String(best)); } catch (e) {} }
+  if (isBest) { best = d; saveBest(); }
   overlay.className = '';
   overlay.innerHTML = `<div class="card"><h2>The flock is gone</h2>
     <div class="big">${d} m deep${isBest ? ' · new best' : ''}</div>
     <p style="margin:2px 0 14px;color:var(--muted)">Cave #${seed} · best ${best} m<br>${stats.pickups} pickups · ${stats.birds} birds beaten · ${stats.rescues} rescues · ${deathLog.filter(x => x.eaten).length} eaten · ${deathLog.filter(x => x.blast || x.bomb).length} lost to bombs · ${deathLog.filter(x => x.crushed).length} crushed · ${deathLog.filter(x => x.spiked).length} spiked · ${stats.brutes} brutes beaten · ${stats.leeches} leeches killed (they drank ${Math.round(stats.drained)} ink) · ${stats.faded} left behind · ${stats.drops} drops · ${stats.hands} hands · ${stats.trophies} trophies · ${stats.bosses} bosses beaten · ${stats.raids} events won · stratum ${stratum + 1}${stats.crushed ? " · " + stats.crushed + " crushed" : ""}</p>
-    <div class="row"><button class="primary" id="oRetry">Retry this cave</button><button id="oNew">New cave</button></div></div>`;
+    <div class="row"><button class="primary" id="oRetry">Retry this cave</button><button id="oNew">New cave</button><button id="oHome">&#8962; Home</button></div></div>`;
   $('oRetry').onclick = () => startGame(seed);
+  $('oHome').onclick = showHome;
   $('oNew').onclick = () => startGame(randSeed());
 }
 const randSeed = () => 10000 + Math.floor(Math.random() * 90000);
-function showIntro() {
-  overlay.className = '';
-  overlay.innerHTML = `<div class="card"><h2>Wet Ink</h2>
+// ---------------- home screen ----------------
+// Home pauses a run; Continue picks it up. Starting a new game over a paused run asks first.
+let homeOpen = false, homeTimer = 0, homeFrame = 0, soundOn = true;
+const escH = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+// Title art: put image files next to index.html and list them here, e.g. ['title-1.png', 'title-2.png', 'title-3.png'].
+// They play in a loop, one frame every TITLE_MS, drawn crisp (no smoothing). Leave empty for the placeholder drawn in code.
+const TITLE_ART = [];
+const TITLE_MS = 380;
+function leaveHome() { homeOpen = false; document.body.classList.remove('athome'); clearInterval(homeTimer); homeTimer = 0; }
+function runWaiting() { return state === 'play'; }        // a run exists and is paused behind the home screen
+function abandonRun() {                                    // end the paused run: its depth still counts toward best
+  if (state !== 'play') return;
+  const d = depthM(); if (d > best) { best = d; saveBest(); }
+  newWorld(randSeed()); state = 'ready'; hudC = {};
+}
+function showHome() {
+  if (hand) return;
+  if (state === 'play' && !paused) togglePause();
+  homeOpen = true; document.body.classList.add('athome');
+  cur = null; drawing = false;
+  const run = runWaiting(), pl = curPlayer(), many = profiles.list.length > 1 || pl.name !== 'Player 1';
+  overlay.className = 'homebg';
+  overlay.innerHTML = `<div class="home">
+    <div class="corner l"><button id="hPlayer" title="Players">${many ? '&#9786; ' + escH(pl.name) + ' &#9662;' : '+ Add player'}</button></div>
+    <div class="corner r"><button id="hSound" title="Sound (M)">&#9834; ${soundOn ? 'on' : 'off'}</button></div>
+    <div class="left">${TITLE_ART.length ? `<img class="title" id="hArt" alt="Wet Ink" src="${escH(TITLE_ART[0])}">` : '<canvas class="title" id="hArt" width="256" height="128" aria-label="Wet Ink"></canvas>'}
+    <div class="bestline">${many ? escH(pl.name) + ' · ' : ''}Best <b>${best} m</b>${run ? ' · this run <b>' + depthM() + ' m</b>' : ''}</div></div>
+    <div class="menu">
+      ${run ? `<button class="primary" id="hGo">Continue <small>${depthM()} m</small></button><button id="hNew">New game</button>` : `<button class="primary" id="hGo">Start</button>`}
+      <button id="hHelp">How to play</button>
+      <button id="hCab">Trophies <small>${cab.length}</small></button>
+      <button id="hShare">Share with QR code</button>
+    </div>
+    <div class="ver">test 28</div></div>`;
+  $('hGo').onclick = () => { if (runWaiting()) { leaveHome(); overlay.className = 'hide'; if (paused) togglePause(); } else startGame(state === 'ready' ? seed : randSeed()); };
+  if (run) $('hNew').onclick = () => confirmCard('Start a new game?', `Your current run (${depthM()} m) will end. Its depth still counts toward your best.`, 'End run and start', () => { abandonRun(); startGame(seed); }, showHome);
+  $('hHelp').onclick = () => showHelp(true);
+  $('hCab').onclick = showCabinet;
+  $('hShare').onclick = showShare;
+  $('hPlayer').onclick = () => showPlayers();
+  $('hSound').onclick = () => { toggleSound(); $('hSound').innerHTML = '&#9834; ' + (soundOn ? 'on' : 'off'); };
+  clearInterval(homeTimer); homeFrame = 0; drawTitleFrame();
+  homeTimer = setInterval(() => { if (!document.hidden) { homeFrame++; drawTitleFrame(); } }, TITLE_MS);
+}
+function drawTitleFrame() {
+  const el = $('hArt'); if (!el) return;
+  if (TITLE_ART.length) { el.src = TITLE_ART[homeFrame % TITLE_ART.length]; return; }
+  drawTitlePlaceholder(el.getContext('2d'), homeFrame);
+}
+// Placeholder title, NES style: a 256x128 picture with a few small animated parts (drips, walking blots, a bird).
+const TFONT = {
+  W: ['10001', '10001', '10001', '10101', '10101', '11011', '10001'], E: ['11111', '10000', '10000', '11110', '10000', '10000', '11111'],
+  T: ['11111', '00100', '00100', '00100', '00100', '00100', '00100'], I: ['11111', '00100', '00100', '00100', '00100', '00100', '11111'],
+  N: ['10001', '11001', '11001', '10101', '10011', '10011', '10001'], K: ['10001', '10010', '10100', '11000', '10100', '10010', '10001'],
+};
+function drawTitlePlaceholder(g, f) {
+  const P = (c, x, y, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  g.imageSmoothingEnabled = false;
+  P('#f5eedf', 0, 0, 256, 128);
+  for (let k = 0; k < 26; k++) { const x = (k * 97 + 13) % 250, y = (k * 53 + 7) % 92; P(k % 3 ? '#e6dfcf' : '#ddd3bf', x, y, k % 4 ? 1 : 2, 1); }   // paper grain
+  // the logo: chunky pixel letters, dark outline, ink body, a highlight
+  const word = 'WET INK', S = 4, LW = 5 * S, GAP = 4, x0 = Math.round((256 - (6 * LW + 5 * GAP + 6)) / 2), y0 = 18;
+  let x = x0; const bottoms = [];
+  for (const ch of word) {
+    if (ch === ' ') { x += 6; continue; }
+    const B = TFONT[ch];
+    for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++) if (B[r][c] === '1') P('#0d1640', x + c * S - 1, y0 + r * S - 1, S + 2, S + 3);
+    for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++) if (B[r][c] === '1') { P('#1c2d6b', x + c * S, y0 + r * S, S, S); if (r === 0 || B[r - 1][c] !== '1') P('#4a63c4', x + c * S, y0 + r * S, S, 1); }
+    for (let c = 0; c < 5; c++) if (B[6][c] === '1') bottoms.push(x + c * S);
+    x += LW + GAP;
+  }
+  // drips: they creep down, and every so often one lets go
+  const DR = [0, 3, 7, 10, 12, 16, 19, 22];
+  DR.forEach((bi, k) => {
+    const bx = bottoms[bi % bottoms.length] + 1, ph = (f + k * 2) % 6, len = [1, 3, 5, 7, 8, 4][ph], by = y0 + 7 * S;
+    P('#0d1640', bx - 1, by, 4, len + 1); P('#1c2d6b', bx, by, 2, len);
+    if (ph === 4) P('#1c2d6b', bx, by + len + 3, 2, 3);
+    if (ph === 5) { P('#1c2d6b', bx, by + 14, 2, 3); P('#4a63c4', bx, by + 14, 1, 1); }
+  });
+  // a red-dot warning line like the game's
+  for (let k = 0; k < 8; k++) P('#d6402b', 70 + k * 16, 66, 2, 2);
+  // ground
+  P('#6d6352', 0, 100, 256, 2); P('#8a7f6a', 0, 102, 256, 26);
+  for (let k = 0; k < 40; k++) P(k % 2 ? '#7a705d' : '#9a8f78', (k * 37) % 254, 104 + (k * 11) % 22, 2, 1);
+  // blots walking along the ground (legs swap each frame), ink-black with a white eye
+  for (let k = 0; k < 6; k++) {
+    const bx = ((k * 41 + f * 3) % 290) - 20, h = k % 3 === 0 ? 9 : k % 3 === 1 ? 8 : 7, by = 100 - h - 2, ph = (f + k) & 1;
+    P('#23211e', bx + 1, by, 5, h); P('#23211e', bx, by + 1, 7, h - 2);
+    P('#fff', bx + 4, by + 2, 1, 1);
+    P('#23211e', bx + 1, by + h, 2, ph ? 2 : 1); P('#23211e', bx + 4, by + h, 2, ph ? 1 : 2);
+  }
+  // a bird circling the top right: wings up, level, down
+  const wx = 214 + [0, 2, 1][f % 3], wy = 8 + [0, 1, 2][f % 3], wing = f % 3;
+  P('#17151a', wx, wy + 3, 9, 3); P('#17151a', wx + 8, wy + 2, 3, 3); P('#ff4530', wx + 9, wy + 3, 1, 1);
+  if (wing === 0) { P('#17151a', wx + 2, wy, 2, 3); P('#17151a', wx + 1, wy - 2, 2, 2); }
+  else if (wing === 1) { P('#17151a', wx - 2, wy + 3, 3, 1); }
+  else { P('#17151a', wx + 2, wy + 6, 2, 3); P('#17151a', wx + 1, wy + 9, 2, 2); }
+  // "press start" style blink
+  if (f % 2 === 0) { g.fillStyle = '#e8762b'; g.font = 'bold 8px monospace'; g.textAlign = 'center'; g.textBaseline = 'top'; g.fillText('DRAW TO SAVE THE FLOCK', 128, 78); }
+}
+function confirmCard(title, text, yes, onYes, onNo, danger) {
+  overlay.className = 'homebg';
+  overlay.innerHTML = `<div class="card"><h2>${escH(title)}</h2><p style="margin:4px 0 14px">${escH(text)}</p>
+    <div class="row"><button class="${danger ? 'danger' : 'primary'}" id="kYes">${escH(yes)}</button><button id="kNo">Cancel</button></div></div>`;
+  $('kYes').onclick = onYes; $('kNo').onclick = onNo;
+}
+function showPlayers(editId) {
+  overlay.className = 'homebg';
+  const rows = profiles.list.map(q => {
+    const me = q.id === profiles.cur, n = loadCab(q.id).length;
+    if (q.id === editId) return `<div class="prow"><input id="pRen" maxlength="20" value="${escH(q.name)}"><button class="primary" id="pRenOk">Save</button><button id="pRenNo">Cancel</button></div>`;
+    return `<div class="prow${me ? ' cur' : ''}"><div class="who"><b>${escH(q.name)}</b><small>best ${me ? best : loadBest(q.id)} m · ${n} troph${n === 1 ? 'y' : 'ies'}</small></div>
+      ${me ? '' : `<button class="primary" data-play="${q.id}">Play as</button>`}<button data-ren="${q.id}">Rename</button>${me || profiles.list.length < 2 ? '' : `<button data-del="${q.id}">Delete</button>`}</div>`;
+  }).join('');
+  overlay.innerHTML = `<div class="card players"><h2>Players</h2>
+    <p class="small" style="margin:0 0 6px">Each player keeps their own best depth and trophies on this device. There are no passwords, so anyone here can pick any name.</p>
+    ${rows}
+    <div class="add"><input id="pNew" maxlength="20" placeholder="New player's name"><button id="pAdd">Add</button></div>
+    <div class="row" style="margin-top:10px"><button class="primary" id="pDone">Done</button></div></div>`;
+  $('pDone').onclick = showHome;
+  const add = () => { const v = $('pNew').value.trim().slice(0, 20); if (!v) { $('pNew').focus(); return; } profiles.list.push({ id: 'p' + Date.now().toString(36), name: v }); saveProfiles(); showPlayers(); };
+  $('pAdd').onclick = add; $('pNew').onkeydown = e => { if (e.key === 'Enter') add(); };
+  if (editId) {
+    const ok = () => { const v = $('pRen').value.trim().slice(0, 20); const q = profiles.list.find(o => o.id === editId); if (v && q) { q.name = v; saveProfiles(); } showPlayers(); };
+    $('pRenOk').onclick = ok; $('pRenNo').onclick = () => showPlayers(); $('pRen').onkeydown = e => { if (e.key === 'Enter') ok(); };
+    $('pRen').focus(); $('pRen').select();
+  }
+  overlay.querySelectorAll('[data-play]').forEach(b => b.onclick = () => {
+    const id = b.dataset.play, go = () => { abandonRun(); usePlayer(id); showHome(); };
+    if (runWaiting()) confirmCard('Switch players?', `The current run (${depthM()} m) will end. Its depth still counts toward ${curPlayer().name}'s best.`, 'End run and switch', go, () => showPlayers());
+    else go();
+  });
+  overlay.querySelectorAll('[data-ren]').forEach(b => b.onclick = () => showPlayers(b.dataset.ren));
+  overlay.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    const q = profiles.list.find(o => o.id === b.dataset.del); if (!q) return; const n = loadCab(q.id).length;
+    confirmCard('Delete ' + q.name + '?', `Their best (${loadBest(q.id)} m) and ${n} troph${n === 1 ? 'y' : 'ies'} on this device are erased. This can't be undone.`, 'Delete', () => {
+      try { localStorage.removeItem(keyFor(q.id, 'wetink_best')); localStorage.removeItem(keyFor(q.id, 'wetink_cabinet')); } catch (e) {}
+      profiles.list = profiles.list.filter(o => o.id !== q.id); saveProfiles(); showPlayers();
+    }, () => showPlayers(), true);
+  });
+}
+// where Back / Close / Done go from a side screen
+function backOut(wasPaused) {
+  if (homeOpen || state === 'ready') return showHome();
+  if (state === 'over') return gameOver();
+  overlay.className = 'hide'; if (!wasPaused && paused) togglePause();
+}
+const SHARE_URL = 'https://justinramsden.github.io/Wet-Ink/';
+const SHARE_QR = '<svg class="qr" viewBox="0 0 33 33" shape-rendering="crispEdges" role="img" aria-label="QR code for the Wet Ink link"><rect width="33" height="33" fill="#fff"/><path d="M2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1zM6 2h1v1h-1zM7 2h1v1h-1zM8 2h1v1h-1zM12 2h1v1h-1zM15 2h1v1h-1zM16 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM24 2h1v1h-1zM25 2h1v1h-1zM26 2h1v1h-1zM27 2h1v1h-1zM28 2h1v1h-1zM29 2h1v1h-1zM30 2h1v1h-1zM2 3h1v1h-1zM8 3h1v1h-1zM12 3h1v1h-1zM17 3h1v1h-1zM20 3h1v1h-1zM24 3h1v1h-1zM30 3h1v1h-1zM2 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM11 4h1v1h-1zM13 4h1v1h-1zM14 4h1v1h-1zM16 4h1v1h-1zM19 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM26 4h1v1h-1zM27 4h1v1h-1zM28 4h1v1h-1zM30 4h1v1h-1zM2 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM12 5h1v1h-1zM13 5h1v1h-1zM16 5h1v1h-1zM20 5h1v1h-1zM24 5h1v1h-1zM26 5h1v1h-1zM27 5h1v1h-1zM28 5h1v1h-1zM30 5h1v1h-1zM2 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM13 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM17 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h1v1h-1zM26 6h1v1h-1zM27 6h1v1h-1zM28 6h1v1h-1zM30 6h1v1h-1zM2 7h1v1h-1zM8 7h1v1h-1zM10 7h1v1h-1zM11 7h1v1h-1zM17 7h1v1h-1zM21 7h1v1h-1zM22 7h1v1h-1zM24 7h1v1h-1zM30 7h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM10 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM24 8h1v1h-1zM25 8h1v1h-1zM26 8h1v1h-1zM27 8h1v1h-1zM28 8h1v1h-1zM29 8h1v1h-1zM30 8h1v1h-1zM11 9h1v1h-1zM12 9h1v1h-1zM13 9h1v1h-1zM17 9h1v1h-1zM19 9h1v1h-1zM20 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM2 10h1v1h-1zM5 10h1v1h-1zM7 10h1v1h-1zM8 10h1v1h-1zM10 10h1v1h-1zM12 10h1v1h-1zM14 10h1v1h-1zM15 10h1v1h-1zM16 10h1v1h-1zM21 10h1v1h-1zM23 10h1v1h-1zM25 10h1v1h-1zM3 11h1v1h-1zM4 11h1v1h-1zM7 11h1v1h-1zM10 11h1v1h-1zM11 11h1v1h-1zM12 11h1v1h-1zM13 11h1v1h-1zM18 11h1v1h-1zM19 11h1v1h-1zM20 11h1v1h-1zM22 11h1v1h-1zM23 11h1v1h-1zM24 11h1v1h-1zM27 11h1v1h-1zM30 11h1v1h-1zM4 12h1v1h-1zM7 12h1v1h-1zM8 12h1v1h-1zM9 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM16 12h1v1h-1zM18 12h1v1h-1zM21 12h1v1h-1zM24 12h1v1h-1zM26 12h1v1h-1zM27 12h1v1h-1zM28 12h1v1h-1zM29 12h1v1h-1zM5 13h1v1h-1zM6 13h1v1h-1zM7 13h1v1h-1zM9 13h1v1h-1zM10 13h1v1h-1zM12 13h1v1h-1zM15 13h1v1h-1zM17 13h1v1h-1zM18 13h1v1h-1zM21 13h1v1h-1zM25 13h1v1h-1zM28 13h1v1h-1zM29 13h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM7 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM13 14h1v1h-1zM15 14h1v1h-1zM16 14h1v1h-1zM18 14h1v1h-1zM19 14h1v1h-1zM22 14h1v1h-1zM23 14h1v1h-1zM24 14h1v1h-1zM25 14h1v1h-1zM27 14h1v1h-1zM29 14h1v1h-1zM30 14h1v1h-1zM4 15h1v1h-1zM5 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1zM15 15h1v1h-1zM21 15h1v1h-1zM22 15h1v1h-1zM23 15h1v1h-1zM3 16h1v1h-1zM5 16h1v1h-1zM6 16h1v1h-1zM7 16h1v1h-1zM8 16h1v1h-1zM10 16h1v1h-1zM12 16h1v1h-1zM13 16h1v1h-1zM15 16h1v1h-1zM16 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM23 16h1v1h-1zM27 16h1v1h-1zM28 16h1v1h-1zM29 16h1v1h-1zM30 16h1v1h-1zM2 17h1v1h-1zM4 17h1v1h-1zM5 17h1v1h-1zM6 17h1v1h-1zM7 17h1v1h-1zM10 17h1v1h-1zM12 17h1v1h-1zM13 17h1v1h-1zM14 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM18 17h1v1h-1zM19 17h1v1h-1zM21 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM24 17h1v1h-1zM25 17h1v1h-1zM27 17h1v1h-1zM29 17h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM8 18h1v1h-1zM11 18h1v1h-1zM12 18h1v1h-1zM14 18h1v1h-1zM15 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM19 18h1v1h-1zM21 18h1v1h-1zM22 18h1v1h-1zM23 18h1v1h-1zM25 18h1v1h-1zM29 18h1v1h-1zM3 19h1v1h-1zM4 19h1v1h-1zM5 19h1v1h-1zM6 19h1v1h-1zM7 19h1v1h-1zM10 19h1v1h-1zM13 19h1v1h-1zM15 19h1v1h-1zM16 19h1v1h-1zM17 19h1v1h-1zM18 19h1v1h-1zM20 19h1v1h-1zM24 19h1v1h-1zM25 19h1v1h-1zM27 19h1v1h-1zM30 19h1v1h-1zM2 20h1v1h-1zM4 20h1v1h-1zM5 20h1v1h-1zM8 20h1v1h-1zM9 20h1v1h-1zM12 20h1v1h-1zM16 20h1v1h-1zM24 20h1v1h-1zM25 20h1v1h-1zM26 20h1v1h-1zM29 20h1v1h-1zM30 20h1v1h-1zM4 21h1v1h-1zM5 21h1v1h-1zM6 21h1v1h-1zM7 21h1v1h-1zM10 21h1v1h-1zM11 21h1v1h-1zM12 21h1v1h-1zM13 21h1v1h-1zM19 21h1v1h-1zM20 21h1v1h-1zM21 21h1v1h-1zM23 21h1v1h-1zM29 21h1v1h-1zM30 21h1v1h-1zM2 22h1v1h-1zM5 22h1v1h-1zM6 22h1v1h-1zM8 22h1v1h-1zM9 22h1v1h-1zM10 22h1v1h-1zM13 22h1v1h-1zM17 22h1v1h-1zM18 22h1v1h-1zM22 22h1v1h-1zM23 22h1v1h-1zM24 22h1v1h-1zM25 22h1v1h-1zM26 22h1v1h-1zM28 22h1v1h-1zM10 23h1v1h-1zM12 23h1v1h-1zM13 23h1v1h-1zM19 23h1v1h-1zM22 23h1v1h-1zM26 23h1v1h-1zM28 23h1v1h-1zM29 23h1v1h-1zM30 23h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM7 24h1v1h-1zM8 24h1v1h-1zM11 24h1v1h-1zM13 24h1v1h-1zM18 24h1v1h-1zM19 24h1v1h-1zM20 24h1v1h-1zM22 24h1v1h-1zM24 24h1v1h-1zM26 24h1v1h-1zM29 24h1v1h-1zM2 25h1v1h-1zM8 25h1v1h-1zM10 25h1v1h-1zM14 25h1v1h-1zM16 25h1v1h-1zM18 25h1v1h-1zM22 25h1v1h-1zM26 25h1v1h-1zM27 25h1v1h-1zM28 25h1v1h-1zM29 25h1v1h-1zM2 26h1v1h-1zM4 26h1v1h-1zM5 26h1v1h-1zM6 26h1v1h-1zM8 26h1v1h-1zM11 26h1v1h-1zM12 26h1v1h-1zM14 26h1v1h-1zM17 26h1v1h-1zM18 26h1v1h-1zM19 26h1v1h-1zM20 26h1v1h-1zM22 26h1v1h-1zM23 26h1v1h-1zM24 26h1v1h-1zM25 26h1v1h-1zM26 26h1v1h-1zM2 27h1v1h-1zM4 27h1v1h-1zM5 27h1v1h-1zM6 27h1v1h-1zM8 27h1v1h-1zM10 27h1v1h-1zM11 27h1v1h-1zM13 27h1v1h-1zM15 27h1v1h-1zM21 27h1v1h-1zM24 27h1v1h-1zM26 27h1v1h-1zM27 27h1v1h-1zM28 27h1v1h-1zM29 27h1v1h-1zM2 28h1v1h-1zM4 28h1v1h-1zM5 28h1v1h-1zM6 28h1v1h-1zM8 28h1v1h-1zM11 28h1v1h-1zM13 28h1v1h-1zM16 28h1v1h-1zM21 28h1v1h-1zM22 28h1v1h-1zM26 28h1v1h-1zM27 28h1v1h-1zM28 28h1v1h-1zM30 28h1v1h-1zM2 29h1v1h-1zM8 29h1v1h-1zM11 29h1v1h-1zM13 29h1v1h-1zM17 29h1v1h-1zM19 29h1v1h-1zM21 29h1v1h-1zM22 29h1v1h-1zM23 29h1v1h-1zM25 29h1v1h-1zM26 29h1v1h-1zM29 29h1v1h-1zM2 30h1v1h-1zM3 30h1v1h-1zM4 30h1v1h-1zM5 30h1v1h-1zM6 30h1v1h-1zM7 30h1v1h-1zM8 30h1v1h-1zM10 30h1v1h-1zM11 30h1v1h-1zM13 30h1v1h-1zM14 30h1v1h-1zM16 30h1v1h-1zM17 30h1v1h-1zM19 30h1v1h-1zM22 30h1v1h-1zM23 30h1v1h-1zM27 30h1v1h-1zM29 30h1v1h-1z" fill="#16224f"/></svg>';
+function showShare() {                     // a code to point another phone at: it opens this game
+  overlay.className = homeOpen ? 'homebg' : '';
+  overlay.innerHTML = `<div class="card sharecard"><h2>Share Wet Ink</h2>
+    <p>Point a phone camera at the code to open the game.</p>${SHARE_QR}
+    <p class="url">${SHARE_URL.replace('https://', '')}</p>
+    <div class="row"><button class="primary" id="sBack">Back</button><button id="sCopy">Copy link</button></div></div>`;
+  $('sBack').onclick = () => backOut(true);
+  $('sCopy').onclick = async () => { let ok = false; try { await navigator.clipboard.writeText(SHARE_URL); ok = true; } catch (e) {} $('sCopy').textContent = ok ? 'Copied!' : 'Select the link above'; if (!ok) { const r = document.createRange(); r.selectNodeContents(overlay.querySelector('.url')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } };
+}
+function showHelp(fromIntro) {
+  const wasPaused = paused;
+  if (state === 'play' && !paused) togglePause();
+  overlay.className = homeOpen ? 'homebg' : '';
+  overlay.innerHTML = `<div class="card"><h2>How to play</h2>
+    <h3 style="margin:6px 0 0;font-size:16px">The basics</h3>
     <ul><li>The flock never stops walking.</li>
     <li>A fall past the <b style="color:var(--red)">red dots</b> kills.</li>
     <li>Draw to catch them. Ink is solid only while it is wet, and it dries from where your stroke began. Thicken a line to make it last.</li>
@@ -2556,30 +2767,10 @@ function showIntro() {
     <li>After 60 m a <b>Brute</b> drops in. It can't be hurt by falls: wall it in with ink and leave it behind above the screen.</li>
     <li>Collect <b>drops</b>. Four open a hand of three upgrade cards.</li>
     <li><b>Looking around:</b> two fingers on the screen (or the mouse wheel) slide the view up and down; it drifts back to the flock after a moment. While paused, drag to look. Looking never changes what the cave does: enemies, the Fade and rewards follow the flock, not your view.</li>
-      <li>Run the tank dry and the pen stays dry for 2 s. Below half a tank, ink refills much faster.</li>
-      <li>Don't leave blots far behind: the page above you fades.</li></ul>
-    <div class="row"><button class="primary" id="oStart">Start</button><button id="oHelp">How to play</button></div>
-    <div class="share"><button id="oShare">Share with QR code</button></div></div>`;
-  $('oStart').onclick = () => startGame(seed);
-  $('oHelp').onclick = () => showHelp(true);
-  $('oShare').onclick = showShare;
-}
-const SHARE_URL = 'https://justinramsden.github.io/Wet-Ink/';
-const SHARE_QR = '<svg class="qr" viewBox="0 0 33 33" shape-rendering="crispEdges" role="img" aria-label="QR code for the Wet Ink link"><rect width="33" height="33" fill="#fff"/><path d="M2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1zM6 2h1v1h-1zM7 2h1v1h-1zM8 2h1v1h-1zM12 2h1v1h-1zM15 2h1v1h-1zM16 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM24 2h1v1h-1zM25 2h1v1h-1zM26 2h1v1h-1zM27 2h1v1h-1zM28 2h1v1h-1zM29 2h1v1h-1zM30 2h1v1h-1zM2 3h1v1h-1zM8 3h1v1h-1zM12 3h1v1h-1zM17 3h1v1h-1zM20 3h1v1h-1zM24 3h1v1h-1zM30 3h1v1h-1zM2 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM11 4h1v1h-1zM13 4h1v1h-1zM14 4h1v1h-1zM16 4h1v1h-1zM19 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM26 4h1v1h-1zM27 4h1v1h-1zM28 4h1v1h-1zM30 4h1v1h-1zM2 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM12 5h1v1h-1zM13 5h1v1h-1zM16 5h1v1h-1zM20 5h1v1h-1zM24 5h1v1h-1zM26 5h1v1h-1zM27 5h1v1h-1zM28 5h1v1h-1zM30 5h1v1h-1zM2 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM13 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM17 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h1v1h-1zM26 6h1v1h-1zM27 6h1v1h-1zM28 6h1v1h-1zM30 6h1v1h-1zM2 7h1v1h-1zM8 7h1v1h-1zM10 7h1v1h-1zM11 7h1v1h-1zM17 7h1v1h-1zM21 7h1v1h-1zM22 7h1v1h-1zM24 7h1v1h-1zM30 7h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM10 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM24 8h1v1h-1zM25 8h1v1h-1zM26 8h1v1h-1zM27 8h1v1h-1zM28 8h1v1h-1zM29 8h1v1h-1zM30 8h1v1h-1zM11 9h1v1h-1zM12 9h1v1h-1zM13 9h1v1h-1zM17 9h1v1h-1zM19 9h1v1h-1zM20 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM2 10h1v1h-1zM5 10h1v1h-1zM7 10h1v1h-1zM8 10h1v1h-1zM10 10h1v1h-1zM12 10h1v1h-1zM14 10h1v1h-1zM15 10h1v1h-1zM16 10h1v1h-1zM21 10h1v1h-1zM23 10h1v1h-1zM25 10h1v1h-1zM3 11h1v1h-1zM4 11h1v1h-1zM7 11h1v1h-1zM10 11h1v1h-1zM11 11h1v1h-1zM12 11h1v1h-1zM13 11h1v1h-1zM18 11h1v1h-1zM19 11h1v1h-1zM20 11h1v1h-1zM22 11h1v1h-1zM23 11h1v1h-1zM24 11h1v1h-1zM27 11h1v1h-1zM30 11h1v1h-1zM4 12h1v1h-1zM7 12h1v1h-1zM8 12h1v1h-1zM9 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM16 12h1v1h-1zM18 12h1v1h-1zM21 12h1v1h-1zM24 12h1v1h-1zM26 12h1v1h-1zM27 12h1v1h-1zM28 12h1v1h-1zM29 12h1v1h-1zM5 13h1v1h-1zM6 13h1v1h-1zM7 13h1v1h-1zM9 13h1v1h-1zM10 13h1v1h-1zM12 13h1v1h-1zM15 13h1v1h-1zM17 13h1v1h-1zM18 13h1v1h-1zM21 13h1v1h-1zM25 13h1v1h-1zM28 13h1v1h-1zM29 13h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM7 14h1v1h-1zM8 14h1v1h-1zM11 14h1v1h-1zM13 14h1v1h-1zM15 14h1v1h-1zM16 14h1v1h-1zM18 14h1v1h-1zM19 14h1v1h-1zM22 14h1v1h-1zM23 14h1v1h-1zM24 14h1v1h-1zM25 14h1v1h-1zM27 14h1v1h-1zM29 14h1v1h-1zM30 14h1v1h-1zM4 15h1v1h-1zM5 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1zM15 15h1v1h-1zM21 15h1v1h-1zM22 15h1v1h-1zM23 15h1v1h-1zM3 16h1v1h-1zM5 16h1v1h-1zM6 16h1v1h-1zM7 16h1v1h-1zM8 16h1v1h-1zM10 16h1v1h-1zM12 16h1v1h-1zM13 16h1v1h-1zM15 16h1v1h-1zM16 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM23 16h1v1h-1zM27 16h1v1h-1zM28 16h1v1h-1zM29 16h1v1h-1zM30 16h1v1h-1zM2 17h1v1h-1zM4 17h1v1h-1zM5 17h1v1h-1zM6 17h1v1h-1zM7 17h1v1h-1zM10 17h1v1h-1zM12 17h1v1h-1zM13 17h1v1h-1zM14 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM18 17h1v1h-1zM19 17h1v1h-1zM21 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM24 17h1v1h-1zM25 17h1v1h-1zM27 17h1v1h-1zM29 17h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM8 18h1v1h-1zM11 18h1v1h-1zM12 18h1v1h-1zM14 18h1v1h-1zM15 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM19 18h1v1h-1zM21 18h1v1h-1zM22 18h1v1h-1zM23 18h1v1h-1zM25 18h1v1h-1zM29 18h1v1h-1zM3 19h1v1h-1zM4 19h1v1h-1zM5 19h1v1h-1zM6 19h1v1h-1zM7 19h1v1h-1zM10 19h1v1h-1zM13 19h1v1h-1zM15 19h1v1h-1zM16 19h1v1h-1zM17 19h1v1h-1zM18 19h1v1h-1zM20 19h1v1h-1zM24 19h1v1h-1zM25 19h1v1h-1zM27 19h1v1h-1zM30 19h1v1h-1zM2 20h1v1h-1zM4 20h1v1h-1zM5 20h1v1h-1zM8 20h1v1h-1zM9 20h1v1h-1zM12 20h1v1h-1zM16 20h1v1h-1zM24 20h1v1h-1zM25 20h1v1h-1zM26 20h1v1h-1zM29 20h1v1h-1zM30 20h1v1h-1zM4 21h1v1h-1zM5 21h1v1h-1zM6 21h1v1h-1zM7 21h1v1h-1zM10 21h1v1h-1zM11 21h1v1h-1zM12 21h1v1h-1zM13 21h1v1h-1zM19 21h1v1h-1zM20 21h1v1h-1zM21 21h1v1h-1zM23 21h1v1h-1zM29 21h1v1h-1zM30 21h1v1h-1zM2 22h1v1h-1zM5 22h1v1h-1zM6 22h1v1h-1zM8 22h1v1h-1zM9 22h1v1h-1zM10 22h1v1h-1zM13 22h1v1h-1zM17 22h1v1h-1zM18 22h1v1h-1zM22 22h1v1h-1zM23 22h1v1h-1zM24 22h1v1h-1zM25 22h1v1h-1zM26 22h1v1h-1zM28 22h1v1h-1zM10 23h1v1h-1zM12 23h1v1h-1zM13 23h1v1h-1zM19 23h1v1h-1zM22 23h1v1h-1zM26 23h1v1h-1zM28 23h1v1h-1zM29 23h1v1h-1zM30 23h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM7 24h1v1h-1zM8 24h1v1h-1zM11 24h1v1h-1zM13 24h1v1h-1zM18 24h1v1h-1zM19 24h1v1h-1zM20 24h1v1h-1zM22 24h1v1h-1zM24 24h1v1h-1zM26 24h1v1h-1zM29 24h1v1h-1zM2 25h1v1h-1zM8 25h1v1h-1zM10 25h1v1h-1zM14 25h1v1h-1zM16 25h1v1h-1zM18 25h1v1h-1zM22 25h1v1h-1zM26 25h1v1h-1zM27 25h1v1h-1zM28 25h1v1h-1zM29 25h1v1h-1zM2 26h1v1h-1zM4 26h1v1h-1zM5 26h1v1h-1zM6 26h1v1h-1zM8 26h1v1h-1zM11 26h1v1h-1zM12 26h1v1h-1zM14 26h1v1h-1zM17 26h1v1h-1zM18 26h1v1h-1zM19 26h1v1h-1zM20 26h1v1h-1zM22 26h1v1h-1zM23 26h1v1h-1zM24 26h1v1h-1zM25 26h1v1h-1zM26 26h1v1h-1zM2 27h1v1h-1zM4 27h1v1h-1zM5 27h1v1h-1zM6 27h1v1h-1zM8 27h1v1h-1zM10 27h1v1h-1zM11 27h1v1h-1zM13 27h1v1h-1zM15 27h1v1h-1zM21 27h1v1h-1zM24 27h1v1h-1zM26 27h1v1h-1zM27 27h1v1h-1zM28 27h1v1h-1zM29 27h1v1h-1zM2 28h1v1h-1zM4 28h1v1h-1zM5 28h1v1h-1zM6 28h1v1h-1zM8 28h1v1h-1zM11 28h1v1h-1zM13 28h1v1h-1zM16 28h1v1h-1zM21 28h1v1h-1zM22 28h1v1h-1zM26 28h1v1h-1zM27 28h1v1h-1zM28 28h1v1h-1zM30 28h1v1h-1zM2 29h1v1h-1zM8 29h1v1h-1zM11 29h1v1h-1zM13 29h1v1h-1zM17 29h1v1h-1zM19 29h1v1h-1zM21 29h1v1h-1zM22 29h1v1h-1zM23 29h1v1h-1zM25 29h1v1h-1zM26 29h1v1h-1zM29 29h1v1h-1zM2 30h1v1h-1zM3 30h1v1h-1zM4 30h1v1h-1zM5 30h1v1h-1zM6 30h1v1h-1zM7 30h1v1h-1zM8 30h1v1h-1zM10 30h1v1h-1zM11 30h1v1h-1zM13 30h1v1h-1zM14 30h1v1h-1zM16 30h1v1h-1zM17 30h1v1h-1zM19 30h1v1h-1zM22 30h1v1h-1zM23 30h1v1h-1zM27 30h1v1h-1zM29 30h1v1h-1z" fill="#16224f"/></svg>';
-function showShare() {                     // a code to point another phone at: it opens this game
-  overlay.className = '';
-  overlay.innerHTML = `<div class="card sharecard"><h2>Share Wet Ink</h2>
-    <p>Point a phone camera at the code to open the game.</p>${SHARE_QR}
-    <p class="url">${SHARE_URL.replace('https://', '')}</p>
-    <div class="row"><button class="primary" id="sBack">Back</button><button id="sCopy">Copy link</button></div></div>`;
-  $('sBack').onclick = showIntro;
-  $('sCopy').onclick = async () => { let ok = false; try { await navigator.clipboard.writeText(SHARE_URL); ok = true; } catch (e) {} $('sCopy').textContent = ok ? 'Copied!' : 'Select the link above'; if (!ok) { const r = document.createRange(); r.selectNodeContents(overlay.querySelector('.url')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } };
-}
-function showHelp(fromIntro) {
-  const wasPaused = paused;
-  if (state === 'play' && !paused) togglePause();
-  overlay.className = '';
-  overlay.innerHTML = `<div class="card"><h2>How to play</h2>
+    <li>Run the tank dry and the pen stays dry for 2 s. Below half a tank, ink refills much faster.</li>
+    <li>Don't leave blots far behind: the page above you fades.</li>
+    <li><b>&#8962; Home</b> (or H / Esc) pauses the run; Continue picks it up again.</li></ul>
+    <h3 style="margin:10px 0 0;font-size:16px">Everything else</h3>
     <ul>
       <li><b>Ink</b> is solid only while wet. A line dries in the order you drew it, so start each stroke where the flock steps first. Ink dries from the outside in: go over a line, or draw lines side by side, and every extra layer adds about 2 s.</li>
       <li><b>Drops</b> lie around the cave. When you have enough, a hand of three cards opens as soon as you lift your pen; each hand costs a little more than the last. Cards: <b>Lasting</b> (ink lives longer, turning from indigo to wine; at MAX everything you draw holds until the countdown ends, then dries all at once), <b>Wide</b> (a broader brush for the same ink), <b>Tough</b> (glossy ink Brutes and leeches struggle with; lasts 90 s, then 60 s at level 2; at MAX, 30 s in which any enemy you shut inside ink is crushed), <b>Reinforcements</b> (+6 blots), or <b>Reservoir</b> (a bigger, full ink tank for a while).</li>
@@ -2608,9 +2799,9 @@ function showHelp(fromIntro) {
       <li>The camera holds still while you're drawing.</li>
       <li><b>Bombs</b> are rare and bad. A blot who touches one explodes after 5 s, taking nearby blots and rock with it. Tap it to set it off early, ideally far from the flock.</li>
     </ul>
-    <p class="small">Keys: 1 2 3 pick a card · C trophies · T tuning · Space pause · R retry · M sound</p>
-    <div class="row"><button class="primary" id="oBack">${fromIntro ? 'Back' : 'Resume'}</button></div></div>`;
-  $('oBack').onclick = () => { if (fromIntro) showIntro(); else { overlay.className = 'hide'; if (!wasPaused && paused) togglePause(); } };
+    <p class="small">Keys: 1 2 3 pick a card · C trophies · T tuning · Space pause · H or Esc home · R retry · M sound</p>
+    <div class="row"><button class="primary" id="oBack">${fromIntro || state !== 'play' ? 'Back' : 'Resume'}</button></div></div>`;
+  $('oBack').onclick = () => backOut(wasPaused);
 }
 
 // ---------------- rendering ----------------
@@ -3074,9 +3265,9 @@ function showTune() {
     '<div class="row"><button class="primary" id="tDone">Done</button><button id="tRetry">Retry this cave</button><button id="tNew">New cave</button><button id="tReset">Reset all</button></div></div>';
   overlay.querySelectorAll('select').forEach(el => { el.onchange = () => { TUNE[el.dataset.k] = +el.value; saveTune(); }; });
   overlay.querySelectorAll('input[type=range]').forEach(el => { el.oninput = () => { const k = el.dataset.k; TUNE[k] = +el.value; $('tv_' + k).textContent = el.value; hudC = {}; saveTune(); }; });
-  $('tDone').onclick = () => { overlay.className = state === 'play' ? 'hide' : ''; if (state !== 'play') { if (state === 'ready') showIntro(); else gameOver(); return; } if (!wasPaused && paused) togglePause(); };
-  $('tRetry').onclick = () => $('bRetry').onclick();
-  $('tNew').onclick = () => $('bNew').onclick();
+  $('tDone').onclick = () => backOut(wasPaused);
+  $('tRetry').onclick = () => { leaveHome(); $('bRetry').onclick(); };
+  $('tNew').onclick = () => { leaveHome(); $('bNew').onclick(); };
   $('tReset').onclick = () => { Object.assign(TUNE, TUNE_DEF); saveTune(); hudC = {}; showTune(); };
 }
 function frame(now) {
@@ -3125,18 +3316,22 @@ cv.addEventListener('pointercancel', pointerEnd);
 cv.addEventListener('wheel', e => { if (state !== 'play' || hand) return; e.preventDefault(); panBy(Math.max(-160, Math.min(160, e.deltaY)) * 0.9); }, { passive: false });
 cv.addEventListener('pointerleave', () => { pointer = null; });
 
-function togglePause() { if (state !== 'play' || hand) return; paused = !paused; cur = null; drawing = false; drawId = null; lookY = null; panIdle = 0; $('bPause').textContent = paused ? 'Resume' : 'Pause'; }
+function togglePause() { if (state !== 'play' || hand || homeOpen) return; paused = !paused; cur = null; drawing = false; drawId = null; lookY = null; panIdle = 0; $('bPause').textContent = paused ? 'Resume' : 'Pause'; }
 $('bPause').onclick = togglePause;
 $('bOpen').onclick = () => { sfx.init(); openHand(); };
 $('bTune').onclick = showTune;
 $('bCab').onclick = showCabinet;
-$('bHelp').onclick = () => { if (hand) return; if (state === 'play') showHelp(false); else showHelp(state === 'ready'); };
-const toggleSound = () => { sfx.init(); $('bSound').innerHTML = '<span class="lbl">Sound</span>&#9834; ' + (sfx.toggle() ? 'on' : 'off'); };
+$('bHelp').onclick = () => { if (hand) return; showHelp(state !== 'play'); };
+$('bHome').onclick = showHome;
+const toggleSound = () => { sfx.init(); soundOn = sfx.toggle(); $('bSound').innerHTML = '<span class="lbl">Sound</span>&#9834; ' + (soundOn ? 'on' : 'off'); };
 $('bSound').onclick = toggleSound;
 $('bRetry').onclick = () => startGame(seed);
 $('bNew').onclick = () => startGame(randSeed());
 window.addEventListener('keydown', e => {
   if (hand) { if (e.key >= '1' && e.key <= '3') pickCard(+e.key - 1); return; }
+  if (e.target && e.target.tagName === 'INPUT') return;           // typing a player's name
+  if (homeOpen) { if (e.key === 'm' || e.key === 'M') { toggleSound(); const b = $('hSound'); if (b) b.innerHTML = '&#9834; ' + (soundOn ? 'on' : 'off'); } else if (e.key === 'Enter' && $('hGo')) $('hGo').click(); return; }
+  if ((e.key === 'h' || e.key === 'H' || e.key === 'Escape') && state === 'play' && overlay.className === 'hide') { showHome(); return; }
   if (e.key === ' ') { e.preventDefault(); togglePause(); }
   else if (e.key === 't' || e.key === 'T') showTune();
   else if (e.key === 'c' || e.key === 'C') showCabinet();
@@ -3226,7 +3421,7 @@ window.__wetink = {
 fit();
 newWorld(randSeed());
 cloudInit();   // fetch the account's cabinet in the background; the game never waits for it
-showIntro();
+showHome();
 requestAnimationFrame(frame);
 })();
 </script>
