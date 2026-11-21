@@ -147,7 +147,7 @@
 <body>
 <div class="wrap">
   <div class="bar">
-    <span class="logo">Wet Ink</span><span class="tag">test 29</span>
+    <span class="logo">Wet Ink</span><span class="tag">test 30</span>
     <div class="meter"><span class="lbl">Ink</span>
       <div class="tube" id="tube"><b id="inkfill"></b></div><span class="chip res" id="cRes" title="Reservoir: bigger ink tank" style="display:none"></span>
       <span class="chip" id="cLast" title="Lasting"><u>L</u><i></i><i></i><em></em></span>
@@ -640,6 +640,7 @@ function genBand() {
       for (let c = cS; c < cS + wS; c++) { terrain[S][c] = 1; if (c > cS && c < cS + wS - 1) terrain[S + 1][c] = 1; }
       if (fo() < 0.22 * TUNE.trophyRate) addTrophy(cS + (wS >> 1), S);
       else addPickup(cS + (wS >> 1), S, fr() < TUNE.chestOdds ? 'chest' : 'plus5', 2);
+      gaps.push({ isl: true, cols: [cS - 1, cS + wS], rows: [S, S], dead: [null, null] });   // a shelf's ends are drops too: they get the same warning dots
       break;
     }
   }
@@ -2649,7 +2650,7 @@ function showHome() {
       <button id="hCab">Trophies <small>${cab.length}</small></button>
       <button id="hShare">Share with QR code</button>
     </div>
-    <div class="ver">test 29</div></div>`;
+    <div class="ver">test 30</div></div>`;
   $('hGo').onclick = () => { if (runWaiting()) { leaveHome(); overlay.className = 'hide'; if (paused) togglePause(); } else startGame(state === 'ready' ? seed : randSeed()); };
   if (run) $('hNew').onclick = () => confirmCard('Start a new game?', `Your current run (${depthM()} m) will end. Its depth still counts toward your best.`, 'End run and start', () => { abandonRun(); startGame(seed); }, showHome);
   $('hHelp').onclick = () => showHelp(true);
@@ -2788,7 +2789,7 @@ function showHelp(fromIntro) {
     <li>After 60 m a <b>Brute</b> drops in. It can't be hurt by falls: wall it in with ink and leave it behind above the screen.</li>
     <li>Collect <b>drops</b>. Four open a hand of three upgrade cards.</li>
     <li><b>Looking around:</b> two fingers on the screen (or the mouse wheel) slide the view up and down. While paused, drag to look. Looking never changes what the cave does: enemies, the Fade and rewards follow the flock, not your view.</li>
-    <li><b>Cam</b> (or V) picks who runs the camera. <b>Auto</b> follows the flock. <b>Dial</b> and <b>Strip</b> leave it to you, with a control on the right wall: spin the dial, or drag the strip like a page. The arrow buttons above and below it (or the up and down arrow keys) jump straight to a separated group of blots. Leave the view alone with no blots in sight and, after a warning, it catches up by itself.</li>
+    <li><b>Cam</b> (or V) picks who runs the camera. <b>Auto</b> follows the flock. <b>Dial</b> and <b>Strip</b> leave it to you, with a control on the right wall: spin the dial, or drag the strip like a page. The arrow buttons above and below it (or the up and down arrow keys) jump straight to a separated group of blots. Leave the view alone with the middle of the flock off screen and, after a warning, it catches up by itself.</li>
     <li>Run the tank dry and the pen stays dry for 2 s. Below half a tank, ink refills much faster.</li>
     <li>Don't leave blots far behind: the page above you fades.</li>
     <li><b>&#8962; Home</b> (or H / Esc) pauses the run; Continue picks it up again.</li></ul>
@@ -3327,13 +3328,15 @@ function camFrame(dt, now) {
   const lim = viewMax();
   if (viewY < 0) { viewY = 0; viewV = 0; } else if (viewY > lim && catchS !== 2) { viewY = lim; viewV = 0; }
   if (paused || hand) { catchS = 0; return; }
-  // is the action somewhere else? Only when no group of blots sits comfortably in view; then the biggest group is the action.
+  // is the action somewhere else? Only when the flock's centre is off screen; then the biggest group is the action.
   let tgt = null, away = false;
   if (bossBusy()) { tgt = camY; away = Math.abs(viewY - camY) > 6; }
   else if (groupsNow.length) {
-    let big = groupsNow[0], seen = false;
-    for (const g of groupsNow) { if (g.n > big.n) big = g; const sy = g.y - viewY; if (sy > VH * 0.16 && sy < VH * 0.74) seen = true; }
-    tgt = big.target; away = !seen;
+    let big = groupsNow[0], seen = false, sum = 0, n = 0;
+    for (const g of groupsNow) { if (g.n > big.n) big = g; const sy = g.y - viewY; if (sy > barPad && sy < VH) seen = true; }
+    for (const w of walkers) if (w.alive && !w.carried) { sum += w.y; n++; }
+    const com = n ? sum / n - viewY : 0;                 // the flock's centre of mass, on screen
+    tgt = big.target; away = !seen && !(com > barPad && com < VH) && Math.abs(tgt - viewY) > 4;      // never while the centre of the flock, or the middle of any group, is on screen
   }
   if (catchS === 2) {
     if (tgt == null) { catchS = 0; return; }
@@ -3551,6 +3554,8 @@ window.addEventListener('keydown', e => {
 window.__wetink = {
   TUNE,
   start: s => startGame(s == null ? seed : s),
+  shelves: n => { for (let k = 0; k < n; k++) genBand(); return gaps.filter(g => g.isl && g.cols[1] - g.cols[0] - 1 < 14).map(g => { checkGap(g); return { y: g.rows[0] * CELL, x: g.cols[0] * CELL, deadly: [g.dead[0].deadly, g.dead[1].deadly] }; }); },
+  look: y => { viewY = y; panY = y - camY - autoOff; lastScroll = performance.now(); },
   step(n) { for (let i = 0; i < n && state === 'play'; i++) tick(STEP); },
   line(x1, y1, x2, y2) { if (strokeStart({ x: x1, y: y1 })) { strokeTo({ x: x2, y: y2 }); cur = null; } },
   liveCells: () => live.length,
