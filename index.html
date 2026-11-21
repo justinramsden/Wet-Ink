@@ -147,7 +147,7 @@
 <body>
 <div class="wrap">
   <div class="bar">
-    <span class="logo">Wet Ink</span><span class="tag">test 30</span>
+    <span class="logo">Wet Ink</span><span class="tag">test 31</span>
     <div class="meter"><span class="lbl">Ink</span>
       <div class="tube" id="tube"><b id="inkfill"></b></div><span class="chip res" id="cRes" title="Reservoir: bigger ink tank" style="display:none"></span>
       <span class="chip" id="cLast" title="Lasting"><u>L</u><i></i><i></i><em></em></span>
@@ -245,6 +245,7 @@ const TUNE = {
   cageMax: 1400,      // biggest loop (in 4px cells) that still counts as a cage
   bombFuse: 5, blast: 46,
   slowFor: 8, hasteFor: 8,
+  slimeSound: 1,      // which slime splat plays (1 gloop, 2 squirt, 3 jelly)
   camIdle: 3, camWarn: 0.8, camAccel: 500, camTop: 2600,   // your camera: seconds without scrolling before it catches up, warning time, how gently it starts, top speed
   dialGear: 2.5, dialFric: 1.2,   // the dial: cave px per px of finger travel (negative flips it), and how quickly a spin dies away
 };
@@ -765,6 +766,24 @@ const sfx = (() => {
     boing() { tone('sine', 190, 560, 0.16, 0.3); tone('triangle', 380, 900, 0.12, 0.12, 0.03); },
     collapse() { noise('lowpass', 800, 90, 0.8, 0.55, 0.8); tone('sine', 90, 40, 0.4, 0.5); for (let i = 0; i < 4; i++) noise('bandpass', 1800, 600, 3, 0.05, 0.25, 0.08 + i * 0.07); },
     slurp() { tone('sine', 180 + Math.random() * 60, 420, 0.12, 0.16); noise('bandpass', 700, 1500, 6, 0.1, 0.1); },
+    slimeSplat(v) {                             // a leech bursting: no thump, all goo. Three takes to choose from
+      bypass = true;
+      if (v === 2) {                            // squirt: a sharp wet pop, a spray, two bubbles
+        noise('bandpass', 2600, 600, 8, 0.09, 0.9); tone('sine', 700, 240, 0.07, 0.35);
+        noise('highpass', 1500, 6000, 1, 0.2, 0.28, 0.04); noise('bandpass', 900, 2200, 6, 0.1, 0.4, 0.07);
+        tone('sine', 520, 980, 0.045, 0.2, 0.26); tone('sine', 680, 1250, 0.04, 0.16, 0.36);
+      } else if (v === 3) {                     // jelly: three soft wobbles settling, a low slop under them
+        tone('sine', 330, 170, 0.11, 0.55); tone('sine', 280, 150, 0.11, 0.42, 0.1); tone('sine', 235, 120, 0.16, 0.3, 0.2);
+        noise('lowpass', 800, 200, 2, 0.3, 0.5); noise('bandpass', 500, 1100, 7, 0.12, 0.3, 0.05);
+        tone('sine', 420, 760, 0.05, 0.14, 0.4);
+      } else {                                  // gloop: a "shlup" up, a gooey slide down, then bubbles rising
+        noise('bandpass', 350, 1500, 6, 0.16, 0.75); noise('bandpass', 1300, 250, 5, 0.24, 0.6, 0.1);
+        tone('sine', 220, 520, 0.09, 0.5); tone('sine', 480, 120, 0.22, 0.42, 0.08);
+        for (let i = 0; i < 4; i++) { const f = 420 + Math.random() * 500; tone('sine', f, f * 1.8, 0.045, 0.16, 0.3 + i * 0.075 + Math.random() * 0.03); }
+        noise('highpass', 5000, 7000, 1, 0.25, 0.07, 0.05);
+      }
+      bypass = false;
+    },
     squelch() { noise('bandpass', 1600, 300, 3, 0.18, 0.5); tone('sine', 300, 90, 0.15, 0.4); },
     haste() { tone('sawtooth', 300, 1200, 0.3, 0.12); },
     fuse() { noise('highpass', 5000, 7000, 1, 0.07, 0.07); },
@@ -1434,7 +1453,7 @@ function leechPlan(L) {         // shortest crawl to the nearest ink it can reac
 function killLeech(L, i, why) {
   if (L.ev) L.ev.beat++;
   leeches.splice(i, 1); stats.leeches++; nextLeech = T + TUNE.leechEvery * (0.8 + Math.random() * 0.4);
-  puff(L.px, L.py, '#5aa046', 16, 200); puff(L.px, L.py, '#1c2d6b', 8, 160); sfx.squelch(); sfx.splat();
+  puff(L.px, L.py, '#5aa046', 16, 200); puff(L.px, L.py, '#1c2d6b', 8, 160); sfx.slimeSplat(TUNE.slimeSound);
   inkLeft = Math.min(inkCap(), inkLeft + 30); addDrops(TUNE.enemyDrops, L.px, L.py - 28, true); popup(L.px, L.py - 14, why + ' +30 ink', '#1f7a3d');
 }
 function updateLeeches(dt) {
@@ -2050,7 +2069,7 @@ BOSSX.crown = {
 // ---- the Leech Queen: she eats blots, but she would rather drink. Bait her up onto ink; when it dries she falls ----
 function queenHit(L) {
   L.hp--; L.stunT = T + 2.6; L.drinking = false; L.path = [];
-  puff(L.px, L.py, '#5aa046', 18, 220); sfx.splat(); sfx.thud(); shakeT = Math.max(shakeT, 0.3);
+  puff(L.px, L.py, '#5aa046', 18, 220); sfx.slimeSplat(TUNE.slimeSound); sfx.thud(); shakeT = Math.max(shakeT, 0.3);
   inkLeft = Math.min(inkCap(), inkLeft + 30); popup(L.px, L.py - 34, L.hp > 0 ? 'She fell! ' + L.hp + ' to go' : 'She fell!', '#1c2d6b');
 }
 BOSSX.queen = {
@@ -2650,7 +2669,7 @@ function showHome() {
       <button id="hCab">Trophies <small>${cab.length}</small></button>
       <button id="hShare">Share with QR code</button>
     </div>
-    <div class="ver">test 30</div></div>`;
+    <div class="ver">test 31</div></div>`;
   $('hGo').onclick = () => { if (runWaiting()) { leaveHome(); overlay.className = 'hide'; if (paused) togglePause(); } else startGame(state === 'ready' ? seed : randSeed()); };
   if (run) $('hNew').onclick = () => confirmCard('Start a new game?', `Your current run (${depthM()} m) will end. Its depth still counts toward your best.`, 'End run and start', () => { abandonRun(); startGame(seed); }, showHome);
   $('hHelp').onclick = () => showHelp(true);
@@ -3275,7 +3294,7 @@ const TUNE_UI = [
   ['inkMax', 'Ink tank', 40, 300, 10], ['inkRegen', 'Ink refill per second', 1, 20, 0.5],
   ['dryLock', 'Pen dry after running out (s)', 0, 6, 0.5], ['lowAt', 'Fast refill below (share of tank)', 0, 1, 0.05], ['lowBoost', 'Fast refill speed (x)', 1, 5, 0.25], ['leechDrain', 'Leech drinks (ink/s)', 0, 12, 0.5],
 ];
-const TKEYS = TUNE_UI.map(u => u[0]).concat(['forceArena', 'forceEvent']);
+const TKEYS = TUNE_UI.map(u => u[0]).concat(['forceArena', 'forceEvent', 'slimeSound']);
 const TUNE_SEL = { forceArena: ['All of them, in turn', 'Matriarch', 'Wyrm', 'Crown', 'Leech Queen', 'Sponge Golem', 'Rival', 'Twins'], forceEvent: ['All of them, in turn', 'Brute raid', 'Flock of birds', 'Leech swarm', 'Drought', 'Grinder', 'Rager stampede'] };
 const TUNE_DEF = {}; for (const k of TKEYS) TUNE_DEF[k] = TUNE[k];
 try { const sv = JSON.parse(localStorage.getItem('wetink_tune13') || '{}'); for (const k of TKEYS) if (typeof sv[k] === 'number') TUNE[k] = sv[k]; } catch (e) {}
@@ -3287,10 +3306,13 @@ function showTune() {
   overlay.innerHTML = '<div class="tune"><h2>Tuning</h2><p>Changes apply now and are saved on this device. Drop amount applies to floors not generated yet.</p>' +
     [['forceArena', 'Test: which arena boss'], ['forceEvent', 'Test: which roaming event']].map(([k, label]) => `<label>${label}<select data-k="${k}">${TUNE_SEL[k].map((n, i) => `<option value="${i}"${TUNE[k] === i ? ' selected' : ''}>${n}</option>`).join('')}</select></label>`).join('') +
     '<p>Boss and event picks apply from the next cave: use Retry this cave or New cave at the bottom. To meet them sooner, lower "A boss arena every".</p>' +
+    '<p style="margin:8px 0 2px"><b>Slime splat:</b> tap to hear one; the last one you tap is used in the game.</p><div class="row" style="margin:0 0 10px">' + [1, 2, 3].map(n => `<button data-slime="${n}"${TUNE.slimeSound === n ? ' class="primary"' : ''}>${['Gloop', 'Squirt', 'Jelly'][n - 1]}</button>`).join('') + '<button id="tBlot">Blot splat (to compare)</button></div>' +
     TUNE_UI.map(([k, label, lo, hi, st]) => `<label>${label}<b id="tv_${k}">${TUNE[k]}</b><input type="range" min="${lo}" max="${hi}" step="${st}" value="${TUNE[k]}" data-k="${k}"></label>`).join('') +
     '<div class="row"><button class="primary" id="tDone">Done</button><button id="tRetry">Retry this cave</button><button id="tNew">New cave</button><button id="tReset">Reset all</button></div></div>';
   overlay.querySelectorAll('select').forEach(el => { el.onchange = () => { TUNE[el.dataset.k] = +el.value; saveTune(); }; });
   overlay.querySelectorAll('input[type=range]').forEach(el => { el.oninput = () => { const k = el.dataset.k; TUNE[k] = +el.value; $('tv_' + k).textContent = el.value; hudC = {}; saveTune(); }; });
+  overlay.querySelectorAll('[data-slime]').forEach(b => { b.onclick = () => { sfx.init(); TUNE.slimeSound = +b.dataset.slime; saveTune(); overlay.querySelectorAll('[data-slime]').forEach(o => o.classList.toggle('primary', o === b)); sfx.slimeSplat(TUNE.slimeSound); }; });
+  $('tBlot').onclick = () => { sfx.init(); sfx.splat(); };
   $('tDone').onclick = () => backOut(wasPaused);
   $('tRetry').onclick = () => { leaveHome(); $('bRetry').onclick(); };
   $('tNew').onclick = () => { leaveHome(); $('bNew').onclick(); };
