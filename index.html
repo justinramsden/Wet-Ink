@@ -113,6 +113,10 @@
     .hcard{padding:9px 5px} .hcard b{font-size:14px} .hcard span{font-size:12px} .hcard svg{width:34px;height:34px} .hcard kbd{display:none}
     .card{padding:14px 16px} .card ul{font-size:14px}
   }
+  /* ---------- the camera column: a dial or strip on the right wall, outside the cave ---------- */
+  #sc{display:none;left:auto;right:0;width:38px;cursor:ns-resize;background:#2b2620}
+  .stage.scroll #c{width:calc(100% - 38px)}
+  .stage.scroll #sc{display:block}
   /* ---------- home screen ---------- */
   #overlay.homebg{background:rgba(245,238,223,.94)}
   .home{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:44px 14px 14px;line-height:1.3;overflow:auto}
@@ -143,7 +147,7 @@
 <body>
 <div class="wrap">
   <div class="bar">
-    <span class="logo">Wet Ink</span><span class="tag">test 28</span>
+    <span class="logo">Wet Ink</span><span class="tag">test 29</span>
     <div class="meter"><span class="lbl">Ink</span>
       <div class="tube" id="tube"><b id="inkfill"></b></div><span class="chip res" id="cRes" title="Reservoir: bigger ink tank" style="display:none"></span>
       <span class="chip" id="cLast" title="Lasting"><u>L</u><i></i><i></i><em></em></span>
@@ -158,6 +162,7 @@
     <div class="stat best">Best <b id="sBest">0 m</b></div>
     <div class="group right">
       <button id="bHome" title="Home (H or Esc): pauses the run">&#8962;<span class="lbl">Home</span></button>
+      <button id="bCam" title="Camera (V): Auto follows the flock; Dial and Strip leave it to you">Cam: Auto</button>
       <button id="bCab" title="Trophies"><svg viewBox="0 0 14 14"><path d="M3 1h8v4a4 4 0 0 1-8 0zM1 2h2v3a2 2 0 0 1-2-2zm10 0h2v1a2 2 0 0 1-2 2zM6 9h2v2h2v2H4v-2h2z"/></svg><b id="sCab">0</b></button>
       <button id="bTune" title="Tuning (T)">&#9881;</button>
       <button id="bHelp">?</button>
@@ -169,6 +174,7 @@
   </div>
   <div class="stage">
     <canvas id="c"></canvas>
+    <canvas id="sc"></canvas>
     <div id="overlay"></div>
   </div>
 </div>
@@ -239,6 +245,8 @@ const TUNE = {
   cageMax: 1400,      // biggest loop (in 4px cells) that still counts as a cage
   bombFuse: 5, blast: 46,
   slowFor: 8, hasteFor: 8,
+  camIdle: 3, camWarn: 0.8, camAccel: 500, camTop: 2600,   // your camera: seconds without scrolling before it catches up, warning time, how gently it starts, top speed
+  dialGear: 2.5, dialFric: 1.2,   // the dial: cave px per px of finger travel (negative flips it), and how quickly a spin dies away
 };
 
 const W = 960, H = 640, CELL = 4, COLS = W / CELL, CH = 40;   // CH = rows per cached terrain chunk
@@ -249,21 +257,34 @@ const LAST_RGB = [[28, 45, 107], [69, 39, 138], [100, 31, 115], [125, 23, 65]], 
 const TRACKS = ['last', 'wide', 'tough'], NAME = { last: 'Lasting', wide: 'Wide', tough: 'Tough' }, TCOL = { last: '#7d1741', wide: '#1c2d6b', tough: '#a37612' };
 
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const sc = document.getElementById('sc'), sctx = sc.getContext('2d');
 const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 let autoOff = 0, panY = 0, panIdle = 0, panning = false;      // the view sits this far below the flock camera: an automatic part (phones) and the player's own pan
-const viewOff = () => Math.max(-camY, autoOff + panY);
-function panBy(d) { panY = Math.max(-VH * 0.8 - autoOff, Math.min(VH * 1.5, panY + d)); panIdle = performance.now(); }
+// Camera modes. 'auto': the view follows the flock (the original). 'mine': the view stays where the player puts it,
+// and only catches up, after a warning, when they have not scrolled for a while and no group of blots is in view.
+let camMode = 'auto', scrollUI = 'dial', viewY = 0, viewV = 0, jumpTo = null, lastScroll = 0, scDrag = null, groupsNow = [];
+let catchS = 0, catchT = 0, catchV = 0, catchDir = 1;      // catch-up: 0 resting, 1 warning, 2 moving
+try { const m = localStorage.getItem('wetink_cam'); if (m === 'dial' || m === 'strip') { camMode = 'mine'; scrollUI = m; } } catch (e) {}
+const mine = () => camMode === 'mine';
+const viewOff = () => mine() ? Math.max(0, viewY) - camY : Math.max(-camY, autoOff + panY);
+function viewMax() {                       // as far down as the view may go: a little past the lowest blot, never past the cave made so far
+  let low = camY + VH * 0.5; if (walkers) for (const w of walkers) if (w.alive && w.y > low) low = w.y;
+  return Math.max(0, Math.min(low + VH * 0.5, terrain ? terrain.length * CELL - VH : 0));
+}
+function scrolled() { lastScroll = performance.now(); catchS = 0; catchV = 0; }
+function panBy(d) { if (mine()) { viewY = Math.max(0, Math.min(viewMax(), viewY + d)); jumpTo = null; viewV = 0; scrolled(); return; } panY = Math.max(-VH * 0.8 - autoOff, Math.min(VH * 1.5, panY + d)); panIdle = performance.now(); }
 let VW = W, VH = H, Z = 1, camX = 0;   // view size in world px, css px per world px, horizontal camera
 const MIN_ZOOM = 0.78;                 // phones: never shrink the cave below this (shows about half its width in portrait)
 let compact = false, barPad = 0;
 function fit() {
   compact = matchMedia('(pointer:coarse)').matches && Math.min(innerWidth, innerHeight) < 620;
   document.body.classList.toggle('compact', compact); document.body.classList.toggle('tall', innerHeight > innerWidth);
-  const st = cv.parentElement, cw = Math.max(200, st.clientWidth), chh = Math.max(150, st.clientHeight);
+  const st = cv.parentElement, cw = Math.max(200, cv.clientWidth || st.clientWidth), chh = Math.max(150, st.clientHeight);
   const land = compact && innerWidth > innerHeight;
   Z = land ? Math.max(cw / W, 0.4) : Math.max(cw / W, MIN_ZOOM);      // a phone held sideways always shows the whole width of the cave
   VW = Math.min(W, cw / Z); VH = chh / Z;
   cv.width = Math.round(cw * dpr); cv.height = Math.round(chh * dpr);
+  sc.width = Math.round(38 * dpr); sc.height = Math.round(chh * dpr);
   if (chunks) chunks.clear();
   camX = Math.max(0, Math.min(W - VW, camX));
   const bar = document.querySelector('.bar'); barPad = compact && bar ? (bar.offsetHeight + 8) / Z : 0;      // world px hidden under the floating toolbar
@@ -2576,7 +2597,7 @@ function newWorld(s) {
   wick = []; crumbles = []; spikes = []; stakes = []; mushrooms = []; biomes = []; biomeRng = mulberry32(seed ^ 0x0b10e5); rowPal = new Map(); walkRng = mulberry32(seed ^ 0x5bd1e995); drawing = false;
   stats = { pickups: 0, birds: 0, blocks: 0, rescues: 0, blasts: 0, brutes: 0, knocked: 0, leeches: 0, drained: 0, bounces: 0, spikes: 0, collapses: 0, drops: 0, hands: 0, faded: 0, chests: 0, trophies: 0, crushed: 0, bosses: 0, raids: 0 }; fxDone = 0; retreats = [];
   for (let k = 0; k < TUNE.walkers; k++) queue.push({ T: 0.6 + k * TUNE.spawnEvery, x: HATCH_X, y: HATCH_Y, dir: 1 });
-  deathLog = []; T = 0; inkLeft = TUNE.inkMax; camY = 0; autoOff = 0; panY = 0; camX = Math.max(0, Math.min(W - VW, HATCH_X - VW * 0.3)); maxY = 0; accT = 0; paused = false;
+  deathLog = []; T = 0; inkLeft = TUNE.inkMax; camY = 0; autoOff = 0; panY = 0; viewY = 0; viewV = 0; jumpTo = null; catchS = 0; groupsNow = []; camX = Math.max(0, Math.min(W - VW, HATCH_X - VW * 0.3)); maxY = 0; accT = 0; paused = false;
   genBand();
   $('bPause').textContent = 'Pause';
 }
@@ -2628,7 +2649,7 @@ function showHome() {
       <button id="hCab">Trophies <small>${cab.length}</small></button>
       <button id="hShare">Share with QR code</button>
     </div>
-    <div class="ver">test 28</div></div>`;
+    <div class="ver">test 29</div></div>`;
   $('hGo').onclick = () => { if (runWaiting()) { leaveHome(); overlay.className = 'hide'; if (paused) togglePause(); } else startGame(state === 'ready' ? seed : randSeed()); };
   if (run) $('hNew').onclick = () => confirmCard('Start a new game?', `Your current run (${depthM()} m) will end. Its depth still counts toward your best.`, 'End run and start', () => { abandonRun(); startGame(seed); }, showHome);
   $('hHelp').onclick = () => showHelp(true);
@@ -2766,7 +2787,8 @@ function showHelp(fromIntro) {
     <li>Steer clear of the <b style="color:var(--red)">red spiked bombs</b>.</li>
     <li>After 60 m a <b>Brute</b> drops in. It can't be hurt by falls: wall it in with ink and leave it behind above the screen.</li>
     <li>Collect <b>drops</b>. Four open a hand of three upgrade cards.</li>
-    <li><b>Looking around:</b> two fingers on the screen (or the mouse wheel) slide the view up and down; it drifts back to the flock after a moment. While paused, drag to look. Looking never changes what the cave does: enemies, the Fade and rewards follow the flock, not your view.</li>
+    <li><b>Looking around:</b> two fingers on the screen (or the mouse wheel) slide the view up and down. While paused, drag to look. Looking never changes what the cave does: enemies, the Fade and rewards follow the flock, not your view.</li>
+    <li><b>Cam</b> (or V) picks who runs the camera. <b>Auto</b> follows the flock. <b>Dial</b> and <b>Strip</b> leave it to you, with a control on the right wall: spin the dial, or drag the strip like a page. The arrow buttons above and below it (or the up and down arrow keys) jump straight to a separated group of blots. Leave the view alone with no blots in sight and, after a warning, it catches up by itself.</li>
     <li>Run the tank dry and the pen stays dry for 2 s. Below half a tank, ink refills much faster.</li>
     <li>Don't leave blots far behind: the page above you fades.</li>
     <li><b>&#8962; Home</b> (or H / Esc) pauses the run; Continue picks it up again.</li></ul>
@@ -2799,7 +2821,7 @@ function showHelp(fromIntro) {
       <li>The camera holds still while you're drawing.</li>
       <li><b>Bombs</b> are rare and bad. A blot who touches one explodes after 5 s, taking nearby blots and rock with it. Tap it to set it off early, ideally far from the flock.</li>
     </ul>
-    <p class="small">Keys: 1 2 3 pick a card · C trophies · T tuning · Space pause · H or Esc home · R retry · M sound</p>
+    <p class="small">Keys: 1 2 3 pick a card · C trophies · T tuning · Space pause · H or Esc home · V camera · R retry · M sound</p>
     <div class="row"><button class="primary" id="oBack">${fromIntro || state !== 'play' ? 'Back' : 'Resume'}</button></div></div>`;
   $('oBack').onclick = () => backOut(wasPaused);
 }
@@ -3066,7 +3088,7 @@ function drawWalker(w) {
   if (w.bomb) { ctx.fillStyle = '#e8762b'; ctx.fillRect(x - 1 + Math.sin(T * 40), y - h - 4, 2.5, 3); ctx.font = '700 9px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#d6402b'; ctx.fillText(Math.ceil(w.bomb - T), x, y - h - 10); }
 }
 
-function render() { const logic = camY; camY = logic + viewOff(); try { renderView(); } finally { camY = logic; } }      // everything is drawn from the view; the rules never see it
+function render() { const logic = camY; camY = logic + viewOff(); try { renderView(); } finally { camY = logic; } if (mine()) { if (state === 'play') drawCamMarks(); drawScroller(); } }      // everything is drawn from the view; the rules never see it
 function renderView() {
   const cam = Math.max(0, Math.round((camY + (shakeT > 0 ? (Math.random() - 0.5) * 9 * (shakeT / 0.45) : 0)) * dpr) / dpr);
   const cx = Math.round(camX * dpr * Z) / (dpr * Z);
@@ -3236,6 +3258,9 @@ function hud() {
   setIf('open', drops + '/' + need, () => { const b = $('bOpen'); b.innerHTML = DROP_SVG + drops + '/' + need; });
 }
 const TUNE_UI = [
+  ['camIdle', 'Your camera: catches up after (s) without scrolling', 0.5, 15, 0.5], ['camWarn', 'Your camera: warning before it moves (s)', 0, 3, 0.1],
+  ['camAccel', 'Your camera: catch-up acceleration', 100, 3000, 50], ['camTop', 'Your camera: catch-up top speed', 400, 6000, 100],
+  ['dialGear', 'Dial: gearing (negative flips direction)', -6, 6, 0.25], ['dialFric', 'Dial: how fast a spin dies (lower = longer)', 0.2, 6, 0.1],
   ['dropRate', 'Drops in the cave (x)', 0.2, 3, 0.1],
   ['handCost', 'First hand costs', 2, 15, 1], ['handStep', 'Each hand after costs more by', 0, 5, 1], ['handMax', 'Most a hand can cost', 3, 30, 1],
   ['enemyDrops', 'Drops per enemy sent away', 0, 5, 1],
@@ -3270,11 +3295,191 @@ function showTune() {
   $('tNew').onclick = () => { leaveHome(); $('bNew').onclick(); };
   $('tReset').onclick = () => { Object.assign(TUNE, TUNE_DEF); saveTune(); hudC = {}; showTune(); };
 }
+// ---------------- the player's camera ----------------
+function blotGroups() {                    // up to three groups of blots, split wherever they are too far apart to share a screen
+  const ws = []; for (const w of walkers) if (w.alive && !w.carried) ws.push(w);
+  if (!ws.length) return [];
+  ws.sort((a, b) => a.y - b.y);
+  const gap = Math.max(120, VH * 0.35), gs = [[ws[0]]];
+  for (let i = 1; i < ws.length; i++) { if (ws[i].y - ws[i - 1].y > gap) gs.push([]); gs[gs.length - 1].push(ws[i]); }
+  while (gs.length > 3) {                  // more than three: join the two that are closest together
+    let bi = 0, bd = Infinity;
+    for (let i = 0; i + 1 < gs.length; i++) { const d = gs[i + 1][0].y - gs[i][gs[i].length - 1].y; if (d < bd) { bd = d; bi = i; } }
+    gs.splice(bi, 2, gs[bi].concat(gs[bi + 1]));
+  }
+  return gs.map(g => { let sx = 0; for (const w of g) sx += w.x; const y = g[g.length >> 1].y; return { n: g.length, y, x: sx / g.length, target: Math.max(0, y - VH * 0.4) }; });
+}
+const groupAbove = () => { let b = null; for (const g of groupsNow) if (g.target < viewY - VH * 0.25 && (!b || g.target > b.target)) b = g; return b; };
+const groupBelow = () => { let b = null; for (const g of groupsNow) if (g.target > viewY + VH * 0.25 && (!b || g.target < b.target)) b = g; return b; };
+function jumpGroup(dir) {                  // the quick switch: straight to the next group up or down
+  if (!mine() || state !== 'play') return false;
+  const g = dir < 0 ? groupAbove() : groupBelow(); if (!g) return false;
+  jumpTo = Math.min(viewMax(), g.target); viewV = 0; scrolled(); return true;
+}
+function camFrame(dt, now) {
+  if (state !== 'play') return;
+  groupsNow = blotGroups();
+  if (jumpTo != null) { viewY += (jumpTo - viewY) * (1 - Math.exp(-dt * 13)); lastScroll = now; if (Math.abs(jumpTo - viewY) < 1) { viewY = jumpTo; jumpTo = null; } }
+  else if (!scDrag && viewV) {             // the dial keeps spinning after you let go
+    viewY += viewV * dt; viewV *= Math.exp(-dt * (scrollUI === 'dial' ? TUNE.dialFric : 3.2)); lastScroll = now;
+    if (Math.abs(viewV) < 6) viewV = 0;
+  }
+  const lim = viewMax();
+  if (viewY < 0) { viewY = 0; viewV = 0; } else if (viewY > lim && catchS !== 2) { viewY = lim; viewV = 0; }
+  if (paused || hand) { catchS = 0; return; }
+  // is the action somewhere else? Only when no group of blots sits comfortably in view; then the biggest group is the action.
+  let tgt = null, away = false;
+  if (bossBusy()) { tgt = camY; away = Math.abs(viewY - camY) > 6; }
+  else if (groupsNow.length) {
+    let big = groupsNow[0], seen = false;
+    for (const g of groupsNow) { if (g.n > big.n) big = g; const sy = g.y - viewY; if (sy > VH * 0.16 && sy < VH * 0.74) seen = true; }
+    tgt = big.target; away = !seen;
+  }
+  if (catchS === 2) {
+    if (tgt == null) { catchS = 0; return; }
+    if (drawing) {                         // pen down mid-move: brake hard and wait
+      catchV *= Math.exp(-dt * 14); viewY += catchDir * catchV * dt;
+      if (catchV < 8) { catchS = 0; catchV = 0; lastScroll = now - TUNE.camIdle * 1000 + 700; }
+      return;
+    }
+    catchT += dt;
+    const dist = tgt - viewY, ad = Math.abs(dist); catchDir = dist < 0 ? -1 : 1;
+    catchV = Math.min(catchV + TUNE.camAccel * Math.min(1, catchT / 0.8) * dt, TUNE.camTop, Math.sqrt(2 * 9000 * ad) + 30);     // a soft start, a high top speed, a firm stop
+    viewY += catchDir * Math.min(ad, catchV * dt);
+    if (ad < 1.5) { catchS = 0; catchV = 0; lastScroll = now; }
+  } else if (catchS === 1) {
+    if (!away || tgt == null) catchS = 0;
+    else { catchT += dt; catchDir = tgt < viewY ? -1 : 1; if (catchT >= TUNE.camWarn && !drawing) { catchS = 2; catchT = 0; catchV = 0; } }
+  } else if (away && tgt != null && !drawing && !scDrag && !viewV && jumpTo == null && now - lastScroll > (bossBusy() ? 800 : TUNE.camIdle * 1000)) {
+    catchS = 1; catchT = 0; catchDir = tgt < viewY ? -1 : 1;
+  }
+}
+function drawCamMarks() {                  // on the cave: arrows to groups you cannot see, and the warning before the camera moves
+  ctx.setTransform(dpr * Z, 0, 0, dpr * Z, 0, 0);
+  const vy = Math.max(0, viewY), now = performance.now();
+  for (const g of groupsNow) {
+    const sy = g.y - vy; if (sy > -6 && sy < VH + 6) continue;
+    const up = sy < 0, x = Math.max(24, Math.min(VW - 24, g.x - camX)), y = up ? barPad + 16 : VH - 16, d = up ? -1 : 1;
+    ctx.fillStyle = '#1c2d6b'; ctx.strokeStyle = '#f5eedf'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, y + d * 9); ctx.lineTo(x - 10, y - d * 5); ctx.lineTo(x + 10, y - d * 5); ctx.closePath(); ctx.stroke(); ctx.fill();
+    ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3;
+    ctx.strokeText(String(g.n), x + 13, y); ctx.fillText(String(g.n), x + 13, y);
+  }
+  if (catchS === 1) {                      // three chevrons, pulsing, on the side the view is about to travel toward
+    const d = catchDir, x = VW / 2, y0 = d < 0 ? barPad + 30 : VH - 30, ph = (now / 110) % 3;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (let k = 0; k < 3; k++) {
+      const y = y0 - d * (2 - k) * 13, a = 0.35 + 0.65 * (Math.floor(ph) === k ? 1 : 0);
+      ctx.strokeStyle = 'rgba(245,238,223,' + a + ')'; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(x - 20, y - d * 7); ctx.lineTo(x, y + d * 7); ctx.lineTo(x + 20, y - d * 7); ctx.stroke();
+      ctx.strokeStyle = 'rgba(232,118,43,' + a + ')'; ctx.lineWidth = 4; ctx.stroke();
+    }
+  }
+}
+const SCW = 38, SCB = 48;                  // the column's width and the height of each quick-switch button, in css px
+function scLayout() { const h = sc.clientHeight || 1, top = Math.round(barPad * Z) + 4; return { h, top, y0: top + SCB + 6, y1: h - SCB - 10 }; }
+function drawScroller() {
+  const g = sctx, L = scLayout(), now = performance.now();
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = '#2b2620'; g.fillRect(0, 0, SCW, L.h);
+  g.fillStyle = '#1d1a16'; g.fillRect(0, 0, 2, L.h);
+  const play = state === 'play', up = play ? groupAbove() : null, dn = play ? groupBelow() : null;
+  const btn = (y, d, grp) => {
+    const warn = catchS === 1 && catchDir === d, pulse = 0.5 + 0.5 * Math.sin(now / 130);
+    g.beginPath(); g.roundRect(4, y, SCW - 8, SCB, 7);
+    g.fillStyle = grp ? '#1c2d6b' : '#342e27'; g.fill();
+    g.lineWidth = 2; g.strokeStyle = warn ? 'rgba(232,118,43,' + (0.4 + 0.6 * pulse) + ')' : grp ? '#8fa3ee' : '#463f35'; g.stroke();
+    const cx = SCW / 2, cy = y + (grp ? 17 : SCB / 2);
+    g.fillStyle = grp ? '#fff' : '#5a5246';
+    g.beginPath(); g.moveTo(cx, cy + d * 9); g.lineTo(cx - 10, cy - d * 6); g.lineTo(cx + 10, cy - d * 6); g.closePath(); g.fill();
+    if (grp) { g.font = 'bold 12px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(grp.n), cx, y + SCB - 11); }
+  };
+  btn(L.top, -1, up); btn(L.h - SCB - 4, 1, dn);
+  const x = 5, w = SCW - 10, y = L.y0, h = L.y1 - L.y0; if (h < 40) return;
+  const surf = viewY * Z / (TUNE.dialGear || 0.01);          // how far the surface has travelled, in css px
+  if (scrollUI === 'dial') drawDial(g, x, y, w, h, surf); else drawStrip(g, x, y, w, h, viewY * Z / 1.5);
+}
+function drawDial(g, x, y, w, h, surf) {    // a long brass wheel, seen edge-on: carved bands roll over the top and away
+  const TH = 1.2, R = h / 2 / Math.sin(TH), cy = y + h / 2, P = 26;
+  g.save(); g.beginPath(); g.roundRect(x, y, w, h, 5); g.clip();
+  const br = g.createLinearGradient(x, 0, x + w, 0);
+  br.addColorStop(0, '#3d3015'); br.addColorStop(0.18, '#8e7434'); br.addColorStop(0.4, '#e6cd7c'); br.addColorStop(0.62, '#b0924a'); br.addColorStop(1, '#4a3a18');
+  g.fillStyle = br; g.fillRect(x, y, w, h);
+  const n0 = Math.floor(surf / P), off = surf - n0 * P, span = Math.ceil(R * TH / P) + 1;
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  for (let k = -span; k <= span; k++) {
+    const u = k * P + off, th = u / R; if (Math.abs(th) > TH + 0.1) continue;
+    const sy = cy + R * Math.sin(th), c = Math.max(0.05, Math.cos(th)), n = (((k - n0) % 4) + 4) % 4;
+    g.save(); g.translate(x, sy); g.scale(1, c);
+    for (const pass of [0, 1]) {            // each cut twice: the bright lower lip first, then the dark groove
+      g.translate(0, pass ? -1 : 1); g.strokeStyle = g.fillStyle = pass ? 'rgba(46,32,8,.82)' : 'rgba(255,244,200,.55)'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(0, -P / 2); g.lineTo(w, -P / 2); g.stroke();                       // the rule between bands
+      g.beginPath();
+      if (n === 0) { for (let i = 0; i <= 4; i++) { const px = 2 + i * (w - 4) / 4; g.moveTo(px, -5); g.lineTo(px + (i < 4 ? (w - 4) / 8 : 0), 0); g.lineTo(px, 5); } }          // chevron knurl
+      else if (n === 1) { g.moveTo(1, 0); g.lineTo(w / 4, -7); g.lineTo(w / 2, 0); g.lineTo(3 * w / 4, -7); g.lineTo(w - 1, 0); g.lineTo(3 * w / 4, 7); g.lineTo(w / 2, 0); g.lineTo(w / 4, 7); g.closePath(); }   // twin diamonds
+      else if (n === 2) { for (let i = 0; i <= 16; i++) { const px = 1 + i * (w - 2) / 16, py = Math.sin(i / 16 * Math.PI * 2) * 6; if (i) g.lineTo(px, py); else g.moveTo(px, py); } }   // a wave
+      else { for (let i = 0; i < 5; i++) { const px = 3 + i * (w - 6) / 4; g.moveTo(px - 3, 6); g.lineTo(px + 3, -6); } }                                    // slanted hatching
+      g.stroke();
+      if (n === 1) { g.beginPath(); g.arc(w / 4, 0, 1.4, 0, 7); g.arc(3 * w / 4, 0, 1.4, 0, 7); g.fill(); }
+      if (n === 2) { g.beginPath(); g.arc(w / 4, 1.5, 1.3, 0, 7); g.fill(); g.beginPath(); g.arc(3 * w / 4, -1.5, 1.3, 0, 7); g.fill(); }
+    }
+    g.restore();
+  }
+  const sh = g.createLinearGradient(0, y, 0, y + h);        // the wheel curves away at both ends
+  sh.addColorStop(0, 'rgba(12,8,2,.88)'); sh.addColorStop(0.2, 'rgba(12,8,2,.25)'); sh.addColorStop(0.5, 'rgba(255,250,225,.1)'); sh.addColorStop(0.8, 'rgba(12,8,2,.25)'); sh.addColorStop(1, 'rgba(12,8,2,.88)');
+  g.fillStyle = sh; g.fillRect(x, y, w, h);
+  g.fillStyle = 'rgba(255,255,240,.16)'; g.fillRect(x + w * 0.34, y, 3, h);
+  g.restore();
+  g.lineWidth = 2; g.strokeStyle = scDrag ? '#ffe9a6' : '#17130e'; g.beginPath(); g.roundRect(x, y, w, h, 5); g.stroke();
+}
+function drawStrip(g, x, y, w, h, surf) {   // a plain track: drag it like a page
+  g.save(); g.beginPath(); g.roundRect(x, y, w, h, 8); g.clip();
+  g.fillStyle = scDrag ? '#5a5144' : '#463f35'; g.fillRect(x, y, w, h);
+  const P = 16, off = ((-surf % P) + P) % P;
+  g.fillStyle = '#8c8068';
+  for (let yy = y - P + off; yy < y + h + P; yy += P) for (const fx of [0.3, 0.5, 0.7]) { g.beginPath(); g.arc(x + w * fx, yy, 1.6, 0, 7); g.fill(); }
+  g.restore();
+  g.lineWidth = 2; g.strokeStyle = '#17130e'; g.beginPath(); g.roundRect(x, y, w, h, 8); g.stroke();
+}
+sc.addEventListener('pointerdown', e => {
+  if (state !== 'play' || hand || !mine()) return;
+  const L = scLayout(), y = e.clientY - sc.getBoundingClientRect().top;
+  if (y < L.y0 - 3) { jumpGroup(-1); return; }
+  if (y > L.y1 + 3) { jumpGroup(1); return; }
+  try { sc.setPointerCapture(e.pointerId); } catch (err) {}
+  scDrag = { id: e.pointerId, y: e.clientY, t: performance.now(), v: 0 }; viewV = 0; jumpTo = null; scrolled();
+});
+sc.addEventListener('pointermove', e => {
+  if (!scDrag || e.pointerId !== scDrag.id) return;
+  const now = performance.now(), dy = e.clientY - scDrag.y, dtm = Math.max(4, now - scDrag.t) / 1000;
+  const d = scrollUI === 'dial' ? dy * TUNE.dialGear / Z : -dy * 1.5 / Z;     // the dial drives the view; the strip is dragged like the page itself
+  viewY = Math.max(0, Math.min(viewMax(), viewY + d));
+  scDrag.v = scDrag.v * 0.55 + (d / dtm) * 0.45; scDrag.y = e.clientY; scDrag.t = now; scrolled();
+});
+const scEnd = e => {
+  if (!scDrag || e.pointerId !== scDrag.id) return;
+  viewV = performance.now() - scDrag.t < 90 ? Math.max(-9000, Math.min(9000, scDrag.v)) : 0;      // let go while moving and it keeps spinning
+  scDrag = null; scrolled();
+};
+sc.addEventListener('pointerup', scEnd); sc.addEventListener('pointercancel', scEnd);
+const CAM_NAMES = { auto: 'Auto', dial: 'Dial', strip: 'Strip' };
+function applyCam() {
+  const k = mine() ? scrollUI : 'auto';
+  cv.parentElement.classList.toggle('scroll', mine());
+  $('bCam').textContent = 'Cam: ' + CAM_NAMES[k];
+  try { localStorage.setItem('wetink_cam', k); } catch (e) {}
+  fit();
+}
+function cycleCam() {                       // Auto -> Dial -> Strip -> Auto; the view stays where it is across the switch
+  const at = camY + viewOff(), k = mine() ? scrollUI : 'auto', next = k === 'auto' ? 'dial' : k === 'dial' ? 'strip' : 'auto';
+  if (next === 'auto') { camMode = 'auto'; panY = 0; } else { camMode = 'mine'; scrollUI = next; viewY = Math.max(0, at); viewV = 0; jumpTo = null; scDrag = null; scrolled(); }
+  applyCam();
+}
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
   const sim = now < freezeUntil ? 0 : now < slowUntil2 ? dt * 0.4 : dt;       // a trophy buys a held breath and a second of slow motion
   if (state === 'play' && !paused && !hand) { accT += sim; while (accT >= STEP && state === 'play') { tick(STEP); accT -= STEP; } }
-  if (panY && !paused && !panning && !drawing && now - panIdle > 2500) { panY *= Math.exp(-dt * 5); if (Math.abs(panY) < 0.5) panY = 0; }      // the view drifts back to the flock
+  if (mine()) camFrame(dt, now);
+  else if (panY && !paused && !panning && !drawing && now - panIdle > 2500) { panY *= Math.exp(-dt * 5); if (Math.abs(panY) < 0.5) panY = 0; }      // the view drifts back to the flock
   render();
   requestAnimationFrame(frame);
 }
@@ -3323,6 +3528,7 @@ $('bTune').onclick = showTune;
 $('bCab').onclick = showCabinet;
 $('bHelp').onclick = () => { if (hand) return; showHelp(state !== 'play'); };
 $('bHome').onclick = showHome;
+$('bCam').onclick = cycleCam;
 const toggleSound = () => { sfx.init(); soundOn = sfx.toggle(); $('bSound').innerHTML = '<span class="lbl">Sound</span>&#9834; ' + (soundOn ? 'on' : 'off'); };
 $('bSound').onclick = toggleSound;
 $('bRetry').onclick = () => startGame(seed);
@@ -3332,6 +3538,8 @@ window.addEventListener('keydown', e => {
   if (e.target && e.target.tagName === 'INPUT') return;           // typing a player's name
   if (homeOpen) { if (e.key === 'm' || e.key === 'M') { toggleSound(); const b = $('hSound'); if (b) b.innerHTML = '&#9834; ' + (soundOn ? 'on' : 'off'); } else if (e.key === 'Enter' && $('hGo')) $('hGo').click(); return; }
   if ((e.key === 'h' || e.key === 'H' || e.key === 'Escape') && state === 'play' && overlay.className === 'hide') { showHome(); return; }
+  if (e.key === 'v' || e.key === 'V') { cycleCam(); return; }
+  if (mine() && state === 'play' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); jumpGroup(e.key === 'ArrowUp' ? -1 : 1); return; }
   if (e.key === ' ') { e.preventDefault(); togglePause(); }
   else if (e.key === 't' || e.key === 'T') showTune();
   else if (e.key === 'c' || e.key === 'C') showCabinet();
@@ -3357,7 +3565,7 @@ window.__wetink = {
   edges(y0, y1) { const out = []; for (const g of gaps) { const y = g.rows[0] * CELL; if (g.isl || y < y0 || y > y1) continue; checkGap(g); out.push({ x0: g.c0 * CELL, x1: g.c1 * CELL, yL: g.rows[0] * CELL, yR: g.rows[1] * CELL, L: g.dead[0], R: g.dead[1] }); } return out; },
   deaths: () => deathLog,
   bird() { spawnBird(); return birds.length; },
-  view: () => ({ VW, VH, Z, camX, camY, autoOff, panY, compact, barPad, off: viewOff() }),
+  view: () => ({ VW, VH, Z, camX, camY, autoOff, panY, compact, barPad, off: viewOff(), camMode, scrollUI, viewY, viewV, catchS, jumpTo, groups: groupsNow, max: viewMax() }),
   caged: () => birds.map(isCaged),
   birdHp(n) { for (const b of birds) b.hp = n; },
   brute() { return spawnBrute(); },
@@ -3418,7 +3626,7 @@ window.__wetink = {
     walkers: walkers.map(w => ({ x: w.x, y: w.y, alive: w.alive, grounded: w.grounded, dir: w.dir })) }),
 };
 
-fit();
+applyCam();
 newWorld(randSeed());
 cloudInit();   // fetch the account's cabinet in the background; the game never waits for it
 showHome();
