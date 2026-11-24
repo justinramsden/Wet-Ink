@@ -97,7 +97,7 @@
   body.compact .bar .stat, body.compact .bar .meter{background:rgba(255,253,248,.72);border-radius:8px;padding:3px 6px}
   body.compact .bar button{background:rgba(255,253,248,.78);padding:5px 7px;font-size:12px}
   body.compact .bar .group{gap:3px}
-  body.compact .logo, body.compact .tag, body.compact .lbl, body.compact .best, body.compact #bSound{display:none}
+  body.compact .logo, body.compact .tag, body.compact .lbl, body.compact .best, body.compact #bSound, body.compact #bMusic{display:none}
   body.compact .tube{width:54px}
   body.compact.tall .bar{flex-wrap:wrap}
   body.compact .bar .stat, body.compact .bar button{white-space:nowrap}
@@ -142,12 +142,24 @@
   .players input{font:inherit;font-size:15px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;flex:1;min-width:0;background:#fff;-webkit-user-select:text;user-select:text}
   .players .add{display:flex;gap:6px;margin:12px 0 4px}
   .card button.danger{background:var(--red);border-color:var(--red);color:#fff}
+  .tune button.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+  /* ---------- what the music is doing: beat lamp, section, stems, tension ---------- */
+  .mm{position:absolute;left:8px;bottom:8px;z-index:4;display:flex;align-items:center;gap:7px;padding:4px 8px;border-radius:9px;background:rgba(255,253,248,.86);border:1px solid var(--line);font-size:11px;line-height:1;color:var(--muted);pointer-events:none}
+  #mmS{font-weight:700;color:var(--char);min-width:50px;text-transform:uppercase;letter-spacing:.04em}
+  .mm[data-s=tense] #mmS{color:#c2410c} .mm[data-s=boss] #mmS{color:var(--red)} .mm[data-s=silence] #mmS, .mm[data-s=loading] #mmS{color:#a8997c}
+  .mmL{display:flex;gap:3px} .mmL i{font-style:normal;padding:2px 5px;border-radius:6px;border:1px solid var(--line);opacity:.45} .mmL i.on{opacity:1;background:var(--ink);border-color:var(--ink);color:#fff}
+  .mmB{position:relative;width:84px;height:8px;border-radius:5px;background:#ebe4d3;border:1px solid var(--line)}
+  .mmB b{display:block;height:100%;width:0;border-radius:5px;background:var(--ink)} .mm[data-s=tense] .mmB b{background:#c2410c} .mm[data-s=boss] .mmB b{background:var(--red)}
+  .mmB u{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--char);opacity:.5}
+  #mmK{flex:none;width:9px;height:9px;border-radius:50%;background:#d9cfb8} #mmK.beat{background:var(--ember)} #mmK.bar{background:var(--red);box-shadow:0 0 0 2px rgba(214,64,43,.3)}
+  body.compact .mm{left:max(6px,env(safe-area-inset-left));bottom:max(6px,env(safe-area-inset-bottom));font-size:10px;gap:5px;padding:3px 6px} body.compact .mmB{width:54px} body.compact #mmS{min-width:44px} body.compact #mmW{display:none}
+  #mmW{white-space:nowrap} #mmW:empty{display:none}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="bar">
-    <span class="logo">Wet Ink</span><span class="tag">test 31</span>
+    <span class="logo">Wet Ink</span><span class="tag">test 32</span>
     <div class="meter"><span class="lbl">Ink</span>
       <div class="tube" id="tube"><b id="inkfill"></b></div><span class="chip res" id="cRes" title="Reservoir: bigger ink tank" style="display:none"></span>
       <span class="chip" id="cLast" title="Lasting"><u>L</u><i></i><i></i><em></em></span>
@@ -167,6 +179,7 @@
       <button id="bTune" title="Tuning (T)">&#9881;</button>
       <button id="bHelp">?</button>
       <button id="bSound"><span class="lbl">Sound</span>&#9834; on</button>
+      <button id="bMusic" title="Music (N)"><span class="lbl">Music</span>&#9835; on</button>
       <button id="bPause">Pause</button>
       <button id="bRetry">Retry<span class="lbl">cave</span></button>
       <button id="bNew">New<span class="lbl">cave</span></button>
@@ -175,6 +188,7 @@
   <div class="stage">
     <canvas id="c"></canvas>
     <canvas id="sc"></canvas>
+    <div id="mm" class="mm" style="display:none" title="What the music is doing"><b id="mmK"></b><span id="mmS">music</span><span class="mmL"><i>pad</i><i>pluck</i><i>drums</i></span><span class="mmB"><b id="mmF"></b><u id="mmT1"></u><u id="mmT2"></u></span><span id="mmW"></span></div>
     <div id="overlay"></div>
   </div>
 </div>
@@ -248,6 +262,8 @@ const TUNE = {
   slimeSound: 1,      // which slime splat plays (1 gloop, 2 squirt, 3 jelly)
   camIdle: 3, camWarn: 0.8, camAccel: 500, camTop: 2600,   // your camera: seconds without scrolling before it catches up, warning time, how gently it starts, top speed
   dialGear: 2.5, dialFric: 1.2,   // the dial: cave px per px of finger travel (negative flips it), and how quickly a spin dies away
+  musTense: 0.5, musCalm: 0.32,   // music: the tension (0 to 1) at which the calm section gives way to the tense one, and how far it must fall to come back
+  musCut: 4,          // music: this many blots lost at once stops it dead (0 = never)
 };
 
 const W = 960, H = 640, CELL = 4, COLS = W / CELL, CH = 40;   // CH = rows per cached terrain chunk
@@ -715,7 +731,7 @@ const sfx = (() => {
     env(g, t, vol, dur); src.connect(f); f.connect(g); g.connect(out); src.start(t, Math.random() * 0.9); src.stop(t + dur + 0.03);
   }
   return {
-    init, toggle() { muted = !muted; return !muted; },
+    init, toggle() { muted = !muted; return !muted; }, ctx: () => AC, on: () => !muted,
     splat() {                                   // thump, wet slap, then a few drips
       tone('sine', 150, 38, 0.2, 0.9); noise('lowpass', 1400, 120, 0.7, 0.24, 0.9);
       noise('bandpass', 2400, 500, 2.5, 0.13, 0.5, 0.035); noise('bandpass', 900, 300, 4, 0.1, 0.35, 0.09);
@@ -788,6 +804,408 @@ const sfx = (() => {
     haste() { tone('sawtooth', 300, 1200, 0.3, 0.12); },
     fuse() { noise('highpass', 5000, 7000, 1, 0.07, 0.07); },
     boom() { noise('lowpass', 900, 50, 0.8, 0.8, 1.0); tone('sine', 110, 28, 0.6, 1.0); noise('bandpass', 2500, 400, 1, 0.25, 0.4, 0.02); },
+  };
+})();
+
+// ---------------- music: it follows the game, not a script ----------------
+// The game boils everything down to one number, tension (0 to 1). The music listens to it and only ever changes in time:
+//   layers   - each section is three stems playing in step; tension fades them in and out, on the next beat
+//   sections - calm, tense and boss are different loops; they swap on a bar line (half a bar when things turn bad)
+//   stingers - short one-off phrases that answer a single event (a blot lost, a boss arriving or sent packing)
+//   silence  - it stops for the hush before a boss, after a win, and dead when a lot of blots are lost at once
+// The piece is a placeholder made in code by musicSynth(). Real recordings would be loaded in load() instead, cut to the same shape:
+// every stem of a section the same length, a whole number of bars at one tempo.
+const MUSIC = {     // tension at which each stem joins (it leaves again a little lower). 0 = always playing. Stems: 0 pad + bass, 1 plucked line, 2 drums
+  calm:  [0.1, 0, 0.26],
+  tense: [0, 0.4, 0.62],
+  boss:  [0, 0.62, 0],
+};
+// The placeholder piece, made in code: three sections of three stems each, plus a few one-shots.
+// Everything is 100 BPM in A minor / C major, so any part can follow any other. Stems: 0 bed (pad + bass), 1 plucked line, 2 drums.
+// It has no outside dependencies, so it can run in a worker. It returns plain Float32Arrays at the given sample rate.
+function musicSynth(sr) {
+  'use strict';
+  const BPM = 100, BEAT = 60 / BPM, BAR = BEAT * 4, S8 = BEAT / 2, S16 = BEAT / 4, TAU = 2 * Math.PI;
+  const N = s => Math.round(s * sr), hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  let seed = 20261124;
+  const rnd = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
+  const white = n => { const a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = rnd() * 2 - 1; return a; };
+  const peak = a => { let p = 0; for (let i = 0; i < a.length; i++) { const v = Math.abs(a[i]); if (v > p) p = v; } return p; };
+  const rms = a => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * a[i]; return Math.sqrt(s / a.length); };
+  const scale = (a, g) => { for (let i = 0; i < a.length; i++) a[i] *= g; return a; };
+  const norm = (a, to) => scale(a, (to || 1) / (peak(a) || 1));
+  const tail = (a, s) => { const n = Math.min(a.length, N(s)); for (let i = 0; i < n; i++) a[a.length - 1 - i] *= i / n; return a; };   // fade the end to nothing
+  function biquad(x, type, f0, Q) {
+    const w = TAU * Math.min(f0, sr * 0.45) / sr, cs = Math.cos(w), al = Math.sin(w) / (2 * Q), a0 = 1 + al, a1 = -2 * cs, a2 = 1 - al;
+    let b0, b1, b2;
+    if (type === 'lp') { b0 = (1 - cs) / 2; b1 = 1 - cs; b2 = b0; } else if (type === 'hp') { b0 = (1 + cs) / 2; b1 = -(1 + cs); b2 = b0; } else { b0 = al; b1 = 0; b2 = -al; }
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < x.length; i++) { const v = x[i], y = (b0 * v + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0; x2 = x1; x1 = v; y2 = y1; y1 = y; x[i] = y; }
+    return x;
+  }
+  const memo = f => { const c = {}; return (...a) => c[a] || (c[a] = f(...a)); };      // each different note or drum hit is worked out once and reused
+  // ---- instruments ----
+  const pluck = memo((m, dur, bright, ring) => {       // a plucked string (Karplus-Strong, kept in tune with an all-pass). ring = seconds to die away
+    const f = hz(m), P = sr / f, n = N(dur), out = new Float32Array(n);
+    let L = Math.floor(P - 0.5), fr = P - 0.5 - L; if (fr < 0.1) { L--; fr += 1; }
+    const C = (1 - fr) / (1 + fr), d = new Float32Array(L), rho = Math.pow(0.001, 1 / (ring * f)), pick = 0.19;
+    let lp = 0, mean = 0;
+    for (let i = 0; i < L; i++) {              // the string's starting shape: pulled into a triangle, with a little pick noise
+      const u = i / L, tri = u < pick ? u / pick : (1 - u) / (1 - pick);
+      lp += 0.5 * (rnd() * 2 - 1 - lp); d[i] = tri * 2 - 1 + bright * lp * 1.6; mean += d[i];
+    }
+    mean /= L; for (let i = 0; i < L; i++) d[i] -= mean;
+    let k = 0, x1 = 0, a1 = 0, y1 = 0;
+    for (let i = 0; i < n; i++) {
+      const x = d[k]; out[i] = x;
+      const v = rho * 0.5 * (x + x1); x1 = x;
+      const y = C * v + a1 - C * y1; a1 = v; y1 = y;
+      d[k] = y; if (++k === L) k = 0;
+    }
+    const na = N(0.0015); norm(out); for (let i = 0; i < na; i++) out[i] *= 0.5 - 0.5 * Math.cos(Math.PI * i / na);     // a very short fade-in, so a note starts without a click
+    return tail(out, 0.03);
+  });
+  const wave = memo((f, fc) => {               // one cycle of a soft saw: its overtones fall away above fc
+    const t = new Float32Array(2049), K = Math.max(1, Math.min(48, Math.floor(Math.min(sr * 0.45, 8000) / f)));
+    for (let k = 1; k <= K; k++) { const a = 1 / k / (1 + Math.pow(k * f / fc, 2)); for (let i = 0; i < 2049; i++) t[i] += a * Math.sin(TAU * k * i / 2048); }
+    return norm(t);
+  });
+  function pad(m, dur, att, rel, fc) {         // three slightly detuned voices: a slow, warm chord tone
+    const f = hz(m), tb = wave(f, fc), nd = N(dur), na = N(att), nr = N(rel), n = nd + nr, out = new Float32Array(n);
+    for (const c of [-7, 0, 6]) {
+      let ph = rnd() * 2048; const inc = f * Math.pow(2, c / 1200) * 2048 / sr;
+      for (let i = 0; i < n; i++) { const j = ph | 0; out[i] += tb[j] + (tb[j + 1] - tb[j]) * (ph - j); ph += inc; if (ph >= 2048) ph -= 2048; }
+    }
+    for (let i = 0; i < n; i++) out[i] *= (i < na ? 0.5 - 0.5 * Math.cos(Math.PI * i / na) : 1) * (i > nd ? 0.5 + 0.5 * Math.cos(Math.PI * (i - nd) / nr) : 1) / 3;
+    return out;
+  }
+  const bass = memo((m, dur, att, tau) => {    // a round bass note with enough overtones to be heard on a phone speaker
+    const w = TAU * hz(m) / sr, nd = N(dur), na = Math.max(1, N(att)), nr = N(0.05), n = nd + nr, out = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const p = w * i, e = Math.min(1, i / na) * Math.exp(-i / sr / tau) * (i > nd ? 1 - (i - nd) / nr : 1);
+      out[i] = e * (Math.sin(p) + 0.5 * Math.sin(2 * p) + 0.28 * Math.sin(3 * p) + 0.12 * Math.sin(4 * p)) / 1.6;
+    }
+    return out;
+  });
+  const kick = memo(amp => {
+    const n = N(0.42), o = new Float32Array(n), c = biquad(white(N(0.01)), 'hp', 2400, 0.7); let ph = 0;      // a low thump, a knock around 200 Hz and a click, so small speakers still play it
+    for (let i = 0; i < n; i++) { const t = i / sr; ph += TAU * (50 + 150 * Math.exp(-t / 0.035)) / sr; o[i] = (Math.sin(ph) * Math.exp(-t / 0.14) + 0.45 * Math.sin(TAU * 215 * t) * Math.exp(-t / 0.022)) * Math.min(1, i / (0.0015 * sr)); }
+    for (let i = 0; i < c.length; i++) o[i] += c[i] * 0.5 * (1 - i / c.length);
+    return scale(tail(o, 0.03), amp);
+  });
+  const snare = memo(amp => {
+    const n = N(0.32), o = biquad(white(n), 'bp', 1900, 0.7); let ph = 0;
+    for (let i = 0; i < n; i++) { const t = i / sr; ph += TAU * (160 + 60 * Math.exp(-t / 0.02)) / sr; o[i] = o[i] * Math.exp(-t / 0.075) * 0.8 + Math.sin(ph) * Math.exp(-t / 0.045) * 0.6; }
+    return scale(tail(o, 0.02), amp);
+  });
+  const hat = memo((amp, open) => { const n = N(open ? 0.3 : 0.07), o = biquad(white(n), 'hp', 7200, 0.8), tau = open ? 0.085 : 0.016; for (let i = 0; i < n; i++) o[i] *= Math.exp(-i / sr / tau); return scale(tail(o, 0.01), amp); });
+  const shaker = memo(amp => { const n = N(0.14), na = N(0.014), o = biquad(white(n), 'bp', 5200, 1.1); for (let i = 0; i < n; i++) o[i] *= Math.min(1, i / na) * Math.exp(-Math.max(0, i - na) / sr / 0.03); return scale(tail(o, 0.01), amp); });
+  const tom = memo((f, amp) => { const n = N(0.4), o = new Float32Array(n); let ph = 0; for (let i = 0; i < n; i++) { const t = i / sr; ph += TAU * f * (1 + 0.6 * Math.exp(-t / 0.018)) / sr; o[i] = Math.sin(ph) * Math.exp(-t / 0.15) * Math.min(1, i / (0.002 * sr)); } return scale(tail(o, 0.03), amp); });
+  function rim(amp) { const n = N(0.06), o = new Float32Array(n); for (let i = 0; i < n; i++) { const t = i / sr; o[i] = (Math.sin(TAU * 1750 * t) + 0.6 * Math.sin(TAU * 430 * t)) * Math.exp(-t / 0.012) * Math.min(1, i / (0.0005 * sr)); } return scale(o, amp); }
+  function crash(amp, len) { const n = N(len), o = biquad(white(n), 'hp', 3800, 0.7); for (let i = 0; i < n; i++) o[i] *= Math.exp(-i / sr / (len * 0.28)) * Math.min(1, i / (0.003 * sr)); return scale(tail(o, 0.05), amp); }
+  function thud() { const n = N(0.25), o = biquad(white(n), 'lp', 700, 0.8); for (let i = 0; i < n; i++) o[i] *= Math.exp(-i / sr / 0.045) * Math.min(1, i / (0.001 * sr)); return tail(o, 0.02); }
+  function boom(f0, f1, tau, len) { const n = N(len), o = new Float32Array(n); let ph = 0; for (let i = 0; i < n; i++) { const t = i / sr; ph += TAU * (f1 + (f0 - f1) * Math.exp(-t / 0.06)) / sr; o[i] = (Math.sin(ph) + 0.35 * Math.sin(2 * ph) + 0.15 * Math.sin(3 * ph)) * Math.exp(-t / tau) * Math.min(1, i / (0.003 * sr)); } return tail(o, 0.1); }
+  // ---- putting notes into loops ----
+  const loop = bars => new Float32Array(N(bars * BAR));
+  function put(buf, clip, t, g) {              // lay a clip into a loop at time t; whatever runs past the end wraps round to the start, so the loop has no seam
+    const n = buf.length; let p = ((N(t) % n) + n) % n;
+    for (let i = 0; i < clip.length; i++) { buf[p] += clip[i] * g; if (++p === n) p = 0; }
+  }
+  function shot(len, parts) { const o = new Float32Array(N(len)); for (const [clip, t, g] of parts) { const p = N(t); for (let i = 0; i < clip.length && p + i < o.length; i++) o[p + i] += clip[i] * g; } return o; }
+  function reverb(x, mix, t60, wrap) {         // a small room. For a loop, the tail of the end is carried round into the start
+    const cd = [0.0297, 0.0371, 0.0411, 0.0437, 0.0253, 0.0339].map(s => N(s) | 1), cb = cd.map(n => new Float32Array(n)), ci = cd.map(() => 0), cl = cd.map(() => 0), cg = cd.map(n => Math.pow(10, -3 * n / sr / t60));
+    const ab = [0.005, 0.0017].map(s => new Float32Array(Math.max(2, N(s)))), ai = [0, 0], out = new Float32Array(x.length);
+    for (let pass = wrap ? 0 : 1; pass < 2; pass++) for (let i = pass ? 0 : Math.max(0, x.length - N(t60 * 2)); i < x.length; i++) {      // pass 0 only warms the room up with the end of the loop
+      const v = x[i]; let w = 0;
+      for (let c = 0; c < 6; c++) { const b = cb[c], k = ci[c], y = b[k]; cl[c] += 0.45 * (y - cl[c]); b[k] = v + cl[c] * cg[c]; ci[c] = k + 1 === b.length ? 0 : k + 1; w += y; }
+      w /= 6;
+      for (let a = 0; a < 2; a++) { const b = ab[a], k = ai[a], d = b[k], y = d - 0.7 * w; b[k] = w + 0.7 * y; ai[a] = k + 1 === b.length ? 0 : k + 1; w = y; }
+      if (pass) out[i] = v + mix * w;
+    }
+    return out;
+  }
+  const level = (a, r) => scale(a, Math.min(r / (rms(biquad(a.slice(), 'hp', 160, 0.7)) || 1), 0.9 / (peak(a) || 1)));   // set a stem's loudness by what a small speaker can play (above 160 Hz), never letting it clip
+  // a line of eighth notes: one list of 8 MIDI notes per bar (0 = rest). The first beat of the bar is played hardest
+  function line(buf, bars, g, dur, bright, ring, up) { bars.forEach((b, bi) => b.forEach((m, k) => { if (m) put(buf, pluck(m + (up || 0), dur, bright, ring), bi * BAR + k * S8, g * (k === 0 ? 1 : k % 2 === 0 ? 0.82 : 0.68)); })); }
+
+  // ---- CALM: 8 bars, C / Am / F / G, two bars each. The plucked line carries it alone; the pad and a light shaker join as things happen ----
+  const calm = [loop(8), loop(8), loop(8)];
+  line(calm[1], [[60, 67, 72, 76, 0, 67, 72, 0], [74, 72, 67, 64, 0, 67, 0, 0], [57, 64, 69, 72, 0, 64, 69, 0], [71, 69, 64, 60, 0, 64, 0, 0],
+                 [53, 60, 65, 69, 0, 60, 65, 0], [67, 65, 60, 57, 0, 60, 0, 0], [55, 62, 67, 71, 0, 62, 67, 0], [69, 67, 62, 59, 0, 62, 0, 0]], 1, 2.6, 0.3, 2.4);
+  [[55, 60, 64, 48], [57, 60, 64, 45], [57, 60, 65, 41], [55, 59, 62, 43]].forEach((c, i) => {
+    for (let k = 0; k < 3; k++) { put(calm[0], pad(c[k], 2 * BAR - 0.5, 0.7, 1.3, 1100), i * 2 * BAR - 0.3, 1); put(calm[0], pad(c[k] + 12, 2 * BAR - 0.5, 0.9, 1.3, 1100), i * 2 * BAR - 0.3, 0.3); }
+    put(calm[0], bass(c[3], 2 * BAR - 0.5, 0.06, 3.5), i * 2 * BAR, 0.9);
+  });
+  for (let b = 0; b < 8; b++) for (let k = 0; k < 8; k++) {
+    const t = b * BAR + k * S8;
+    put(calm[2], shaker(k % 2 ? 0.9 : 0.5), t, 1);
+    if (k === 0) put(calm[2], kick(0.5), t, 1); else if (k === 4) put(calm[2], kick(0.3), t, 1);
+    if (k === 6 && b % 2) put(calm[2], rim(0.5), t, 1);
+  }
+  // ---- TENSE: 4 bars over a held A in the bass. Am, F/A, Dm/A, Asus2. The pulsing bass and dark pad come first, then the riff, then drums ----
+  const tense = [loop(4), loop(4), loop(4)];
+  [[52, 57, 60], [53, 57, 60], [53, 57, 62], [52, 57, 59]].forEach((c, b) => {
+    for (const m of c) put(tense[0], pad(m, BAR - 0.2, 0.25, 0.5, 650), b * BAR - 0.1, 0.8);
+    for (const k of [0, 2, 3, 5, 6]) { const t = b * BAR + k * S8, g = k === 0 ? 1 : 0.8; put(tense[0], pluck(45, 0.6, 0.5, 0.4), t, g); put(tense[0], bass(45, 0.2, 0.004, 0.1), t, g * 0.7); }
+  });
+  line(tense[1], [[64, 0, 69, 0, 72, 71, 69, 0], [65, 0, 69, 0, 72, 71, 69, 0], [65, 0, 69, 0, 74, 72, 69, 0], [64, 0, 69, 0, 71, 0, 64, 64]], 1, 1.3, 0.55, 1);
+  for (let b = 0; b < 4; b++) for (let k = 0; k < 16; k++) {
+    const t = b * BAR + k * S16, fill = b === 3 && k >= 12;
+    if (k === 0 || k === 6 || k === 8 || k === 13) put(tense[2], kick(k === 0 ? 1 : 0.8), t, 1);
+    if (fill) put(tense[2], tom([150, 128, 108, 90][k - 12], 0.8), t, 1); else if (k === 4 || k === 12) put(tense[2], snare(0.7), t, 1);
+    if (k % 2 === 0 || k === 15) put(tense[2], hat(k % 4 === 2 ? 0.5 : 0.3, false), t, 1);
+  }
+  // ---- BOSS: 4 bars, Am / F / G / Em. Galloping bass, held fifths and full drums all the time; the lead comes in when the fight turns ----
+  const boss = [loop(4), loop(4), loop(4)];
+  [[45, 57, 64, 69], [41, 53, 60, 65], [43, 55, 62, 67], [40, 52, 59, 64]].forEach((c, b) => {
+    for (let k = 1; k < 4; k++) put(boss[0], pad(c[k], BAR - 0.12, 0.03, 0.25, 1500), b * BAR, 0.7);
+    for (let q = 0; q < 4; q++) for (const s of [0, 2, 3]) { const t = b * BAR + q * BEAT + s * S16, g = s === 0 ? 1 : 0.75; put(boss[0], pluck(c[0], 0.4, 0.7, 0.28), t, g); put(boss[0], bass(c[0], 0.12, 0.003, 0.07), t, g * 0.8); }
+  });
+  { const L = [[69, 0, 72, 0, 76, 0, 72, 69], [69, 0, 72, 0, 77, 0, 72, 69], [71, 0, 74, 0, 79, 0, 74, 71], [71, 0, 76, 0, 79, 76, 74, 71]];
+    line(boss[1], L, 1, 1.1, 0.8, 0.9); line(boss[1], L, 0.45, 1.1, 0.6, 0.9, -12); }
+  for (let b = 0; b < 4; b++) for (let k = 0; k < 16; k++) {
+    const t = b * BAR + k * S16, fill = b === 3 && k >= 12;
+    if (k % 4 === 0 || (k === 10 && b % 2)) put(boss[2], kick(k % 4 === 0 ? 1 : 0.8), t, 1);
+    if (fill) put(boss[2], tom([170, 145, 120, 98][k - 12], 0.9), t, 1); else if (k === 4 || k === 12) put(boss[2], snare(0.9), t, 1);
+    put(boss[2], hat(k % 2 ? 0.16 : k % 4 === 2 ? 0.42 : 0.3, false), t, 1);
+    if (b === 0 && k === 0) put(boss[2], crash(0.5, 2), t, 1);
+  }
+  const sections = {
+    calm:  { bars: 8, stems: [level(calm[0], 0.05), level(reverb(calm[1], 0.22, 1.7, true), 0.065), level(reverb(calm[2], 0.06, 0.7, true), 0.022)] },
+    tense: { bars: 4, stems: [level(tense[0], 0.065), level(reverb(tense[1], 0.2, 1.4, true), 0.065), level(reverb(tense[2], 0.07, 0.7, true), 0.04)] },
+    boss:  { bars: 4, stems: [level(boss[0], 0.07), level(reverb(boss[1], 0.18, 1.2, true), 0.07), level(reverb(boss[2], 0.07, 0.7, true), 0.05)] },
+  };
+  // ---- one-shots (stingers) ----
+  const riser = (() => { const n = N(BEAT), o = white(n), out = new Float32Array(n), steps = 12;       // a swell that ends exactly on the line
+    for (let s = 0; s < steps; s++) { const a = Math.floor(n * s / steps), b = Math.floor(n * (s + 1) / steps), seg = biquad(o.slice(Math.max(0, a - 200), b), 'bp', 700 * Math.pow(9, s / steps), 1.2), off = a - Math.max(0, a - 200); for (let i = a; i < b; i++) out[i] = seg[i - a + off]; }
+    for (let i = 0; i < n; i++) out[i] *= Math.pow(i / n, 2.2) * Math.min(1, (n - i) / (0.004 * sr)); return norm(out, 0.3); })();
+  const strum = (ms, gap, dur, bright, ring) => ms.map((m, i) => [pluck(m, dur, bright, ring), i * gap, 1 - i * 0.06]);
+  const shots = {
+    riser,
+    hit:  norm(reverb(shot(3.2, [[boom(95, 42, 0.45, 1.6), 0, 0.8], [crash(0.5, 2.2), 0, 1], ...strum([45, 52, 57], 0, 2.4, 0.9, 2).map(p => [p[0], 0, 0.8])]), 0.15, 1.5), 0.7),
+    loss: norm(reverb(shot(2, [[pluck(60, 1, 0.45, 0.9), 0, 0.85], [pluck(57, 1.3, 0.45, 1.2), 0.15, 1], [pluck(45, 0.9, 0.3, 0.5), 0.15, 0.5], [tom(110, 0.3), 0.15, 1]]), 0.2, 1.2), 0.45),
+    cut:  norm(reverb(shot(3.6, [[boom(80, 36, 0.7, 2.4), 0, 0.45], [thud(), 0, 1], [pluck(45, 2.6, 0.8, 2.4), 0, 1], [pluck(52, 2.6, 0.7, 2.2), 0.012, 0.8], [pluck(33, 2.6, 0.6, 2.4), 0, 0.5]]), 0.2, 1.8), 0.7),
+    win:  norm(reverb(shot(4.4, [...strum([48, 55, 60, 64, 67, 72, 76], 0.032, 3.4, 0.5, 3.2), [crash(0.18, 2.6), 0.1, 1]]), 0.3, 2.2), 0.55),
+    over: norm(reverb(shot(5.6, [[pluck(64, 1.6, 0.3, 1.6), 0, 0.8], [pluck(60, 1.6, 0.3, 1.6), 0.45, 0.8], [pluck(57, 2, 0.3, 2), 0.9, 0.9], [pluck(45, 3.6, 0.35, 3.4), 1.5, 1], [pluck(52, 3.6, 0.25, 3.2), 1.53, 0.7]]), 0.3, 2.2), 0.55),
+    end:  norm(reverb(shot(4, strum([45, 52, 57, 60, 64], 0.04, 3, 0.3, 2.6)), 0.3, 2), 0.45),
+  };
+  return { bpm: BPM, sections, shots };
+}
+const music = (() => {
+  const VOL = 0.7, BARLEN = 2.4;            // VOL: how loud the music is against the sound effects with the slider at 100. BARLEN: one bar at 100 BPM
+  let AC = null, bus, stingG, lpF, pauseG, duckG, busG = -1, data = null, loading = false, failed = false;
+  let on = true, vol = 0.55, meter = true;
+  try { const sv = JSON.parse(localStorage.getItem('wetink_music') || '{}'); if (typeof sv.on === 'boolean') on = sv.on; if (typeof sv.vol === 'number') vol = Math.max(0, Math.min(1, sv.vol)); if (typeof sv.meter === 'boolean') meter = sv.meter; } catch (e) {}
+  const save = () => { try { localStorage.setItem('wetink_music', JSON.stringify({ on, vol, meter })); } catch (e) {} };
+  let sec = null;                           // the section playing: name, t0 (when its first bar began, on the audio clock), bar and beat length, sources, layer gains
+  let X = 0, heat = 0, hold = 0, force = null, forceX = 0.5;      // X: smoothed tension. heat: recent losses. hold: silence until this time. force: the tuning panel has taken over
+  let logRef = null, seen = 0, recent = [], cutAt = -1e9, lossAt = -1e9, bPhase = '', rSeen = null, wasPlay = false, fresh = false, muff = false, muffAt = 0, quiet = false, said = [], why = '', whyN = 0, whyT = 0;
+
+  // How much trouble the flock is in right now, 0 to 1. Each danger takes a share of whatever calm is left, so they stack without ever passing 1.
+  function tension(list) {                  // list: an optional array that receives [cause, share] pairs, for the panel and for tuning
+    let calm = 1; const add = (v, c) => { v = Math.max(0, Math.min(1, v)); calm *= 1 - v; if (list && v) list.push([c, v]); };
+    let n = 0, my = 0, top = 1e9, falling = 0, fuse = 0, fading = 0;
+    for (const w of walkers) {
+      if (!w.alive) continue; n++; my += w.y; if (w.y < top) top = w.y;
+      if (!w.grounded && !w.carried && w.vy > 0 && w.y - w.fallStart > TUNE.fatalFall * 0.55) falling++;      // already most of the way through a deadly fall
+      if (w.bomb) fuse++;
+      if (w.y < fadeY + TUNE.fadeWarn * M) fading++;
+    }
+    my = n ? my / n : camY;
+    // things that are simply around count for little (they bring in more instruments); things going wrong count for a lot (they turn the music)
+    for (const b of birds) if (b.state !== 'flee') add(b.state === 'carry' ? 0.6 : b.state === 'dive' ? 0.4 : b.state === 'tell' ? 0.3 : 0.1, 'bird ' + b.state);
+    for (const b of brutes) add(b.state === 'warn' ? 0.15 : Math.abs(b.y - my) < 260 ? (b.rager ? 0.35 : 0.2) : 0.05, 'brute');
+    for (const L of leeches) if (!L.queen) add(L.drinking ? 0.1 : 0.04, 'leech');
+    if (fuse) add(0.6, 'bomb');
+    if (falling) add(Math.min(0.5, 0.15 * falling), 'falling');
+    add(1 - Math.exp(-0.45 * heat), 'losses');                          // blots lost in the last few seconds
+    const fl = n + queue.length;
+    if (fl <= 3) add(0.25, 'few left'); else if (fl <= 6) add(0.12, 'few left');
+    if (T < dryUntil) add(0.25, 'pen dry'); else if (inkLeft < inkCap() * 0.2) add(0.1, 'ink low');
+    if (fading) add(0.2, 'fade');
+    const k = evKind();
+    if (k) add(k === 'grinder' ? 0.65 : 0.5, 'event');
+    if (k === 'grinder' && top - raid.y < 150) add(0.5, 'grinder close');
+    if (boss && boss.phase === 'fight') {                                // a boss fight starts high and climbs as the boss weakens or its clock runs down
+      const o = boss.hpMax ? boss : boss.m || boss.w, left = o ? o.hp / (boss.hpMax || 3) : boss.A.count ? 1 - boss.beat / boss.A.count : 1;      // health left, the way the boss's own bar counts it
+      add(0.5, 'boss'); add(0.45 * (1 - Math.max(0, Math.min(1, left))), 'boss hurt'); if (boss.clock < 20) add(0.3, 'boss clock');
+    }
+    add(Math.min(0.15, 0.025 * stratum), 'stratum');
+    return 1 - calm;
+  }
+  // Count losses and smooth the tension: up fast, down slowly, so the music does not flicker. Runs whether or not any music is playing.
+  function track(dt) {
+    const live = state === 'play' && !paused && !hand; let lost = 0;
+    if (logRef !== deathLog) { logRef = deathLog; seen = deathLog.length; heat = 0; recent = []; X = 0; bPhase = ''; rSeen = null; hold = 0; cutAt = -1e9; fresh = true; }     // a new cave
+    for (; seen < deathLog.length; seen++) { const f = deathLog[seen].faded; heat += f ? 0.5 : 1; if (!f) lost++; }
+    if (lost) recent.push([T, lost]);
+    while (recent.length && T - recent[0][0] > 2.5) recent.shift();
+    if (force) { why = ''; X += (forceX - X) * (1 - Math.exp(-dt / 0.12)); }
+    else if (live) {
+      heat *= Math.exp(-dt / 7);
+      const parts = whyN++ % 6 ? null : [], r = tension(parts);
+      if (parts) { let top = null; for (const q of parts) if (!top || q[1] > top[1]) top = q; if (top && top[1] >= 0.1 && r >= X - 0.03) { why = top[0]; whyT = T; } else if (T - whyT > 1.5 || T < whyT) why = ''; }      // the panel names whatever is pushing tension up right now (and keeps the name up for a moment)
+      X += (r - X) * (1 - Math.exp(-dt / (r > X ? 0.3 : 4)));
+    }
+    return lost;
+  }
+  function graph() {                        // music -> duck (dips under a splat) -> pause (muffles) -> low-pass -> bus (volume) -> out
+    if (bus) return true;
+    AC = sfx.ctx(); if (!AC) return false;
+    bus = AC.createGain(); bus.gain.value = 0; bus.connect(AC.destination);
+    stingG = AC.createGain(); stingG.connect(bus);
+    lpF = AC.createBiquadFilter(); lpF.type = 'lowpass'; lpF.frequency.value = 20000; lpF.Q.value = 0.707; lpF.connect(bus);
+    pauseG = AC.createGain(); pauseG.connect(lpF);
+    duckG = AC.createGain(); duckG.connect(pauseG);
+    return true;
+  }
+  // The piece is rendered off the main thread, at the sound card's own rate (48 kHz at most). Real recordings would be fetched and decoded here instead.
+  function load() {
+    loading = true;
+    const sr = Math.min(AC.sampleRate, 48000);      // a sound card running faster than that gains nothing here, and would double the memory
+    const done = M => {
+      const mk = a => { const b = AC.createBuffer(1, a.length, sr); b.getChannelData(0).set(a); return b; };
+      const S = {}, shots = {};
+      for (const k in M.sections) S[k] = { bars: M.sections[k].bars, stems: M.sections[k].stems.map(mk) };
+      for (const k in M.shots) shots[k] = mk(M.shots[k]);
+      data = { S, shots }; loading = false;
+    };
+    const here = () => setTimeout(() => { try { done(musicSynth(sr)); } catch (e) { failed = true; loading = false; } }, 50);      // no worker: do it here (a short hitch)
+    try {
+      const url = URL.createObjectURL(new Blob(['onmessage=e=>{const M=(' + musicSynth.toString() + ')(e.data),t=[];for(const k in M.sections)for(const s of M.sections[k].stems)t.push(s.buffer);for(const k in M.shots)t.push(M.shots[k].buffer);postMessage(M,t)}'], { type: 'text/javascript' }));
+      const w = new Worker(url); let over = false;
+      const giveUp = () => { if (over) return; over = true; w.terminate(); URL.revokeObjectURL(url); here(); };
+      w.onmessage = e => { if (over) return; over = true; try { done(e.data); } catch (err) { failed = true; loading = false; } w.terminate(); URL.revokeObjectURL(url); };
+      w.onerror = giveUp; setTimeout(giveUp, 12000);      // a worker that fails, or never answers, falls back to rendering here
+      w.postMessage(sr);
+    } catch (e) { here(); }
+  }
+  // The next beat line of the section playing: every `beats` beats from its start, and at least `lead` seconds away
+  const line = (beats, lead) => { const u = sec.beat * beats; return sec.t0 + Math.ceil((AC.currentTime + (lead || 0.06) - sec.t0) / u - 1e-6) * u; };
+  const q8 = () => sec && AC.currentTime >= sec.t0 ? line(0.5, 0.02) : AC.currentTime + 0.02;        // stingers land on the next half beat
+  function start(name, at, fade) {           // all three stems start on the same sample and loop; the layers that are not wanted yet play silently
+    const S = data.S[name], g = AC.createGain(), bar = S.stems[0].duration / S.bars, J = MUSIC[name], srcs = [], lay = [], onNow = [];
+    if (fade > 0.1) { g.gain.setValueAtTime(0.0001, at); g.gain.setTargetAtTime(1, at, fade / 3); }
+    g.connect(duckG);
+    for (let i = 0; i < 3; i++) {
+      const src = AC.createBufferSource(), lg = AC.createGain();
+      onNow[i] = J[i] <= 0 || X >= J[i]; lg.gain.value = onNow[i] ? 1 : 0;
+      src.buffer = S.stems[i]; src.loop = true; src.connect(lg); lg.connect(g); src.start(at); srcs.push(src); lay.push(lg);
+    }
+    srcs[0].onended = () => { try { g.disconnect(); } catch (e) {} };
+    sec = { name, t0: at, bar, beat: bar / 4, g, srcs, lay, on: onNow, chg: [at, at, at], free: [at, at, at] };
+  }
+  function stop(at, fade) {                  // fade the section out from `at` (0.04 = cut on the line, 1 = die away)
+    const s = sec; if (!s) return; sec = null;
+    if (at <= s.t0) { s.g.gain.cancelScheduledValues(0); s.g.gain.value = 0; for (const q of s.srcs) try { q.stop(); } catch (e) {} return; }      // it had not begun yet
+    s.g.gain.setTargetAtTime(0, at, fade / 4);
+    for (const q of s.srcs) try { q.stop(at + fade * 2 + 0.05); } catch (e) {}
+  }
+  function sting(name, at, g) {
+    const b = data.shots[name]; if (!b) return;
+    const s = AC.createBufferSource(), q = AC.createGain(); q.gain.value = g == null ? 1 : g;
+    s.buffer = b; s.connect(q); q.connect(stingG); s.start(Math.max(at, AC.currentTime)); s.onended = () => { try { q.disconnect(); } catch (e) {} };
+    said.push([name, +at.toFixed(3)]); if (said.length > 24) said.shift();
+  }
+  function layers(now) {                     // stems join and leave on the next beat; one that has just joined stays at least a bar
+    const J = MUSIC[sec.name];
+    for (let i = 0; i < 3; i++) {
+      if (J[i] <= 0 || now < sec.free[i]) continue;
+      const w = sec.on[i] ? X >= J[i] - 0.07 : X >= J[i];
+      if (w === sec.on[i]) continue;
+      const at = line(1); sec.lay[i].gain.setTargetAtTime(w ? 1 : 0, at, w ? 0.07 : 0.4);
+      sec.on[i] = w; sec.chg[i] = at; sec.free[i] = at + sec.beat * (w ? 4 : 2);
+    }
+  }
+  function duck(now) { duckG.gain.cancelScheduledValues(now); duckG.gain.setTargetAtTime(0.45, now, 0.012); duckG.gain.setTargetAtTime(1, now + 0.22, 0.2); }      // make room for the splat
+  function cut(now) { stop(now, 0.03); sting('cut', now + 0.01); hold = now + 2 * BARLEN; cutAt = now; recent = []; }                                                  // a disaster: dead stop, two bars of nothing
+  function win(now, bars) { const at = sec && now >= sec.t0 ? line(1) : now + 0.05; stop(at, 0.04); sting('win', at); hold = at + bars * BARLEN; }                      // a final chord on the beat, then a rest
+
+  function frame(dt) {
+    const lost = track(dt), play = state === 'play';
+    if (force && (overlay.classList.contains('hide') || !overlay.querySelector('.tune'))) force = null;      // the tuning panel closed: the game has the music back
+    if (!graph()) { wasPlay = play; drawMeter(); return; }
+    const now = AC.currentTime, loud = on && sfx.on(), g = loud ? vol * VOL : 0, ph = play && boss ? boss.phase : '';
+    if (g !== busG) { busG = g; bus.gain.setTargetAtTime(g, now, 0.03); }
+    if (!loud || AC.state !== 'running' || !data) {
+      if (loud && !data && !loading && !failed) load();
+      if (!loud && sec) stop(now, 0.1);
+      bPhase = ph; wasPlay = play; fresh = false; drawMeter(); return;
+    }
+    if (fresh) { fresh = false; stop(now, 0.15); }
+    if (!force) {                             // single events the music answers
+      if (wasPlay && state === 'over') { stop(now, 0.06); sting('over', now + 0.15); }
+      else if (play) {
+        if (ph !== bPhase) {
+          if (ph === 'gather') stop(now, 0.5);                           // the hush before a boss
+          else if (ph === 'fight') hold = 0;                             // ...then the fight music comes in with a hit (below)
+          else if (ph === 'done' && bPhase === 'fight') { if (boss.won) win(now, 2); else { stop(now, 1.2); sting('end', now + 0.5, 0.8); hold = now + 1.2 + BARLEN; } }
+        }
+        if (raid && raid.state === 'done' && raid !== rSeen) { rSeen = raid; if (raid.won) sting('win', q8(), 0.6); }
+        let burst = 0; for (const r of recent) burst += r[1];
+        if (TUNE.musCut > 0 && burst >= TUNE.musCut && sec && now >= sec.t0 && now - cutAt > 12) cut(now);
+        else if (lost) { duck(now); if (now - lossAt > 1.2) { lossAt = now; sting('loss', q8(), Math.min(1, 0.6 + 0.2 * lost)); } }
+      }
+    }
+    // which section should be playing
+    const byX = () => (sec && sec.name === 'tense' ? X > TUNE.musCalm : X >= TUNE.musTense) ? 'tense' : 'calm';
+    const want = now < hold ? null : force ? (force === 'off' ? null : force === 'hand' ? byX() : force) : !play || ph === 'gather' ? null : ph === 'fight' ? 'boss' : byX();
+    if (!sec) {
+      if (want) { const at = now + 0.06; start(want, at, force || want === 'boss' ? 0 : want === 'calm' ? 1.6 : 0.8); if (want === 'boss') sting('hit', at); }
+    } else if (now >= sec.t0) {
+      if (!want) stop(now, 0.8);
+      else if (want !== sec.name) {           // swap on a line: half a bar when it is getting worse, a whole bar when it eases
+        if (force || now - sec.t0 >= sec.bar * (want === 'calm' ? 2 : 1)) {
+          const at = line(want === 'calm' ? 4 : 2), r = data.shots.riser.duration;
+          if (want !== 'calm' && at - now > r + 0.03) sting('riser', at - r);
+          stop(at, 0.04); start(want, at, 0);
+        }
+      } else layers(now);
+    }
+    // paused: the music carries on, muffled, and fades right out if the pause is a long one
+    const mf = !force && play && (paused || homeOpen);
+    if (mf !== muff) { muff = mf; muffAt = now; quiet = false; lpF.frequency.setTargetAtTime(mf ? 420 : 20000, now, 0.08); pauseG.gain.setTargetAtTime(mf ? 0.5 : 1, now, 0.1); }
+    if (muff && !quiet && now - muffAt > 25) { quiet = true; pauseG.gain.setTargetAtTime(0, now, 1.5); }
+    bPhase = ph; wasPlay = play; drawMeter();
+  }
+  // The little panel at the bottom left: a lamp that blinks on the beat (red on bar lines), the section, the stems playing, tension against the two swap marks, and what is raising it
+  let mm = null, mmL = null; const mc = {};
+  function drawMeter() {
+    if (!mm) { mm = $('mm'); mmL = mm.querySelectorAll('.mmL i'); }
+    const show = meter && on && sfx.on() && (!!force || (state === 'play' && !homeOpen));
+    if (mc.show !== show) { mc.show = show; mm.style.display = show ? '' : 'none'; }
+    if (!show) return;
+    const now = AC ? AC.currentTime : 0, playing = !!sec && now >= sec.t0;
+    const label = failed ? 'no music' : !data ? 'loading' : playing ? sec.name : 'silence';
+    if (mc.label !== label) { mc.label = label; $('mmS').textContent = label; mm.dataset.s = label; }
+    const pct = Math.round(X * 100); if (mc.pct !== pct) { mc.pct = pct; $('mmF').style.width = pct + '%'; }
+    for (let i = 0; i < 3; i++) { const lit = playing && (now >= sec.chg[i] ? sec.on[i] : !sec.on[i]); if (mc['l' + i] !== lit) { mc['l' + i] = lit; mmL[i].className = lit ? 'on' : ''; } }
+    let b = 0; if (playing) { const p = (now - sec.t0) / sec.beat; if (p - Math.floor(p) < 0.3) b = Math.floor(p) % 4 === 0 ? 2 : 1; }
+    if (mc.b !== b) { mc.b = b; $('mmK').className = b === 2 ? 'bar' : b === 1 ? 'beat' : ''; }
+    if (mc.why !== why) { mc.why = why; $('mmW').textContent = why; }
+    const tk = TUNE.musCalm + '|' + TUNE.musTense; if (mc.tk !== tk) { mc.tk = tk; $('mmT1').style.left = TUNE.musCalm * 100 + '%'; $('mmT2').style.left = TUNE.musTense * 100 + '%'; }
+  }
+  return {
+    frame, track, tension,
+    isOn: () => on, vol: () => vol, meterOn: () => meter,
+    toggle() { on = !on; save(); return on; },
+    setVol(v) { vol = Math.max(0, Math.min(1, v)); save(); },
+    setMeter(v) { meter = !!v; save(); },
+    audition(mode, x) { force = mode === 'auto' ? null : mode; if (x != null) forceX = Math.max(0, Math.min(1, x)); hold = 0; },      // tuning panel: 'auto', 'hand' (tension from the slider), a section name, or 'off'
+    mode: () => force || 'auto',
+    test(name) {                              // tuning panel: fire one of the music's answers by hand
+      if (!graph() || !data || AC.state !== 'running') return false;
+      const now = AC.currentTime; if (!force) { force = 'hand'; forceX = X; }
+      if (name === 'loss') { duck(now); sting('loss', q8()); }
+      else if (name === 'cut') cut(now);
+      else if (name === 'win') win(now, 2);
+      else if (name === 'boss') { stop(now, 0.5); force = 'boss'; hold = now + 1.8; }
+      else if (name === 'over') { stop(now, 0.06); sting('over', now + 0.15); hold = now + 5; }
+      return true;
+    },
+    info: () => ({ on, vol, meter, ready: !!data, loading, failed, X, heat, hold, force, muff, quiet, why, said: said.slice(), now: AC ? AC.currentTime : 0, ac: AC ? AC.state : '', sr: AC ? AC.sampleRate : 0,
+      sec: sec ? { name: sec.name, t0: sec.t0, bar: sec.bar, on: sec.on.slice(), chg: sec.chg.slice() } : null }),
+    tap: () => ({ AC, bus, data }),
   };
 })();
 
@@ -2660,7 +3078,7 @@ function showHome() {
   overlay.className = 'homebg';
   overlay.innerHTML = `<div class="home">
     <div class="corner l"><button id="hPlayer" title="Players">${many ? '&#9786; ' + escH(pl.name) + ' &#9662;' : '+ Add player'}</button></div>
-    <div class="corner r"><button id="hSound" title="Sound (M)">&#9834; ${soundOn ? 'on' : 'off'}</button></div>
+    <div class="corner r"><button id="hMusic" title="Music (N)">Music ${music.isOn() ? 'on' : 'off'}</button><button id="hSound" title="Sound (M)">&#9834; ${soundOn ? 'on' : 'off'}</button></div>
     <div class="left">${TITLE_ART.length ? `<img class="title" id="hArt" alt="Wet Ink" src="${escH(TITLE_ART[0])}">` : '<canvas class="title" id="hArt" width="256" height="128" aria-label="Wet Ink"></canvas>'}
     <div class="bestline">${many ? escH(pl.name) + ' · ' : ''}Best <b>${best} m</b>${run ? ' · this run <b>' + depthM() + ' m</b>' : ''}</div></div>
     <div class="menu">
@@ -2669,7 +3087,7 @@ function showHome() {
       <button id="hCab">Trophies <small>${cab.length}</small></button>
       <button id="hShare">Share with QR code</button>
     </div>
-    <div class="ver">test 31</div></div>`;
+    <div class="ver">test 32</div></div>`;
   $('hGo').onclick = () => { if (runWaiting()) { leaveHome(); overlay.className = 'hide'; if (paused) togglePause(); } else startGame(state === 'ready' ? seed : randSeed()); };
   if (run) $('hNew').onclick = () => confirmCard('Start a new game?', `Your current run (${depthM()} m) will end. Its depth still counts toward your best.`, 'End run and start', () => { abandonRun(); startGame(seed); }, showHome);
   $('hHelp').onclick = () => showHelp(true);
@@ -2677,6 +3095,7 @@ function showHome() {
   $('hShare').onclick = showShare;
   $('hPlayer').onclick = () => showPlayers();
   $('hSound').onclick = () => { toggleSound(); $('hSound').innerHTML = '&#9834; ' + (soundOn ? 'on' : 'off'); };
+  $('hMusic').onclick = toggleMusic;
   clearInterval(homeTimer); homeFrame = 0; drawTitleFrame();
   homeTimer = setInterval(() => { if (!document.hidden) { homeFrame++; drawTitleFrame(); } }, TITLE_MS);
 }
@@ -2839,9 +3258,10 @@ function showHelp(fromIntro) {
       <li><b>Trophies</b> glow on formation tops, ledges, a few gold shelves and every giant's summit. They do nothing at all. Each one is different. The trophy button (or C) opens your cabinet.</li>
       <li><b>Terrain:</b> <b>hanging spikes</b> shake, then drop when anything walks over them. They kill what they hit (blots, leeches, even a Brute) and stand where they land as a wall: draw a ramp over it. Wet ink catches a falling spike until the ink dries. <b>Cracked floor</b> collapses after a few blots. <b>Purple mushrooms</b> bounce a falling blot and make any fall safe, but throw it sideways. <b>Yellow sponge rock</b> dries nearby ink three times as fast, so draw clear of it.</li>
       <li>The camera holds still while you're drawing.</li>
+      <li><b>Music (test):</b> a placeholder piece that follows the game instead of a script. More instruments join as trouble builds, it turns tense when the flock is in danger, it changes again for a boss, and it stops: for the hush before a boss, after a win, and dead when several blots are lost at once. The small panel at the bottom left shows what it is doing. N switches it off. Tuning (T) has a volume slider and buttons to hear each part.</li>
       <li><b>Bombs</b> are rare and bad. A blot who touches one explodes after 5 s, taking nearby blots and rock with it. Tap it to set it off early, ideally far from the flock.</li>
     </ul>
-    <p class="small">Keys: 1 2 3 pick a card · C trophies · T tuning · Space pause · H or Esc home · V camera · R retry · M sound</p>
+    <p class="small">Keys: 1 2 3 pick a card · C trophies · T tuning · Space pause · H or Esc home · V camera · R retry · M sound · N music</p>
     <div class="row"><button class="primary" id="oBack">${fromIntro || state !== 'play' ? 'Back' : 'Resume'}</button></div></div>`;
   $('oBack').onclick = () => backOut(wasPaused);
 }
@@ -3278,6 +3698,7 @@ function hud() {
   setIf('open', drops + '/' + need, () => { const b = $('bOpen'); b.innerHTML = DROP_SVG + drops + '/' + need; });
 }
 const TUNE_UI = [
+  ['musTense', 'Music: turns tense above tension', 0.2, 0.95, 0.02], ['musCalm', 'Music: back to calm below tension', 0.05, 0.9, 0.02], ['musCut', 'Music: stops dead when this many are lost at once (0 = never)', 0, 12, 1],
   ['camIdle', 'Your camera: catches up after (s) without scrolling', 0.5, 15, 0.5], ['camWarn', 'Your camera: warning before it moves (s)', 0, 3, 0.1],
   ['camAccel', 'Your camera: catch-up acceleration', 100, 3000, 50], ['camTop', 'Your camera: catch-up top speed', 400, 6000, 100],
   ['dialGear', 'Dial: gearing (negative flips direction)', -6, 6, 0.25], ['dialFric', 'Dial: how fast a spin dies (lower = longer)', 0.2, 6, 0.1],
@@ -3306,11 +3727,24 @@ function showTune() {
   overlay.innerHTML = '<div class="tune"><h2>Tuning</h2><p>Changes apply now and are saved on this device. Drop amount applies to floors not generated yet.</p>' +
     [['forceArena', 'Test: which arena boss'], ['forceEvent', 'Test: which roaming event']].map(([k, label]) => `<label>${label}<select data-k="${k}">${TUNE_SEL[k].map((n, i) => `<option value="${i}"${TUNE[k] === i ? ' selected' : ''}>${n}</option>`).join('')}</select></label>`).join('') +
     '<p>Boss and event picks apply from the next cave: use Retry this cave or New cave at the bottom. To meet them sooner, lower "A boss arena every".</p>' +
+    '<p style="margin:8px 0 2px"><b>Music (test):</b> ' + (music.isOn() && soundOn ? 'tap a part to hear it in full; it changes on the next bar line, as it does in the game. Drag the tension slider down to hear instruments leave. <b>By hand</b> lets the slider pick the part too, the way the game does. <b>Game</b> hands it back.' : 'the music is switched off. Turn it on with N, or on the Home screen.') + '</p>' +
+    '<div class="row" style="margin:0 0 6px;flex-wrap:wrap">' + [['auto', 'Game'], ['hand', 'By hand'], ['calm', 'Calm'], ['tense', 'Tense'], ['boss', 'Boss'], ['off', 'Silence']].map(([k, n]) => `<button data-mus="${k}"${music.mode() === k ? ' class="primary"' : ''}>${n}</button>`).join('') + '</div>' +
+    `<label>Tension by hand<b id="tv_mx">${Math.round(music.info().X * 100)}</b><input type="range" id="tMx" min="0" max="100" step="1" value="${Math.round(music.info().X * 100)}"></label>` +
+    '<p style="margin:6px 0 2px">What it does when something happens:</p><div class="row" style="margin:0 0 6px;flex-wrap:wrap">' + [['loss', 'Blot lost'], ['cut', 'Many lost at once'], ['boss', 'Boss arrives'], ['win', 'Boss beaten'], ['over', 'Game over']].map(([k, n]) => `<button data-mt="${k}">${n}</button>`).join('') + '</div>' +
+    `<label>Music volume<b id="tv_mv">${Math.round(music.vol() * 100)}</b><input type="range" id="tMv" min="0" max="100" step="5" value="${Math.round(music.vol() * 100)}"></label>` +
+    `<div class="row" style="margin:0 0 12px"><button id="tMm">Music panel (bottom left): ${music.meterOn() ? 'on' : 'off'}</button></div>` +
     '<p style="margin:8px 0 2px"><b>Slime splat:</b> tap to hear one; the last one you tap is used in the game.</p><div class="row" style="margin:0 0 10px">' + [1, 2, 3].map(n => `<button data-slime="${n}"${TUNE.slimeSound === n ? ' class="primary"' : ''}>${['Gloop', 'Squirt', 'Jelly'][n - 1]}</button>`).join('') + '<button id="tBlot">Blot splat (to compare)</button></div>' +
     TUNE_UI.map(([k, label, lo, hi, st]) => `<label>${label}<b id="tv_${k}">${TUNE[k]}</b><input type="range" min="${lo}" max="${hi}" step="${st}" value="${TUNE[k]}" data-k="${k}"></label>`).join('') +
     '<div class="row"><button class="primary" id="tDone">Done</button><button id="tRetry">Retry this cave</button><button id="tNew">New cave</button><button id="tReset">Reset all</button></div></div>';
   overlay.querySelectorAll('select').forEach(el => { el.onchange = () => { TUNE[el.dataset.k] = +el.value; saveTune(); }; });
-  overlay.querySelectorAll('input[type=range]').forEach(el => { el.oninput = () => { const k = el.dataset.k; TUNE[k] = +el.value; $('tv_' + k).textContent = el.value; hudC = {}; saveTune(); }; });
+  const musMark = () => overlay.querySelectorAll('[data-mus]').forEach(o => o.classList.toggle('primary', o.dataset.mus === music.mode()));
+  const musMode = (k, x) => { sfx.init(); music.audition(k, x); musMark(); };
+  overlay.querySelectorAll('[data-mus]').forEach(b => { b.onclick = () => { const k = b.dataset.mus; if (k === 'calm' || k === 'tense' || k === 'boss') { $('tMx').value = 100; $('tv_mx').textContent = 100; } musMode(k, +$('tMx').value / 100); }; });      // a named part plays in full; drag the slider down to hear its instruments leave
+  $('tMx').oninput = () => { $('tv_mx').textContent = $('tMx').value; musMode(music.mode() === 'auto' ? 'hand' : music.mode(), +$('tMx').value / 100); };
+  overlay.querySelectorAll('[data-mt]').forEach(b => { b.onclick = () => { sfx.init(); music.test(b.dataset.mt); musMark(); }; });
+  $('tMv').oninput = () => { $('tv_mv').textContent = $('tMv').value; music.setVol(+$('tMv').value / 100); };
+  $('tMm').onclick = () => { music.setMeter(!music.meterOn()); $('tMm').textContent = 'Music panel (bottom left): ' + (music.meterOn() ? 'on' : 'off'); };
+  overlay.querySelectorAll('input[type=range][data-k]').forEach(el => { el.oninput = () => { const k = el.dataset.k; TUNE[k] = +el.value; $('tv_' + k).textContent = el.value; hudC = {}; saveTune(); }; });
   overlay.querySelectorAll('[data-slime]').forEach(b => { b.onclick = () => { sfx.init(); TUNE.slimeSound = +b.dataset.slime; saveTune(); overlay.querySelectorAll('[data-slime]').forEach(o => o.classList.toggle('primary', o === b)); sfx.slimeSplat(TUNE.slimeSound); }; });
   $('tBlot').onclick = () => { sfx.init(); sfx.splat(); };
   $('tDone').onclick = () => backOut(wasPaused);
@@ -3503,6 +3937,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
   const sim = now < freezeUntil ? 0 : now < slowUntil2 ? dt * 0.4 : dt;       // a trophy buys a held breath and a second of slow motion
   if (state === 'play' && !paused && !hand) { accT += sim; while (accT >= STEP && state === 'play') { tick(STEP); accT -= STEP; } }
+  try { music.frame(dt); } catch (err) { if (!music.err) { music.err = err; console.error(err); } }      // the music may never stop the game
   if (mine()) camFrame(dt, now);
   else if (panY && !paused && !panning && !drawing && now - panIdle > 2500) { panY *= Math.exp(-dt * 5); if (Math.abs(panY) < 0.5) panY = 0; }      // the view drifts back to the flock
   render();
@@ -3556,12 +3991,18 @@ $('bHome').onclick = showHome;
 $('bCam').onclick = cycleCam;
 const toggleSound = () => { sfx.init(); soundOn = sfx.toggle(); $('bSound').innerHTML = '<span class="lbl">Sound</span>&#9834; ' + (soundOn ? 'on' : 'off'); };
 $('bSound').onclick = toggleSound;
+const musicLabel = () => { $('bMusic').innerHTML = '<span class="lbl">Music</span>&#9835; ' + (music.isOn() ? 'on' : 'off'); const b = $('hMusic'); if (b) b.textContent = 'Music ' + (music.isOn() ? 'on' : 'off'); };
+const toggleMusic = () => { sfx.init(); music.toggle(); musicLabel(); };
+$('bMusic').onclick = toggleMusic; musicLabel();
+const quietly = p => { if (p && p.catch) p.catch(() => {}); };
+document.addEventListener('visibilitychange', () => { const ac = sfx.ctx(); if (!ac) return; try { quietly(document.hidden ? ac.suspend() : ac.resume()); } catch (e) {} });      // the game stops when its tab is hidden, so the music must too
+document.addEventListener('pointerdown', () => { const ac = sfx.ctx(); if (ac && ac.state !== 'running' && !document.hidden) { try { quietly(ac.resume()); } catch (e) {} } }, true);      // some phones only let sound restart on a touch
 $('bRetry').onclick = () => startGame(seed);
 $('bNew').onclick = () => startGame(randSeed());
 window.addEventListener('keydown', e => {
   if (hand) { if (e.key >= '1' && e.key <= '3') pickCard(+e.key - 1); return; }
   if (e.target && e.target.tagName === 'INPUT') return;           // typing a player's name
-  if (homeOpen) { if (e.key === 'm' || e.key === 'M') { toggleSound(); const b = $('hSound'); if (b) b.innerHTML = '&#9834; ' + (soundOn ? 'on' : 'off'); } else if (e.key === 'Enter' && $('hGo')) $('hGo').click(); return; }
+  if (homeOpen) { if (e.key === 'm' || e.key === 'M') { toggleSound(); const b = $('hSound'); if (b) b.innerHTML = '&#9834; ' + (soundOn ? 'on' : 'off'); } else if (e.key === 'n' || e.key === 'N') toggleMusic(); else if (e.key === 'Enter' && $('hGo')) $('hGo').click(); return; }
   if ((e.key === 'h' || e.key === 'H' || e.key === 'Escape') && state === 'play' && overlay.className === 'hide') { showHome(); return; }
   if (e.key === 'v' || e.key === 'V') { cycleCam(); return; }
   if (mine() && state === 'play' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); jumpGroup(e.key === 'ArrowUp' ? -1 : 1); return; }
@@ -3570,11 +4011,13 @@ window.addEventListener('keydown', e => {
   else if (e.key === 'c' || e.key === 'C') showCabinet();
   else if (e.key === 'r' || e.key === 'R') startGame(seed);
   else if (e.key === 'm' || e.key === 'M') toggleSound();
+  else if (e.key === 'n' || e.key === 'N') toggleMusic();
 });
 
 // small hook used for automated testing and tuning from the console
 window.__wetink = {
   TUNE,
+  music: () => music.info(), musicMode: (k, x) => music.audition(k, x), musicTest: n => music.test(n), musicTrack: dt => music.track(dt), tension: why => music.tension(why), musicTap: () => music.tap(), musicErr: () => music.err ? String(music.err.stack || music.err) : '', bossEnd(won) { if (boss && boss.phase === 'fight') endFight(!!won); },
   start: s => startGame(s == null ? seed : s),
   shelves: n => { for (let k = 0; k < n; k++) genBand(); return gaps.filter(g => g.isl && g.cols[1] - g.cols[0] - 1 < 14).map(g => { checkGap(g); return { y: g.rows[0] * CELL, x: g.cols[0] * CELL, deadly: [g.dead[0].deadly, g.dead[1].deadly] }; }); },
   look: y => { viewY = y; panY = y - camY - autoOff; lastScroll = performance.now(); },
