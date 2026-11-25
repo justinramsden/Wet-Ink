@@ -236,8 +236,9 @@ const TUNE = {
   slimeFor: 6, slimeSlow: 0.3,   // seconds a slimed walker stays slow, and how slow
   slimeTrail: 8,      // seconds a surface stays slimy after the leech crawled it
   // the brush: three upgrade tracks. Every level runs on its own timer and steps down one level when it ends.
-  lastLife:  [8, 11, 16, 16],     // seconds a line lives before it starts to dry (base doubled from 4, so Time is a choice rather than a must). [3]: at Time MAX, ink holds until this long after the countdown ends
-  lastLayer: [2, 2, 3, 3],        // seconds each extra layer of thickness adds
+  lastLife:  [5, 8, 11.5, 13],    // seconds a line lives before its skin starts to dry; its core goes one layer later (so a plain line lasts about 6, 9 and 13 s). [3]: at Time MAX, ink holds until this long after the countdown ends
+  lastLayer: [1, 1, 1.5, 1.5],    // seconds each 2 px layer of thickness adds (ink dries from the outside in, a layer at a time)
+  dryJitter: 0.8,                 // how grainy the drying is: 0 = whole layers vanish at once, 1 = cell by cell
   wideSize:  [6, 16, 18, 22],     // brush width in px (ink cost per length stays the same). Wide is mostly about soft landings now, not size
   wideFall:  [1, 1.5, 2.5, 99],   // a fall onto wide ink may be this many times longer than a deadly one onto rock and still be safe
   wideHaste: 3,                   // Wide MAX: seconds of haste a blot gets from a long drop onto wide ink
@@ -273,6 +274,7 @@ const TUNE = {
 
 const VERSION = '1.0';   // shown on the Home screen; set to the release number when dev is promoted to the public site
 const W = 960, H = 640, CELL = 4, COLS = W / CELL, CH = 40;   // CH = rows per cached terrain chunk
+const IC = 2, ICOLS = W / IC;      // ink has a grid of its own, twice as fine as the rock: 2 px cells
 const STEP = 1 / 60, BODY = 12, HATCH_X = 120, HATCH_Y = 44, M = 16;  // M = px per "metre"
 const PAPER = '#f5eedf', ROCK = ['#cbbd9f', '#c6b899', '#d0c2a5', '#c9bb9c'];
 const INK_RGB = [28, 45, 107], EMBER_RGB = [232, 118, 43];
@@ -692,25 +694,36 @@ function checkGap(g) {
 
 const remeasure = y => { for (const g of gaps) if (Math.abs(g.rows[0] * CELL - y) < 640) g.dead = [null, null]; };   // drops changed: measure them again
 
-function solid(px, py) {
+function solid(px, py) {                // can something stand here? Rock by its 4 px cell, ink by its 2 px cell
   const c = px >> 2, r = py >> 2;
   if (c < 0 || c >= COLS) return true;
   if (r < 0) return false;
   while (r >= finalRow()) genBand();
   if (terrain[r][c]) return true;
-  const ir = ink[r];
-  return !!ir && ir[c] > T;
+  const row = ink[py >> 1];
+  return !!row && row[px >> 1] > T;
 }
 
-function cellState(c, r) {             // 0 open, 1 rock, 2 wet ink
+// The rock grid's view, for everything that thinks in rock cells (cages, the crusher, leeches, spikes): 0 open, 1 rock, 2 wet ink.
+// A rock cell counts as inked if any of its four ink cells is wet, so a closed loop of ink is always a closed loop here too.
+function cellState(c, r) {
   if (c < 0 || c >= COLS) return 1;
   if (r < 0) return 0;
   while (r >= finalRow()) genBand();
   if (terrain[r][c]) return 1;
-  const ir = ink[r];
-  return ir && ir[c] > T ? 2 : 0;
+  const a = ink[r << 1], b = ink[(r << 1) + 1], i = c << 1;
+  return (a && (a[i] > T || a[i + 1] > T)) || (b && (b[i] > T || b[i + 1] > T)) ? 2 : 0;
 }
 const stateAt = (px, py) => cellState(Math.floor(px) >> 2, Math.floor(py) >> 2);
+function fineState(ic, ir) {            // the same question for one ink cell
+  if (ic < 0 || ic >= ICOLS) return 1;
+  if (ir < 0) return 0;
+  const r = ir >> 1; while (r >= finalRow()) genBand();
+  if (terrain[r][ic >> 1]) return 1;
+  const row = ink[ir];
+  return row && row[ic] > T ? 2 : 0;
+}
+function dryCell(c, r) { for (let k = 0; k < 2; k++) { const row = ink[(r << 1) + k]; if (row) { if (row[c << 1] > T) row[c << 1] = T - 0.001; if (row[(c << 1) + 1] > T) row[(c << 1) + 1] = T - 0.001; } } }      // dry a whole rock cell's worth of ink
 
 // ---------------- sound (all synthesized, no files) ----------------
 const sfx = (() => {
@@ -826,44 +839,55 @@ const sfx = (() => {
 })();
 
 // ---------------- ink ----------------
-function stamp(x, y, size, dry, occ, tg) {
-  const rad = size / 2 + 1.5, r2 = rad * rad;
-  const c0 = Math.max(0, Math.floor((x - rad) / CELL)), c1 = Math.min(COLS - 1, Math.floor((x + rad) / CELL));
-  const r0 = Math.max(0, Math.floor((y - rad) / CELL)), r1 = Math.floor((y + rad) / CELL);
+// Ink lives on a grid of 2 px cells. Each cell holds the moment it dries (wet while that is still ahead); a second array remembers
+// which brush made it: bits 0-1 the Time level, 2-3 Strong, 4 bomb ink, 5-6 Wide.
+const grain = (ic, ir) => hash2(ic * 73 + ir * 151, 21);      // each cell's own share of the drying jitter: the same every time, so layers erode grain by grain
+function setCell(ic, ir, dry, tg) {       // wet one ink cell until `dry` (never shortens what is already there)
+  const row = ink[ir] || (ink[ir] = new Float32Array(ICOLS));
+  if (!(tg & 16)) dry += TUNE.dryJitter * 0.5 * grain(ic, ir);
+  if (row[ic] <= T) live.push(ir * ICOLS + ic);
+  if (dry > row[ic]) { row[ic] = dry; (tag[ir] || (tag[ir] = new Uint8Array(ICOLS)))[ic] = tg; }      // the cell remembers which brush made it
+}
+const inBox = (occ, ic, ir) => { for (const o of occ) if (ic >= o.c0 && ic <= o.c1 && ir >= o.r0 && ir <= o.r1) return true; return false; };
+function stamp(x, y, size, dry, occ, tg, rough) {      // a round dab of ink. `rough` (0 to 1) leaves that share of its outer cells out: a dry, scratchy pen
+  const rad = size / 2 + 1, r2 = rad * rad;
+  const c0 = Math.max(0, Math.floor((x - rad) / IC)), c1 = Math.min(ICOLS - 1, Math.floor((x + rad) / IC));
+  const r0 = Math.max(0, Math.floor((y - rad) / IC)), r1 = Math.floor((y + rad) / IC);
   for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
-    const dx = c * CELL + 2 - x, dy = r * CELL + 2 - y;
-    if (dx * dx + dy * dy > r2) continue;
-    let blocked = false;
-    for (const o of occ) if (c >= o.c0 && c <= o.c1 && r >= o.r0 && r <= o.r1) { blocked = true; break; }
-    if (blocked) continue;   // never draw ink inside a walker
-    const row = ink[r] || (ink[r] = new Float32Array(COLS));
-    if (row[c] <= T) live.push(r * COLS + c);
-    if (dry > row[c]) { row[c] = dry; (tag[r] || (tag[r] = new Uint8Array(COLS)))[c] = tg; }      // the cell remembers which brush made it
+    const dx = c * IC + 1 - x, dy = r * IC + 1 - y, d2 = dx * dx + dy * dy;
+    if (d2 > r2) continue;
+    if (rough && d2 > 3 && Math.random() < rough) continue;
+    if (inBox(occ, c, r)) continue;   // never draw ink inside a walker
+    setCell(c, r, dry, tg);
   }
 }
 // Ink dries from the outside in. A cell with no open air next to it cannot dry yet: it is always
-// kept at least one layerDelay away from drying, so each layer of thickness buys that much time.
+// kept at least one layer's delay away from drying, so each 2 px layer of thickness buys that much time.
 function weather() {
+  const jit = TUNE.dryJitter;
   for (let i = live.length - 1; i >= 0; i--) {
-    const key = live[i], r = (key / COLS) | 0, c = key - r * COLS, row = ink[r];
-    if (!row || row[c] <= T) {
+    const key = live[i], ir = (key / ICOLS) | 0, ic = key - ir * ICOLS, row = ink[ir];
+    if (!row || row[ic] <= T) {
       live[i] = live[live.length - 1]; live.pop();
-      if (Math.random() < 0.06) particles.push({ x: c * CELL + 2, y: r * CELL + 2, vx: (Math.random() - 0.5) * 30, vy: 10, life: 0.5, max: 0.5, col: '#8a93b8', sz: 1.8 });
+      if (Math.random() < 0.02) particles.push({ x: ic * IC + 1, y: ir * IC + 1, vx: (Math.random() - 0.5) * 30, vy: 10, life: 0.5, max: 0.5, col: '#8a93b8', sz: 1.8 });
       continue;
     }
-    const wk = wick[r];
-    if (wk && wk[c]) {                              // sponge rock nearby drinks it: no layer protection, and it dries faster
-      row[c] -= TUNE.wickDry * 0.1;
-      if (Math.random() < 0.02) particles.push({ x: c * CELL + 2, y: r * CELL + 2, vx: 0, vy: 26, life: 0.4, max: 0.4, col: '#c9a03a', sz: 1.6 });
+    const wk = wick[ir >> 1];
+    if (wk && wk[ic >> 1]) {                        // sponge rock nearby drinks it: no layer protection, and it dries faster
+      row[ic] -= TUNE.wickDry * 0.1;
+      if (Math.random() < 0.006) particles.push({ x: ic * IC + 1, y: ir * IC + 1, vx: 0, vy: 26, life: 0.4, max: 0.4, col: '#c9a03a', sz: 1.6 });
       continue;
     }
-    if (tag[r] && tag[r][c] & 16) continue;          // bomb ink: it keeps the drying time it was given, edges first
-    if (cellState(c + 1, r) && cellState(c - 1, r) && cellState(c, r + 1) && cellState(c, r - 1)) { const m = T + TUNE.lastLayer[tag[r] ? tag[r][c] & 3 : 0]; if (row[c] < m) row[c] = m; }
+    const tg = tag[ir] ? tag[ir][ic] : 0;
+    if (tg & 16) continue;                          // bomb ink: it keeps the drying time it was given, edges first
+    if (fineState(ic + 1, ir) && fineState(ic - 1, ir) && fineState(ic, ir + 1) && fineState(ic, ir - 1)) {
+      const m = T + TUNE.lastLayer[tg & 3] * (1 + jit * (grain(ic, ir) - 0.5)); if (row[ic] < m) row[ic] = m;
+    }
   }
 }
-function occupied() {
+function occupied() {                     // the ink cells each blot stands in
   const occ = [];
-  for (const w of walkers) if (w.alive) occ.push({ c0: (w.x - 3) >> 2, c1: (w.x + 3) >> 2, r0: (w.y - BODY) >> 2, r1: (w.y - 1) >> 2 });
+  for (const w of walkers) if (w.alive) occ.push({ c0: (w.x - 3) >> 1, c1: (w.x + 3) >> 1, r0: (w.y - BODY) >> 1, r1: (w.y - 1) >> 1 });
   return occ;
 }
 function goDry() { if (T < dryUntil) return; dryUntil = T + TUNE.dryLock; flashInk(); say('Pen dry!', '#b3261e'); sfx.inkOut(); hudC = {}; }
@@ -871,8 +895,12 @@ let lowSaid = false;    // the warning sounds once each time the tank falls belo
 const inkLow = () => inkLeft < inkCap() * TUNE.lowWarn, sputtering = () => inkLeft < inkCap() * TUNE.sputterAt;
 function flashInk() { const t = $('tube'); t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash'); }
 
-const inkTough = (px, py) => { const tr = tag[Math.floor(py) >> 2]; return tr ? (tr[Math.floor(px) >> 2] >> 2) & 3 : 0; };
-const inkWide = (px, py) => { const c = Math.floor(px) >> 2, r = Math.floor(py) >> 2, ir = ink[r], tr = tag[r]; return ir && tr && ir[c] > T && !(tr[c] & 16) ? (tr[c] >> 5) & 3 : 0; };   // the Wide level of the wet ink here (0 on rock or dry ground)
+function inkTough(px, py) {              // how Strong the wet ink in this rock cell is (the strongest of its four ink cells; 0 if none is wet)
+  const c = (Math.floor(px) >> 2) << 1, r = (Math.floor(py) >> 2) << 1; let t = 0;
+  for (let k = 0; k < 4; k++) { const ir = r + (k >> 1), ic = c + (k & 1), row = ink[ir]; if (row && row[ic] > T && tag[ir]) t = Math.max(t, (tag[ir][ic] >> 2) & 3); }
+  return t;
+}
+const inkWide = (px, py) => { const ic = Math.floor(px) >> 1, ir = Math.floor(py) >> 1, row = ink[ir], tr = tag[ir]; return row && tr && row[ic] > T && !(tr[ic] & 16) ? (tr[ic] >> 5) & 3 : 0; };   // the Wide level of the wet ink here (0 on rock or dry ground)
 function brushNow() {   // a wide brush hangs below the pointer, so the line you trace is (nearly) its top surface and walkers can step onto it
   const l = eff('last'), size = TUNE.wideSize[eff('wide')], hold = l === 3 ? burst.last + TUNE.lastLife[3] : 0;     // Time MAX: everything holds until a while after the countdown ends, then dries at once
   return { size, off: Math.max(0, size / 2 - 8), life: hold ? hold - T : TUNE.lastLife[Math.min(l, 2)], hold, cost: TUNE.inkCost, tg: l | (eff('tough') << 2) | (eff('wide') << 5) };
@@ -909,7 +937,7 @@ function strokeTo(p) {
   const dry = cur.pen.hold ? cur.pen.hold : T + cur.pen.life + cur.s / TUNE.fuseSpeed;
   const occ = occupied(), n = Math.ceil(d / 2), sp = sputtering();
   if (sp && Math.random() < 0.25) sfx.sputter();
-  for (let j = 1; j <= n; j++) { if (sp && (cur.s + j) % 3 === 0) continue; stamp(a.x + (b.x - a.x) * j / n, a.y + (b.y - a.y) * j / n + cur.pen.off, cur.pen.size * (sp ? 0.6 : 1), dry, occ, cur.pen.tg); }
+  for (let j = 1; j <= n; j++) stamp(a.x + (b.x - a.x) * j / n, a.y + (b.y - a.y) * j / n + cur.pen.off, cur.pen.size * (sp ? 0.7 : 1), dry, occ, cur.pen.tg, sp ? 0.45 : 0);      // nearly empty: a thinner, scratchy line (its middle stays whole, so it never opens a hole)
   cur.last = { x: b.x, y: b.y };
   if (cur.echo && T >= echoN) cur.echo = null;      // the timer ran out mid-stroke: the rest of the line is plain
   if (cur.echo) cur.echo.pts.push({ x: b.x, y: b.y, dry, t0: T });
@@ -971,7 +999,7 @@ function explode(x, y) {
     const dx = c * CELL + 2 - x, dy = r * CELL + 2 - y;
     if (dx * dx + dy * dy > R * R * (0.8 + 0.2 * hash2(c * 7 + r * 13, 9))) continue;
     if (terrain[r][c] && Math.random() < 0.25) particles.push({ x: c * CELL, y: r * CELL, vx: dx * 4 + (Math.random() - 0.5) * 80, vy: dy * 4 - 120 * Math.random(), life: 0.9, max: 0.9, col: '#a8997c', sz: 3 });
-    terrain[r][c] = 0; if (ink[r]) ink[r][c] = 0;
+    terrain[r][c] = 0; for (let k = 0; k < 2; k++) { const row = ink[(r << 1) + k]; if (row) row[c << 1] = row[(c << 1) + 1] = 0; }
   }
   for (let k = Math.floor(r0 / CH) - 1; k <= Math.floor(r1 / CH) + 1; k++) chunks.delete(k);
   for (let i = stakes.length - 1; i >= 0; i--) { const k = stakes[i]; if (Math.hypot(k.x - x, (k.top + k.bot) / 2 - y) < R + 14) removeStake(k); }
@@ -1332,7 +1360,7 @@ function spawnBrute() {
   return false;
 }
 function erodeInk(x, y, rad, dt) {       // a brute's chewing: tougher ink loses less, the toughest none
-  const c0 = Math.max(0, (x - rad) >> 2), c1 = Math.min(COLS - 1, (x + rad) >> 2), r0 = Math.max(0, (y - rad) >> 2), r1 = (y + rad) >> 2;
+  const c0 = Math.max(0, (x - rad) >> 1), c1 = Math.min(ICOLS - 1, (x + rad) >> 1), r0 = Math.max(0, (y - rad) >> 1), r1 = (y + rad) >> 1;
   let any = false;
   for (let r = r0; r <= r1; r++) {
     const row = ink[r], tr = tag[r]; if (!row) continue;
@@ -1838,11 +1866,11 @@ function nameBoss(A) {
   else { A.title = matriarchName(r) + ep; A.sub = 'Matriarch of ' + place; }
 }
 function eraseInk(x, y, rad, keepTough) {              // ink torn away at once; unbreakable ink can be spared
-  const c0 = Math.max(0, (x - rad) >> 2), c1 = Math.min(COLS - 1, (x + rad) >> 2), r0 = Math.max(0, (y - rad) >> 2), r1 = (y + rad) >> 2;
+  const c0 = Math.max(0, (x - rad) >> 1), c1 = Math.min(ICOLS - 1, (x + rad) >> 1), r0 = Math.max(0, (y - rad) >> 1), r1 = (y + rad) >> 1;
   let n = 0;
   for (let r = r0; r <= r1; r++) { const row = ink[r], tr = tag[r]; if (!row) continue;
-    for (let c = c0; c <= c1; c++) if (row[c] > T && Math.hypot(c * CELL + 2 - x, r * CELL + 2 - y) <= rad && !(keepTough && tr && ((tr[c] >> 2) & 3) === 3)) {
-      row[c] = T - 0.001; if (n++ % 3 === 0) particles.push({ x: c * CELL + 2, y: r * CELL + 2, vx: (Math.random() - 0.5) * 180, vy: -Math.random() * 140, life: 0.5, max: 0.5, col: '#3a4a8a', sz: 2.5 }); } }
+    for (let c = c0; c <= c1; c++) if (row[c] > T && Math.hypot(c * IC + 1 - x, r * IC + 1 - y) <= rad && !(keepTough && tr && ((tr[c] >> 2) & 3) === 3)) {
+      row[c] = T - 0.001; if (n++ % 10 === 0) particles.push({ x: c * IC + 1, y: r * IC + 1, vx: (Math.random() - 0.5) * 180, vy: -Math.random() * 140, life: 0.5, max: 0.5, col: '#3a4a8a', sz: 2.5 }); } }
   return n;
 }
 function feathers(x, y, n, sp) { for (let k = 0; k < n; k++) particles.push({ x, y, vx: (Math.random() - 0.5) * sp, vy: (Math.random() - 0.8) * sp * 0.8, life: 1.2, max: 1.2, col: k % 3 ? '#17151a' : '#4a4553', sz: 3.5 }); }
@@ -1902,7 +1930,7 @@ function packWalk(b, dt) {                             // a Pack Brute hunts the
   if (b.onInk > 0.75) {
     const pit = A.pits.find(q => b.x > q.x0 - 14 && b.x < q.x1 + 14), over = pit && b.y <= A.floorY + 8;      // over a pit the whole span goes at once, so no stub is left to lead blots in
     const cA = over ? pit.c0 - 1 : (b.x - HALF - 3) >> 2, cB = over ? pit.c1 : (b.x + HALF + 3) >> 2, r0 = over ? A.floorRow - 12 : b.y >> 2; let n = 0;
-    for (let r = r0; r < (over ? A.floorRow + 8 : r0 + 14); r++) { const row = ink[r]; if (!row) continue; for (let c = cA; c <= cB; c++) if (row[c] > T) { row[c] = T - 0.001; n++; if (n % 2) particles.push({ x: c * CELL + 2, y: r * CELL + 2, vx: (Math.random() - 0.5) * 120, vy: -Math.random() * 90, life: 0.5, max: 0.5, col: '#3a4a8a', sz: 2.5 }); } }
+    for (let r = r0 * 2; r < (over ? A.floorRow + 8 : r0 + 14) * 2; r++) { const row = ink[r]; if (!row) continue; for (let c = Math.max(0, cA * 2); c <= Math.min(ICOLS - 1, cB * 2 + 1); c++) if (row[c] > T) { row[c] = T - 0.001; n++; if (n % 8 === 1) particles.push({ x: c * IC + 1, y: r * IC + 1, vx: (Math.random() - 0.5) * 120, vy: -Math.random() * 90, life: 0.5, max: 0.5, col: '#3a4a8a', sz: 2.5 }); } }
     if (n) { sfx.crack(); sfx.collapse(); if (over) popup(b.x, A.floorY - 30, 'The ink gives way!', '#1c2d6b'); }
     b.onInk = 0;
   }
@@ -2241,12 +2269,12 @@ BOSSX.golem = {
   start(B, A) { B.g = { x: A.side < 0 ? A.x1 - 70 : A.x0 + 70, dir: A.side < 0 ? -1 : 1, state: 'walk', t: 0, soak: 0, need: 360 + 60 * B.tier, stompIn: 4.5, wind: Math.max(0.8, 1.2 - 0.1 * B.tier), eaten: 0, fill: 8 + 2 * B.tier }; B.hp = B.hpMax = 3; sfx.stomp(); sfx.rumble(); },
   update(B, A, dt) {
     const g = B.g, fy = A.floorY, tier = B.tier; g.t += dt;
-    { const c0 = (g.x - 18) >> 2, c1 = (g.x + 18) >> 2; let n = 0;            // whatever ink touches its body is gone, and counts
-      for (let r = (fy - 46) >> 2; r <= (fy + 2) >> 2; r++) { const row = ink[r]; if (!row) continue; for (let c = c0; c <= c1; c++) if (row[c] > T) { row[c] = T - 0.001; n++; } }
-      if (n) { if (g.state !== 'sodden') g.soak += n; if (tickN % 5 === 0) sfx.slurp(); particles.push({ x: g.x + (Math.random() - 0.5) * 30, y: fy - 10 - Math.random() * 30, vx: 0, vy: -30, life: 0.4, max: 0.4, col: '#1c2d6b', sz: 2.5 }); } }
+    { const c0 = Math.max(0, (g.x - 18) >> 1), c1 = Math.min(ICOLS - 1, (g.x + 18) >> 1); let n = 0;            // whatever ink touches its body is gone, and counts (in rock cells' worth: four ink cells to one)
+      for (let r = (fy - 46) >> 1; r <= (fy + 2) >> 1; r++) { const row = ink[r]; if (!row) continue; for (let c = c0; c <= c1; c++) if (row[c] > T) { row[c] = T - 0.001; n++; } }
+      if (n) { if (g.state !== 'sodden') g.soak += n / 4; if (tickN % 5 === 0) sfx.slurp(); particles.push({ x: g.x + (Math.random() - 0.5) * 30, y: fy - 10 - Math.random() * 30, vx: 0, vy: -30, life: 0.4, max: 0.4, col: '#1c2d6b', sz: 2.5 }); } }
     if (tickN % 6 === 0) {                                                     // its dryness: ink within reach dries three times as fast
-      const c0 = Math.max(0, (g.x - 80) >> 2), c1 = Math.min(COLS - 1, (g.x + 80) >> 2);
-      for (let r = (fy - 110) >> 2; r <= (fy + 8) >> 2; r++) { const row = ink[r]; if (!row) continue; for (let c = c0; c <= c1; c++) if (row[c] > T) row[c] -= 0.2; }
+      const c0 = Math.max(0, (g.x - 80) >> 1), c1 = Math.min(ICOLS - 1, (g.x + 80) >> 1);
+      for (let r = (fy - 110) >> 1; r <= (fy + 8) >> 1; r++) { const row = ink[r]; if (!row) continue; for (let c = c0; c <= c1; c++) if (row[c] > T) row[c] -= 0.2; }
     }
     if (g.state !== 'sodden' && g.soak >= g.need) {
       g.state = 'sodden'; g.t = 0; g.soak = 0; B.hp--; sfx.squelch(); sfx.thud(); shakeT = Math.max(shakeT, 0.25); inkLeft = Math.min(inkCap(), inkLeft + 20);
@@ -2330,7 +2358,7 @@ BOSSX.rival = {
       for (let i = 0; i < r.pts.length; i++) {
         const p = r.pts[i]; if (p.c) { done++; continue; } if (i >= n) continue;
         const c0 = p.x >> 2, r0 = p.y >> 2; let hit = false;
-        for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (cellState(c0 + dc, r0 + dr) === 2) { ink[r0 + dr][c0 + dc] = T - 0.001; hit = true; }
+        for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (cellState(c0 + dc, r0 + dr) === 2) { dryCell(c0 + dc, r0 + dr); hit = true; }
         if (hit) { p.c = true; done++; particles.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 60, vy: -40 - Math.random() * 40, life: 0.4, max: 0.4, col: '#8a93b8', sz: 2.5 }); if (i % 4 === 0) sfx.thunk(); }
       }
       r.frac = done / r.pts.length;
@@ -2592,10 +2620,11 @@ function drawWyrm(w) {
 }
 
 // ---------------- upgrades: drops buy a hand of three cards ----------------
+const lineLife = l => +(TUNE.lastLife[l] + TUNE.lastLayer[l]).toFixed(1);      // a plain line: its skin dries after lastLife, its core one layer later
 const levelFor = (k, n) => k === 'tough' ? (n >= 3 ? TUNE.toughMaxFor : n === 2 ? TUNE.toughL2For : TUNE.toughL1For) : (n >= 3 ? TUNE.burstFor : n === 2 ? TUNE.lvl2For : TUNE.lvl1For);
 const say = (text, col) => { notes.push({ text, col: col || '#23211e', life: 2.4 }); if (notes.length > 3) notes.shift(); };
 const CARD_TEXT = {
-  last: ['', 'Ink lives 11 s instead of 8', 'Ink lives 16 s, and each layer adds 3 s', 'Everything you draw holds until 16 s after this timer ends, then all of it dries at once'],
+  last: ['', () => 'A line lasts about ' + lineLife(1) + ' s instead of ' + lineLife(0), () => 'A line lasts about ' + lineLife(2) + ' s, and thick ink lasts half as long again', () => 'Everything you draw holds until ' + TUNE.lastLife[3] + ' s after this timer ends, then all of it dries at once'],
   wide: ['', 'A broad, soft brush: a fall onto wide ink can be half again as long', 'Falls onto wide ink can be 2\u00bd times as long, and never daze', 'Pillow: no fall onto wide ink hurts, and a long drop sends blots off running'],
   tough: ['', 'Brutes chew it half as fast', 'Brutes cannot chew it. Leeches drink a third less', 'Crusher: shut any enemy inside ink and it is squeezed out of the cave. Unbreakable too'],
 };
@@ -2632,7 +2661,7 @@ function openHand(free, chest) {
     if (k === 'walkers') { title = 'Reinforcements'; desc = '+' + TUNE.joinN + ' blots join the middle of the flock'; sub = 'now'; }
     else if (k === 'echo') { title = 'Echo'; desc = 'Everything you draw refills once as it dries: twice as long'; sub = TUNE.specialFor + ' seconds'; max = true; }
     else if (k === 'res') { title = 'Reservoir'; desc = 'Ink tank ' + TUNE.resBoost + '% bigger, and full'; sub = TUNE.resFor + ' seconds'; }
-    else { const n = lvl[k] + 1; max = n === 3; title = NAME[k] + (max ? ' MAX' : ' ' + n); desc = CARD_TEXT[k][n]; sub = levelFor(k, n) + ' seconds'; }
+    else { const n = lvl[k] + 1; max = n === 3; title = NAME[k] + (max ? ' MAX' : ' ' + n); desc = CARD_TEXT[k][n]; if (typeof desc === 'function') desc = desc(); sub = levelFor(k, n) + ' seconds'; }
     return `<button class="hcard${max ? ' max' : ''}" data-i="${i}">${ICON[k]}<b>${title}</b><span>${desc}</span><small>${sub}</small><kbd>${i + 1}</kbd></button>`;
   }).join('') + '</div></div>';
   overlay.querySelectorAll('.hcard').forEach(el => { el.onclick = () => pickCard(+el.dataset.i); });
@@ -2657,7 +2686,7 @@ function updateEchoes() {          // as each part of an echoed line is really g
     for (let k = 0; k < P.length; k++) {
       const q = P[k]; if (q.done) continue;
       if ((drawingIt && k >= P.length - 2) || T < q.t0 + 0.4) { left++; continue; }        // never chase the tip still being drawn
-      if (cellState(Math.floor(q.x) >> 2, Math.floor(q.y + e.off) >> 2) === 2) { left++; continue; }   // still wet here: wait (wide lines dry from the outside in)
+      if (fineState(Math.floor(q.x) >> 1, Math.floor(q.y + e.off) >> 1) === 2) { left++; continue; }   // still wet at the heart of the line: wait (ink dries from the outside in)
       if (!occ) occ = occupied();
       const pr = k ? P[k - 1] : q, nd = T + (q.dry - q.t0), n = Math.max(1, Math.ceil(Math.hypot(q.x - pr.x, q.y - pr.y) / 2));
       for (let j = k ? 1 : 0; j <= n; j++) { const x = pr.x + (q.x - pr.x) * j / n; if (x < 2 || x > W - 2) continue; stamp(x, pr.y + (q.y - pr.y) * j / n + e.off, e.size, nd, occ, e.tg); }
@@ -3127,37 +3156,39 @@ function carveStratum(y) { const n = stratum + 1; carvings.push({ y: Math.round(
 const mix = (a, b, t) => `rgb(${a[0] + (b[0] - a[0]) * t | 0},${a[1] + (b[1] - a[1]) * t | 0},${a[2] + (b[2] - a[2]) * t | 0})`;
 function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
-const inkBuf = [[], [], [], []], sheenBuf = [[], [], [], []];
+// Ink is drawn as a small picture, one pixel per ink cell, scaled up crisp: the cost does not grow with the amount of ink on screen.
+let inkCv = null, inkG = null, inkImg = null, ink32 = null, inkRows = 0;
+const px32 = (r, g, b, a) => ((a << 24) | ((b & 255) << 16) | ((g & 255) << 8) | (r & 255)) >>> 0;
+const tint = (c, to, t) => px32(c[0] + (to - c[0]) * t, c[1] + (to - c[1]) * t, c[2] + (to - c[2]) * t, 255);
+const INK_PX = LAST_RGB.map(c => ({ base: px32(c[0], c[1], c[2], 255), top: tint(c, 255, 0.3), sheen: tint(c, 255, 0.52), wet: tint(c, 255, 0.4) }));
+const GOLD_PX = px32(255, 215, 106, 255);
 function drawInk() {
-  const y0 = camY - 8, y1 = camY + VH + 8, drying = [];
-  for (let l = 0; l < 4; l++) { inkBuf[l].length = 0; sheenBuf[l].length = 0; }
+  const rows = Math.ceil(VH / IC) + 8;
+  if (!inkCv || inkRows !== rows) { inkCv = document.createElement('canvas'); inkCv.width = ICOLS; inkCv.height = inkRows = rows; inkG = inkCv.getContext('2d'); inkImg = inkG.createImageData(ICOLS, rows); ink32 = new Uint32Array(inkImg.data.buffer); }
+  const r0 = Math.floor(camY / IC) - 4, r1 = r0 + rows, buf = ink32, glint = (T * 12) | 0;
+  const glow = TUNE.lastLayer.map(L => Math.min(1, 0.9 * L * (1 - TUNE.dryJitter / 2)));      // how long before drying a cell starts to glow: shorter than a layer's wait, so only ink that is really going glows
+  let any = false;
+  buf.fill(0);
   for (let i = 0; i < live.length; i++) {
-    const key = live[i], r = (key / COLS) | 0, c = key - r * COLS, y = r * CELL + 2;
-    if (y < y0 || y > y1) continue;
-    const rem = ink[r][c] - T; if (rem <= 0) continue;
-    const x = c * CELL + 2, tg = tag[r] ? tag[r][c] : 0, tough = (tg >> 2) & 3;
-    if (rem < 1) { drying.push(x, y, rem, tg & 3); continue; }
-    inkBuf[tg & 3].push(x, y);
-    if (tough && (tough > 1 || ((c + r) & 1) === 0)) sheenBuf[tough].push(x, y);
+    const key = live[i], ir = (key / ICOLS) | 0; if (ir < r0 || ir >= r1) continue;
+    const ic = key - ir * ICOLS, rem = ink[ir][ic] - T; if (rem <= 0) continue;
+    const tg = tag[ir] ? tag[ir][ic] : 0, l = tg & 3;
+    let col;
+    if (rem < glow[l] && !(tg & 16)) {                // its last moments: it glows like an ember and thins away
+      const u = rem / glow[l], t = u * u, e = EMBER_RGB, c = LAST_RGB[l];
+      col = px32(e[0] + (c[0] - e[0]) * t, e[1] + (c[1] - e[1]) * t, e[2] + (c[2] - e[2]) * t, 115 + 140 * u);
+    } else {
+      const P = INK_PX[l], tough = (tg >> 2) & 3, up = ink[ir - 1];
+      col = up && up[ic] > T ? P.base : P.top;       // the upper edge catches the light
+      if (tough) { if (tough === 3 && (ic * 3 + ir * 5 + glint) % 7 === 0) col = GOLD_PX; else if (((ic + ir) & 3) < (tough > 1 ? 2 : 1)) col = P.sheen; }      // Strong ink has a lacquer sheen; unbreakable ink glints gold
+    }
+    buf[(ir - r0) * ICOLS + ic] = col; any = true;
   }
-  for (let l = 0; l < 4; l++) {                       // lasting ink runs from indigo through violet to wine
-    const b = inkBuf[l]; if (!b.length) continue;
-    ctx.fillStyle = LAST_CSS[l]; ctx.beginPath();
-    for (let i = 0; i < b.length; i += 2) { ctx.moveTo(b[i] + 3.1, b[i + 1]); ctx.arc(b[i], b[i + 1], 3.1, 0, 7); }
-    ctx.fill();
-  }
-  for (let t = 1; t < 4; t++) {                       // tough ink has a lacquer sheen; unbreakable ink glints gold
-    const b = sheenBuf[t]; if (!b.length) continue;
-    ctx.fillStyle = t === 3 ? `rgba(255,215,106,${0.75 + 0.25 * Math.sin(T * 9)})` : t === 2 ? 'rgba(255,255,255,.62)' : 'rgba(255,255,255,.5)'; ctx.beginPath();
-    for (let i = 0; i < b.length; i += 2) { ctx.moveTo(b[i], b[i + 1] - 1); ctx.arc(b[i] - 0.8, b[i + 1] - 1, t === 3 ? 1.3 : 1, 0, 7); }
-    ctx.fill();
-  }
-  for (let i = 0; i < drying.length; i += 4) {        // the drying skin glows like an ember
-    const t = drying[i + 2];
-    ctx.globalAlpha = 0.45 + 0.55 * t; ctx.fillStyle = mix(EMBER_RGB, LAST_RGB[drying[i + 3]], t * t);
-    ctx.beginPath(); ctx.arc(drying[i], drying[i + 1], 1.8 + 1.3 * t, 0, 7); ctx.fill();
-  }
-  ctx.globalAlpha = 1;
+  if (!any) return;
+  inkG.putImageData(inkImg, 0, 0);
+  const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(inkCv, 0, r0 * IC, W, rows * IC);
+  ctx.imageSmoothingEnabled = sm;
 }
 
 function drawBomb(p) {
@@ -3809,9 +3840,9 @@ if (window.WETINK_DEV) window.__wetink = {
   shelves: n => { for (let k = 0; k < n; k++) genBand(); return gaps.filter(g => g.isl && g.cols[1] - g.cols[0] - 1 < 14).map(g => { checkGap(g); return { y: g.rows[0] * CELL, x: g.cols[0] * CELL, deadly: [g.dead[0].deadly, g.dead[1].deadly] }; }); },
   look: y => { viewY = y; panY = y - camY - autoOff; lastScroll = performance.now(); },
   step(n) { for (let i = 0; i < n && state === 'play'; i++) tick(STEP); },
-  press(x, y) { drawing = true; return strokeStart({ x, y }); }, release() { cur = null; drawing = false; }, spray: () => cur ? { r: cur.sprayR, still: cur.still } : null,
+  press(x, y) { drawing = true; return strokeStart({ x, y }); }, strokeTo(x, y) { strokeTo({ x, y }); }, release() { cur = null; drawing = false; }, spray: () => cur ? { r: cur.sprayR, still: cur.still } : null,
   line(x1, y1, x2, y2) { if (strokeStart({ x: x1, y: y1 })) { strokeTo({ x: x2, y: y2 }); cur = null; } },
-  liveCells: () => live.length,
+  liveCells: () => live.length, wetCells: () => { let n = 0; for (const k of live) { const ir = (k / ICOLS) | 0; if (ink[ir][k - ir * ICOLS] > T) n++; } return n; }, fine: (x, y) => fineState(Math.floor(x) >> 1, Math.floor(y) >> 1), solidAt: (x, y) => solid(x, y), inkTough: (x, y) => inkTough(x, y), weather: () => weather(),
   brush: () => ({ lvl: { ...lvl }, eff: { last: eff('last'), wide: eff('wide'), tough: eff('tough') }, drops, handN, echoN, spreadN, cost: handCost(), until: { ...until }, resUntil, fadeY, flockHigh, hand, slime: slime.size, pen: brushNow() }),
   setLvl(k, n) { if (n >= 3) { lvl[k] = 2; burst[k] = T + levelFor(k, 3); burstOn[k] = true; } else { lvl[k] = n; burst[k] = 0; burstOn[k] = false; } until[k] = T + levelFor(k, Math.min(n, 2)); },
   crushes: () => stats.crushed || 0,
