@@ -182,7 +182,7 @@ const TUNE = {
   gravity: 600, terminal: 240,
   fatalFall: 136,     // px; a longer fall kills
   maxStepUp: 12, maxStepDown: 12,   // px a walker can step without turning or falling
-  inkMax: 100, inkRegen: 6.5,       // ink units, units per second
+  inkMax: 50, inkRegen: 6.5,        // ink units, units per second (the tank was 100 when ink dried in 4 s; now it lasts twice as long, so half the tank)
   dryLock: 2,         // seconds the pen stays dry after the tank runs empty (the penalty for running out)
   lowAt: 0.5, lowBoost: 2.5,        // below this share of the tank, ink refills this many times faster
   fuseSpeed: 48,      // px per second the drying front travels along a stroke
@@ -209,9 +209,11 @@ const TUNE = {
   slimeFor: 6, slimeSlow: 0.3,   // seconds a slimed walker stays slow, and how slow
   slimeTrail: 8,      // seconds a surface stays slimy after the leech crawled it
   // the brush: three upgrade tracks. Every level runs on its own timer and steps down one level when it ends.
-  lastLife:  [4, 6, 10, 25],      // seconds a line lives before it starts to dry
+  lastLife:  [8, 11, 16, 16],     // seconds a line lives before it starts to dry (base doubled from 4, so Time is a choice rather than a must). [3]: at Time MAX, ink holds until this long after the countdown ends
   lastLayer: [2, 2, 3, 3],        // seconds each extra layer of thickness adds
-  wideSize:  [6, 10, 24, 38],     // brush width in px (ink cost per length stays the same)
+  wideSize:  [6, 16, 18, 22],     // brush width in px (ink cost per length stays the same). Wide is mostly about soft landings now, not size
+  wideFall:  [1, 1.5, 2.5, 99],   // a fall onto wide ink may be this many times longer than a deadly one onto rock and still be safe
+  wideHaste: 3,                   // Wide MAX: seconds of haste a blot gets from a long drop onto wide ink
   toughChew: [2, 1, 0, 0],        // extra seconds of drying per second a brute pushes (0 = it cannot chew)
   toughDrain: [1, 1, 0.67, 0],    // share of its usual thirst a leech gets from this ink
   inkCost: 0.075,     // ink units per px drawn
@@ -247,7 +249,7 @@ const STEP = 1 / 60, BODY = 12, HATCH_X = 120, HATCH_Y = 44, M = 16;  // M = px 
 const PAPER = '#f5eedf', ROCK = ['#cbbd9f', '#c6b899', '#d0c2a5', '#c9bb9c'];
 const INK_RGB = [28, 45, 107], EMBER_RGB = [232, 118, 43];
 const LAST_RGB = [[28, 45, 107], [69, 39, 138], [100, 31, 115], [125, 23, 65]], LAST_CSS = ['#1c2d6b', '#45278a', '#641f73', '#7d1741'];   // lasting ink: indigo, violet, plum, wine
-const TRACKS = ['last', 'wide', 'tough'], NAME = { last: 'Lasting', wide: 'Wide', tough: 'Tough' }, TCOL = { last: '#7d1741', wide: '#1c2d6b', tough: '#a37612' };
+const TRACKS = ['last', 'wide', 'tough'], NAME = { last: 'Time', wide: 'Wide', tough: 'Strong' }, TCOL = { last: '#7d1741', wide: '#1c2d6b', tough: '#a37612' };
 
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const sc = document.getElementById('sc'), sctx = sc.getContext('2d');
@@ -828,9 +830,10 @@ function goDry() { if (T < dryUntil) return; dryUntil = T + TUNE.dryLock; flashI
 function flashInk() { const t = $('tube'); t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash'); }
 
 const inkTough = (px, py) => { const tr = tag[Math.floor(py) >> 2]; return tr ? (tr[Math.floor(px) >> 2] >> 2) & 3 : 0; };
+const inkWide = (px, py) => { const c = Math.floor(px) >> 2, r = Math.floor(py) >> 2, ir = ink[r], tr = tag[r]; return ir && tr && ir[c] > T && !(tr[c] & 16) ? (tr[c] >> 5) & 3 : 0; };   // the Wide level of the wet ink here (0 on rock or dry ground)
 function brushNow() {   // a wide brush hangs below the pointer, so the line you trace is (nearly) its top surface and walkers can step onto it
-  const l = eff('last'), size = TUNE.wideSize[eff('wide')], hold = l === 3 && burst.last - T > TUNE.lastLife[2] ? burst.last : 0;     // Lasting MAX: everything holds until the countdown ends
-  return { size, off: Math.max(0, size / 2 - 8), life: hold ? hold - T : TUNE.lastLife[Math.min(l, 2)], hold, cost: TUNE.inkCost, tg: l | (eff('tough') << 2) };
+  const l = eff('last'), size = TUNE.wideSize[eff('wide')], hold = l === 3 ? burst.last + TUNE.lastLife[3] : 0;     // Time MAX: everything holds until a while after the countdown ends, then dries at once
+  return { size, off: Math.max(0, size / 2 - 8), life: hold ? hold - T : TUNE.lastLife[Math.min(l, 2)], hold, cost: TUNE.inkCost, tg: l | (eff('tough') << 2) | (eff('wide') << 5) };
 }
 function strokeStart(p) {
   const pen = brushNow(), c0 = Math.min(1, pen.size * 0.5 * pen.cost);
@@ -1118,8 +1121,16 @@ function updateWalker(w, dt) {
     if (w.vy > 70) for (const m of mushrooms) if (m.alive && Math.abs(m.x - w.x) <= m.hw && y >= m.y - 10 && y <= m.y + 1 && bounce(w, m)) return;
     if (solid(w.x, y)) {
       w.vx = 0; w.bn = 0;
-      if (y - w.fallStart > TUNE.fatalFall) kill(w);
-      else { w.grounded = true; w.fy = y; if (y > maxY) maxY = y; if (y - w.fallStart > TUNE.fatalFall * TUNE.dazeFrom) { w.daze = T + TUNE.dazeFor; sfx.oof(); } }
+      const fell = y - w.fallStart, wl = inkWide(w.x, y), lim = TUNE.fatalFall * TUNE.wideFall[wl];     // wide ink is a soft landing: the deeper the Wide level, the longer a fall it forgives
+      if (fell > lim) kill(w);
+      else {
+        w.grounded = true; w.fy = y; if (y > maxY) maxY = y;
+        if (fell > TUNE.fatalFall * TUNE.dazeFrom) {
+          if (wl >= 3) { w.haste = Math.max(w.haste, T + TUNE.wideHaste); puff(w.x, w.y - 2, '#1c2d6b', 6, 90); sfx.pop(); stats.softLands++; }   // Wide MAX: a long drop onto a pad sends it off running
+          else if (wl >= 2) { puff(w.x, w.y - 2, '#1c2d6b', 4, 70); stats.softLands++; }                                                       // Wide 2: lands soft, never dazed
+          else if (fell > lim * TUNE.dazeFrom) { w.daze = T + TUNE.dazeFor; sfx.oof(); if (wl) stats.softLands++; }
+        }
+      }
     }
   }
 }
@@ -2446,8 +2457,8 @@ function drawWyrm(w) {
 const levelFor = (k, n) => k === 'tough' ? (n >= 3 ? TUNE.toughMaxFor : n === 2 ? TUNE.toughL2For : TUNE.toughL1For) : (n >= 3 ? TUNE.burstFor : n === 2 ? TUNE.lvl2For : TUNE.lvl1For);
 const say = (text, col) => { notes.push({ text, col: col || '#23211e', life: 2.4 }); if (notes.length > 3) notes.shift(); };
 const CARD_TEXT = {
-  last: ['', 'Ink lives 6 s', 'Ink lives 10 s, and each layer adds 3 s', 'Ink holds until this timer ends, then all of it dries at once'],
-  wide: ['', 'Brush twice as wide', 'Brush over three times as wide', 'A giant roller: one swipe is a highway'],
+  last: ['', 'Ink lives 11 s instead of 8', 'Ink lives 16 s, and each layer adds 3 s', 'Everything you draw holds until 16 s after this timer ends, then all of it dries at once'],
+  wide: ['', 'A broad, soft brush: a fall onto wide ink can be half again as long', 'Falls onto wide ink can be 2\u00bd times as long, and never daze', 'Pillow: no fall onto wide ink hurts, and a long drop sends blots off running'],
   tough: ['', 'Brutes chew it half as fast', 'Brutes cannot chew it. Leeches drink a third less', 'Crusher: shut any enemy inside ink and it is squeezed out of the cave. Unbreakable too'],
 };
 const ICON = {
@@ -2499,7 +2510,7 @@ function pickCard(i) {
   } else if (k === 'echo') { echoN = Math.max(echoN, T) + TUNE.specialFor; say('Echo: ' + Math.round(echoN - T) + ' s', '#1a8fa8'); sfx.burst(); }
   else if (k === 'res') { resUntil = T + TUNE.resFor; inkLeft = inkCap(); say('Reservoir: bigger ink tank', '#1f7a6f'); sfx.pickup(1); }
   else if (lvl[k] < 2) { lvl[k]++; until[k] = T + levelFor(k, lvl[k]); say(NAME[k] + ' ' + lvl[k], TCOL[k]); sfx.levelUp(lvl[k]); }
-  else { burst[k] = T + levelFor(k, 3); burstOn[k] = true; say(k === 'tough' ? 'Tough MAX: shut enemies in ink to squeeze them out!' : NAME[k] + ' MAX!', TCOL[k]); sfx.burst(); shakeT = Math.max(shakeT, 0.15); }
+  else { burst[k] = T + levelFor(k, 3); burstOn[k] = true; say(k === 'tough' ? 'Strong MAX: shut enemies in ink to squeeze them out!' : NAME[k] + ' MAX!', TCOL[k]); sfx.burst(); shakeT = Math.max(shakeT, 0.15); }
 }
 function updateEchoes() {          // as each part of an echoed line is really gone, fresh ink pours back into its outline, for as long again
   for (let i = echoes.length - 1; i >= 0; i--) {
@@ -2607,7 +2618,7 @@ function newWorld(s) {
   arenas = []; boss = null; raids = []; raid = null; stratum = 0; boRng = mulberry32(seed ^ 0x0b055e5); bossFirst = boRng() < 0.5 ? 0 : 1; nextBoss = 20 + Math.round(TUNE.bossEvery * 4 * (0.82 + boRng() * 0.18)); buildOrders();
   forms = []; trophies = []; chRng = mulberry32(seed ^ 0x0c4a3be); nextChamber = 400 + (chRng() * 200 | 0); reelQ = []; slowUntil2 = 0; freezeUntil = 0;
   wick = []; crumbles = []; spikes = []; stakes = []; mushrooms = []; biomes = []; biomeRng = mulberry32(seed ^ 0x0b10e5); rowPal = new Map(); walkRng = mulberry32(seed ^ 0x5bd1e995); drawing = false;
-  stats = { pickups: 0, birds: 0, blocks: 0, rescues: 0, blasts: 0, brutes: 0, knocked: 0, leeches: 0, drained: 0, bounces: 0, spikes: 0, collapses: 0, drops: 0, hands: 0, faded: 0, chests: 0, trophies: 0, crushed: 0, bosses: 0, raids: 0 }; fxDone = 0; retreats = [];
+  stats = { softLands: 0, pickups: 0, birds: 0, blocks: 0, rescues: 0, blasts: 0, brutes: 0, knocked: 0, leeches: 0, drained: 0, bounces: 0, spikes: 0, collapses: 0, drops: 0, hands: 0, faded: 0, chests: 0, trophies: 0, crushed: 0, bosses: 0, raids: 0 }; fxDone = 0; retreats = [];
   for (let k = 0; k < TUNE.walkers; k++) queue.push({ T: 0.6 + k * TUNE.spawnEvery, x: HATCH_X, y: HATCH_Y, dir: 1 });
   deathLog = []; T = 0; inkLeft = TUNE.inkMax; camY = 0; autoOff = 0; panY = 0; viewY = 0; viewV = 0; jumpTo = null; catchS = 0; groupsNow = []; camX = Math.max(0, Math.min(W - VW, HATCH_X - VW * 0.3)); maxY = 0; accT = 0; paused = false;
   genBand();
@@ -2807,9 +2818,9 @@ function showHelp(fromIntro) {
     <h3 style="margin:10px 0 0;font-size:16px">Everything else</h3>
     <ul>
       <li><b>Ink</b> is solid only while wet. A line dries in the order you drew it, so start each stroke where the flock steps first. Ink dries from the outside in: go over a line, or draw lines side by side, and every extra layer adds about 2 s.</li>
-      <li><b>Drops</b> lie around the cave. When you have enough, a hand of three cards opens as soon as you lift your pen; each hand costs a little more than the last. Cards: <b>Lasting</b> (ink lives longer, turning from indigo to wine; at MAX everything you draw holds until the countdown ends, then dries all at once), <b>Wide</b> (a broader brush for the same ink), <b>Tough</b> (glossy ink Brutes and leeches struggle with; lasts 90 s, then 60 s at level 2; at MAX, 30 s in which any enemy you shut inside ink is crushed), <b>Reinforcements</b> (+6 blots), or <b>Reservoir</b> (a bigger, full ink tank for a while).</li>
+      <li><b>Drops</b> lie around the cave. When you have enough, a hand of three cards opens as soon as you lift your pen; each hand costs a little more than the last. Cards: <b>Time</b> (ink lives longer, turning from indigo to wine; at MAX everything you draw holds until 16 s after the countdown ends, then dries all at once), <b>Wide</b> (a broader brush that is also a soft landing: a fall onto wide ink can be 1\u00bd times as long as a deadly one, 2\u00bd times at level 2 with no daze, and at MAX nothing that lands on it is hurt), <b>Strong</b> (glossy ink Brutes and leeches struggle with; lasts 90 s, then 60 s at level 2; at MAX, 30 s in which any enemy you shut inside ink is crushed), <b>Reinforcements</b> (+6 blots), or <b>Reservoir</b> (a bigger, full ink tank for a while).</li>
       <li><b>Chests</b> sit on some gold shelves. A blot that reaches one opens a free hand holding a special card. <b>Echo</b> lasts 20 seconds and sometimes turns up in ordinary hands too: every line you draw leaves a shimmering outline, and as each part of the line dries (or is chewed or drunk), fresh ink pours back into it once, with the same width, toughness and life. Everything you draw lasts twice as long.</li>
-      <li>Every level runs on a clock shown on its chip: level 1 lasts 45 s, level 2 30 s, and MAX is a 15 s burst. When a clock runs out the track steps down one level. Keep finding drops to keep the stack up.</li>
+      <li>Every level runs on its own clock, shown on the bars at the top: level 1 lasts 45 s, level 2 30 s, and MAX is a 15 s burst (Strong runs 90, 60 and 30). When a clock runs out the track steps down one level and that level's clock starts fresh, so taking the next level just before the old one runs out is two for one.</li>
       <li><b>The fade:</b> the page goes blank 60 m above the deepest point the middle of your flock has reached. Blots still up there are lost, and so are Brutes and leeches.</li>
       <li><b>Falls</b> past the red dots kill. A short dash halfway down splits one deadly fall into two safe ones.</li>
       <li><b>Birds</b> (3 health) hover, screech and dive along a red line. Ink across the line stuns them for 4 s. Draw a closed loop around a <i>stunned</i> bird to take a health point; it gets faster each time. A loop around a bird that isn't stunned only holds it. Trapping a bird that carries a blot makes it drop it.</li>
