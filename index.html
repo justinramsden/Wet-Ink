@@ -155,7 +155,6 @@
     <div class="stat best">Best <b id="sBest">0 m</b></div>
     <div class="group right">
       <button id="bHome" title="Home (H or Esc): pauses the run">&#8962;<span class="lbl">Home</span></button>
-      <button id="bCam" title="Camera (V): Auto follows the flock; Dial and Strip leave it to you">Cam: Auto</button>
       <button id="bCab" title="Trophies"><svg viewBox="0 0 14 14"><path d="M3 1h8v4a4 4 0 0 1-8 0zM1 2h2v3a2 2 0 0 1-2-2zm10 0h2v1a2 2 0 0 1-2 2zM6 9h2v2h2v2H4v-2h2z"/></svg><b id="sCab">0</b></button>
       <button id="bHelp">?</button>
       <button id="bSound"><span class="lbl">Sound</span>&#9834; on</button>
@@ -240,6 +239,7 @@ const TUNE = {
   slimeSound: 1,      // which slime splat plays (1 gloop, 2 squirt, 3 jelly)
   camIdle: 3, camWarn: 0.8, camAccel: 500, camTop: 2600,   // your camera: seconds without scrolling before it catches up, warning time, how gently it starts, top speed
   dialGear: 2.5, dialFric: 1.2,   // the dial: cave px per px of finger travel (negative flips it), and how quickly a spin dies away
+  wheelStep: 0.45,    // cave px per unit of mouse-wheel delta (a notch is usually 100). Halved from 0.9 and eased, so a notched wheel pans smoothly
 };
 
 const W = 960, H = 640, CELL = 4, COLS = W / CELL, CH = 40;   // CH = rows per cached terrain chunk
@@ -255,9 +255,9 @@ const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 let autoOff = 0, panY = 0, panIdle = 0, panning = false;      // the view sits this far below the flock camera: an automatic part (phones) and the player's own pan
 // Camera modes. 'auto': the view follows the flock (the original). 'mine': the view stays where the player puts it,
 // and only catches up, after a warning, when they have not scrolled for a while and no group of blots is in view.
-let camMode = 'auto', scrollUI = 'dial', viewY = 0, viewV = 0, jumpTo = null, lastScroll = 0, scDrag = null, groupsNow = [];
+// The stable build locks the camera to 'mine' with the strip: the player runs the camera (Auto and the dial stay in the code for later).
+let camMode = 'mine', scrollUI = 'strip', viewY = 0, viewV = 0, jumpTo = null, lastScroll = 0, scDrag = null, groupsNow = [];
 let catchS = 0, catchT = 0, catchV = 0, catchDir = 1;      // catch-up: 0 resting, 1 warning, 2 moving
-try { const m = localStorage.getItem('wetink_cam'); if (m === 'dial' || m === 'strip') { camMode = 'mine'; scrollUI = m; } } catch (e) {}
 const mine = () => camMode === 'mine';
 const viewOff = () => mine() ? Math.max(0, viewY) - camY : Math.max(-camY, autoOff + panY);
 function viewMax() {                       // as far down as the view may go: a little past the lowest blot, never past the cave made so far
@@ -3438,19 +3438,7 @@ const scEnd = e => {
   scDrag = null; scrolled();
 };
 sc.addEventListener('pointerup', scEnd); sc.addEventListener('pointercancel', scEnd);
-const CAM_NAMES = { auto: 'Auto', dial: 'Dial', strip: 'Strip' };
-function applyCam() {
-  const k = mine() ? scrollUI : 'auto';
-  cv.parentElement.classList.toggle('scroll', mine());
-  $('bCam').textContent = 'Cam: ' + CAM_NAMES[k];
-  try { localStorage.setItem('wetink_cam', k); } catch (e) {}
-  fit();
-}
-function cycleCam() {                       // Auto -> Dial -> Strip -> Auto; the view stays where it is across the switch
-  const at = camY + viewOff(), k = mine() ? scrollUI : 'auto', next = k === 'auto' ? 'dial' : k === 'dial' ? 'strip' : 'auto';
-  if (next === 'auto') { camMode = 'auto'; panY = 0; } else { camMode = 'mine'; scrollUI = next; viewY = Math.max(0, at); viewV = 0; jumpTo = null; scDrag = null; scrolled(); }
-  applyCam();
-}
+function applyCam() { cv.parentElement.classList.toggle('scroll', mine()); fit(); }
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
   const sim = now < freezeUntil ? 0 : now < slowUntil2 ? dt * 0.4 : dt;       // a trophy buys a held breath and a second of slow motion
@@ -3495,7 +3483,13 @@ const pointerEnd = e => {
 };
 cv.addEventListener('pointerup', pointerEnd);
 cv.addEventListener('pointercancel', pointerEnd);
-cv.addEventListener('wheel', e => { if (state !== 'play' || hand) return; e.preventDefault(); panBy(Math.max(-160, Math.min(160, e.deltaY)) * 0.9); }, { passive: false });
+// the wheel moves a target and the view glides to it (camFrame), so each notch of a mechanical wheel is a short smooth slide, not a jolt
+function wheelBy(d) { const from = jumpTo != null ? jumpTo : viewY; jumpTo = Math.max(0, Math.min(viewMax(), from + d)); viewV = 0; scrolled(); }
+cv.addEventListener('wheel', e => {
+  if (state !== 'play' || hand) return; e.preventDefault();
+  const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaMode === 2 ? e.deltaY * 300 : e.deltaY;      // lines or pages (Firefox) into pixels
+  wheelBy(Math.max(-160, Math.min(160, dy)) * TUNE.wheelStep);
+}, { passive: false });
 cv.addEventListener('pointerleave', () => { pointer = null; });
 
 function togglePause() { if (state !== 'play' || hand || homeOpen) return; paused = !paused; cur = null; drawing = false; drawId = null; lookY = null; panIdle = 0; $('bPause').textContent = paused ? 'Resume' : 'Pause'; }
@@ -3504,7 +3498,6 @@ $('bOpen').onclick = () => { sfx.init(); openHand(); };
 $('bCab').onclick = showCabinet;
 $('bHelp').onclick = () => { if (hand) return; showHelp(state !== 'play'); };
 $('bHome').onclick = showHome;
-$('bCam').onclick = cycleCam;
 const toggleSound = () => { sfx.init(); soundOn = sfx.toggle(); $('bSound').innerHTML = '<span class="lbl">Sound</span>&#9834; ' + (soundOn ? 'on' : 'off'); };
 $('bSound').onclick = toggleSound;
 const quietly = p => { if (p && p.catch) p.catch(() => {}); };
@@ -3517,7 +3510,6 @@ window.addEventListener('keydown', e => {
   if (e.target && e.target.tagName === 'INPUT') return;           // typing a player's name
   if (homeOpen) { if (e.key === 'm' || e.key === 'M') { toggleSound(); const b = $('hSound'); if (b) b.innerHTML = '&#9834; ' + (soundOn ? 'on' : 'off'); } else if (e.key === 'Enter' && $('hGo')) $('hGo').click(); return; }
   if ((e.key === 'h' || e.key === 'H' || e.key === 'Escape') && state === 'play' && overlay.className === 'hide') { showHome(); return; }
-  if (e.key === 'v' || e.key === 'V') { cycleCam(); return; }
   if (mine() && state === 'play' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); jumpGroup(e.key === 'ArrowUp' ? -1 : 1); return; }
   if (e.key === ' ') { e.preventDefault(); togglePause(); }
   else if (e.key === 'c' || e.key === 'C') showCabinet();
