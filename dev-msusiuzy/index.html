@@ -207,6 +207,12 @@ const TUNE = {
   dryLock: 2,         // seconds the pen stays dry after the tank runs empty (the penalty for running out)
   lowWarn: 0.25,      // below this share of the tank the pen warns: a scratchy sound once, and the tube turns amber
   sputterAt: 0.12,    // below this share the pen sputters: thinner, broken line
+  penNormal: 600,     // the pen pours ink at a fixed rate. At this speed (px/s) the line is the standard 8 px; twice as fast gives a 4 px hairline for half the ink, and slowing down swells it to 12 px
+  penRange: 1,        // how strongly speed changes the line (0 = always the standard line)
+  penEase: 24,        // px of travel over which the line eases to a new width
+  halfRate: 0.5,      // the half-time pickup: the whole cave runs at this speed (the pen and the ink refill do not slow)
+  bruteBehind: 320, bruteBehindFor: 3,   // a Brute is left behind once it is off your view and this many px above the highest blot, for this many seconds
+  toughStun: [1, 1.5, 2, 2],      // a bird that hits Strong ink stays stunned this many times longer
   spray: 2,           // the airbrush, while the button is held: 0 off, 1 pool (hold still: a growing disc), 2 bleed (ink wells out of the pen and spreads; more the slower it moves), 3 pour (ink drips from the pen, runs and sets)
   sprayAfter: 0.14,   // pool: seconds the pen must be still. Bleed and pour: how quickly the flow starts once the pen slows (s)
   sprayRate: 800,     // px^2 of ink a second at full flow (about 10 ink a second)
@@ -244,10 +250,10 @@ const TUNE = {
   lastLayer: [1, 1, 1.5, 1.5],    // seconds each 2 px layer of thickness adds (ink dries from the outside in, a layer at a time)
   dryJitter: 0.8,                 // how grainy the drying is: 0 = whole layers vanish at once, 1 = cell by cell
   wideSize:  [6, 16, 18, 22],     // brush width in px (ink cost per length stays the same). Wide is mostly about soft landings now, not size
-  wideFall:  [1, 1.5, 2.5, 99],   // a fall onto wide ink may be this many times longer than a deadly one onto rock and still be safe
+  wideFall:  [1, 2, 3, 99],       // a fall onto wide ink may be this many times longer than a deadly one onto rock and still be safe
   wideHaste: 3,                   // Wide MAX: seconds of haste a blot gets from a long drop onto wide ink
   toughChew: [2, 1, 0, 0],        // extra seconds of drying per second a brute pushes (0 = it cannot chew)
-  toughDrain: [1, 1, 0.67, 0],    // share of its usual thirst a leech gets from this ink
+  toughDrain: [1, 0.5, 0, 0],      // share of its usual thirst a leech gets from this ink
   inkCost: 0.075,     // ink units per px drawn
   lvl1For: 45, lvl2For: 30, burstFor: 15,   // seconds each level lasts (Lasting and Wide)
   toughL1For: 90, toughL2For: 60, toughMaxFor: 30,   // Tough lasts longer; at MAX, enemies shut inside ink are crushed
@@ -333,7 +339,7 @@ const inkCap = () => TUNE.inkMax * (T < resUntil ? 1 + TUNE.resBoost / 100 : 1);
 const handCost = () => Math.min(TUNE.handMax, TUNE.handCost + TUNE.handStep * handN + TUNE.strataCost * stratum);
 let T, inkLeft, camY, maxY, state = 'ready', paused = false, penIdx = 0, accT = 0, last = 0, frameN = 0;
 let pointer = null, best = 0, deathLog = [];
-let pickups, birds, queue, popups, nextBird, slowUntil, shakeT, stepAcc, stats, tickN;
+let pickups, birds, queue, popups, nextBird, halfLeft, shakeT, stepAcc, stats, tickN;
 let brutes, nextBrute, walkRng, drawing = false, rings = [], leeches, nextLeech;
 let wick, crumbles, spikes, stakes, mushrooms, biomes, biomeRng, rowPal;
 let arenas, boss = null, boRng, nextBoss, stratum = 0, bossFirst = 0, raids = [], raid = null;
@@ -910,43 +916,50 @@ function brushNow() {   // a wide brush hangs below the pointer, so the line you
   const l = eff('last'), size = TUNE.wideSize[eff('wide')], hold = l === 3 ? burst.last + TUNE.lastLife[3] : 0;     // Time MAX: everything holds until a while after the countdown ends, then dries at once
   return { size, off: Math.max(0, size / 2 - 8), life: hold ? hold - T : TUNE.lastLife[Math.min(l, 2)], hold, cost: TUNE.inkCost, tg: l | (eff('tough') << 2) | (eff('wide') << 5) };
 }
-function strokeStart(p) {
+function strokeStart(p, ts) {
   const pen = brushNow(), c0 = Math.min(1, pen.size * 0.5 * pen.cost);
   if (T < dryUntil) { flashInk(); return false; }      // the pen is dry for a moment after running out
   if (inkLeft < c0 + 0.5) { goDry(); return false; }
   inkLeft -= c0;
-  cur = { pen, s: 0, last: { x: p.x, y: p.y }, start: { x: p.x, y: p.y }, copies: [], echo: null, still: 0, sprayR: 0, v: TUNE.spraySlow * 2.5, lastT: T, owed: 0, ph: Math.random() * 6.283, flowing: false };
+  cur = { pen, s: 0, last: { x: p.x, y: p.y }, start: { x: p.x, y: p.y }, copies: [], echo: null, still: 0, sprayR: 0, v: TUNE.penNormal, w: 8, idle: 0, lastT: ts == null ? T : ts, owed: 0, ph: Math.random() * 6.283, flowing: false };
   stamp(p.x, p.y + pen.off, pen.size, T + pen.life, occupied(), pen.tg);
   if (T < echoN) {                                 // Echo: every line of this stroke will redraw itself once as it dries
-    const mk = () => { const e = { size: pen.size, tg: pen.tg, life: pen.life, off: pen.off, pts: [{ x: p.x, y: p.y, dry: T + pen.life, t0: T }], i: 0, done: 0 }; echoes.push(e); return e; };
+    const mk = () => { const e = { size: pen.size, tg: pen.tg, life: pen.life, off: pen.off, pts: [{ x: p.x, y: p.y, dry: T + pen.life, t0: T, size: pen.size, off: pen.off }], i: 0, done: 0 }; echoes.push(e); return e; };
     cur.echo = mk();
   }
   return true;
 }
-function strokeTo(p) {
+// The pen pours ink at a fixed rate, and its speed decides how that ink is spread: a fast stroke is a thin line that costs less and
+// dries sooner (it has no core), a slow one is thick, dearer and longer lived. The ink per square pixel is always the same.
+function strokeTo(p, ts) {
   if (!cur) return;
   const a = cur.last;
   let d = Math.hypot(p.x - a.x, p.y - a.y);
   if (d < 3) return;
   cur.still = 0; cur.sprayR = 0;              // moving again: the pool stops growing
-  cur.v = cur.v * 0.5 + d / Math.max(1 / 120, T - cur.lastT) * 0.5; cur.lastT = T;      // how fast the pen is travelling, smoothed
+  const now = ts == null ? T : ts;            // the pen keeps real time (the pointer event's own clock), so half-time does not change the line
+  cur.v = cur.v * 0.5 + d / Math.max(1 / 240, now - cur.lastT) * 0.5; cur.lastT = now; cur.idle = 0;      // how fast the pen is travelling, smoothed
+  const want = 8 * Math.pow(Math.max(0.5, Math.min(1.5, TUNE.penNormal / Math.max(1, cur.v))), TUNE.penRange);
+  cur.w += (want - cur.w) * Math.min(1, d / Math.max(1, TUNE.penEase));
+  const per = cur.pen.cost * cur.w / 8;       // ink per px of length
   let b = p, out = false;
-  const cost = d * cur.pen.cost;
+  const cost = d * per;
   if (inkLeft < cost) {            // out of ink: draw as far as it reaches, then stop
     const f = inkLeft / cost; if (f * d < 1) { goDry(); cur = null; return; }
     b = { x: a.x + (p.x - a.x) * f, y: a.y + (p.y - a.y) * f }; d *= f; out = true;
   }
-  inkLeft = Math.max(0, inkLeft - d * cur.pen.cost);
+  inkLeft = Math.max(0, inkLeft - d * per);
   cur.s += d;
   // the fuse: each bit of ink dries one "life" after it was drawn, plus the time the
   // drying front needs to travel there from the start of the stroke
   const dry = cur.pen.hold ? cur.pen.hold : T + cur.pen.life + cur.s / TUNE.fuseSpeed;
   const occ = occupied(), n = Math.ceil(d / 2), sp = sputtering();
   if (sp && Math.random() < 0.25) sfx.sputter();
-  for (let j = 1; j <= n; j++) stamp(a.x + (b.x - a.x) * j / n, a.y + (b.y - a.y) * j / n + cur.pen.off, cur.pen.size * (sp ? 0.7 : 1), dry, occ, cur.pen.tg, sp ? 0.45 : 0);      // nearly empty: a thinner, scratchy line (its middle stays whole, so it never opens a hole)
+  const size = Math.max(2, cur.w * (cur.pen.size + 2) / 8 - 2) * (sp ? 0.7 : 1), off = Math.max(0, size / 2 - 8);      // Wide scales whatever the pen gives; a broad brush hangs below the pointer
+  for (let j = 1; j <= n; j++) stamp(a.x + (b.x - a.x) * j / n, a.y + (b.y - a.y) * j / n + off, size, dry, occ, cur.pen.tg, sp ? 0.45 : 0);      // nearly empty: a thinner, scratchy line (its middle stays whole, so it never opens a hole)
   cur.last = { x: b.x, y: b.y };
   if (cur.echo && T >= echoN) cur.echo = null;      // the timer ran out mid-stroke: the rest of the line is plain
-  if (cur.echo) cur.echo.pts.push({ x: b.x, y: b.y, dry, t0: T });
+  if (cur.echo) cur.echo.pts.push({ x: b.x, y: b.y, dry, t0: T, size, off });
   if (out) { goDry(); cur = null; }
 }
 
@@ -957,7 +970,7 @@ function updateSpray(dt) {
   const mode = TUNE.spray | 0, pen = cur.pen, px = cur.last.x, py = cur.last.y + pen.off;
   if (mode === 1) return sprayPool(dt, px, py);
   // bleed and pour: ink wells out of the nib, the more the slower the pen is moving
-  cur.v *= Math.exp(-dt / Math.max(0.02, TUNE.sprayAfter));
+  cur.idle += dt; if (cur.idle > 0.05) cur.v *= Math.exp(-dt / Math.max(0.02, TUNE.sprayAfter));      // the pen has stopped sending moves: its speed dies away (dt here is real time)
   const f = Math.max(0, 1 - cur.v / Math.max(1, TUNE.spraySlow)); cur.flowing = f > 0;
   if (!cur.flowing) return;
   cur.owed = Math.min(60, cur.owed + TUNE.sprayRate * f * dt / (IC * IC));      // ink cells owed
@@ -1068,7 +1081,7 @@ function collect(w, p) {
   if (p.type === 'plus1') hatch(1); else if (p.type === 'plus3') hatch(3); else if (p.type === 'plus5') hatch(5);
   else if (p.type === 'drop3') addDrops(3, p.x, p.y - 16);
   else if (p.type === 'chest') { stats.chests++; sfx.chest(); popup(p.x, p.y - 22, 'Chest!', '#a37612'); puff(p.x, p.y - 8, '#ffd76a', 16, 180); pendingChest++; }
-  else if (p.type === 'slow') { slowUntil = T + TUNE.slowFor; sfx.slow(); popup(p.x, p.y - 16, 'Slow', '#1f9e8f'); }
+  else if (p.type === 'slow') { halfLeft = TUNE.slowFor; sfx.slow(); popup(p.x, p.y - 16, 'Half time', '#1f9e8f'); }      // the whole cave slows; your pen does not
   else if (p.type === 'haste') { for (const o of walkers) if (o.alive && Math.hypot(o.x - w.x, o.y - w.y) < 90) o.haste = T + TUNE.hasteFor; sfx.haste(); popup(p.x, p.y - 16, 'Haste', '#c98a00'); }
   else if (p.type === 'bomb') { w.bomb = T + TUNE.bombFuse; popup(p.x, p.y - 22, 'BOMB! Get it away from the flock', '#d6402b'); }
 }
@@ -1245,7 +1258,8 @@ function stepWalk(w) {
     if (ny < 0) { w.dir = -w.dir; return; }
   } else {                                          // open: step level or down, or walk off the edge
     for (let k = 0; k <= TUNE.maxStepDown; k++) if (solid(nx, w.y + k)) { ny = w.y + k; break; }
-    if (ny < 0) { ny = w.y; off = true; }
+    if (ny < 0) { if (inkWide(w.x, w.y) >= 2) { w.dir = -w.dir; return; }      // Wide 2 and up: a blot will not step off this ink into a drop. The line is a holding pen until it dries
+      ny = w.y; off = true; }
   }
   // no headroom: something at least 4 px tall stands in the way. A crumb of drying ink (a single 2 px cell) is not a wall.
   for (let k = 1, run = 0; k <= BODY + 1; k += 2) { if (!solid(nx, ny - k)) run = 0; else if (++run >= 2) { w.dir = -w.dir; return; } }
@@ -1260,7 +1274,7 @@ function updateWalker(w, dt) {
     else {
       if (T < w.stun) return;                        // flat on its back for a moment
       if (slime.size) { const se = slime.get(((w.y - 1) >> 2) * COLS + (w.x >> 2)); if (se > T) { if (w.slimed < T) sfx.oof(); w.slimed = T + TUNE.slimeFor; } }      // stepped in a slime trail
-      w.acc += TUNE.walkSpeed * w.spd * (T < w.daze ? TUNE.dazeSlow : 1) * (T < w.slimed ? TUNE.slimeSlow : 1) * (T < slowUntil ? 0.5 : 1) * (T < w.haste ? 1.8 : 1) * dt;
+      w.acc += TUNE.walkSpeed * w.spd * (T < w.daze ? TUNE.dazeSlow : 1) * (T < w.slimed ? TUNE.slimeSlow : 1) * (T < w.haste ? 1.8 : 1) * dt;
       while (w.acc >= 1 && w.grounded) { w.acc -= 1; stepWalk(w); }
       if (w.grounded && w.y > maxY) maxY = w.y;
       if (w.grounded) for (const p of pickups) if (!p.taken && Math.abs(p.y - w.y) <= 10 && Math.abs(p.x - w.x) <= 5) collect(w, p);
@@ -1298,8 +1312,8 @@ function updateWalker(w, dt) {
         w.grounded = true; w.fy = y; if (y > maxY) maxY = y;
         if (fell > TUNE.fatalFall * TUNE.dazeFrom) {
           if (wl >= 3) { w.haste = Math.max(w.haste, T + TUNE.wideHaste); puff(w.x, w.y - 2, '#1c2d6b', 6, 90); sfx.pop(); stats.softLands++; }   // Wide MAX: a long drop onto a pad sends it off running
-          else if (wl >= 2) { puff(w.x, w.y - 2, '#1c2d6b', 4, 70); stats.softLands++; }                                                       // Wide 2: lands soft, never dazed
-          else if (fell > lim * TUNE.dazeFrom) { w.daze = T + TUNE.dazeFor; sfx.oof(); if (wl) stats.softLands++; }
+          else if (wl >= 1) { puff(w.x, w.y - 2, '#1c2d6b', 4, 70); stats.softLands++; }                                                       // Wide ink: lands soft, never dazed
+          else { w.daze = T + TUNE.dazeFor; sfx.oof(); }
         }
       }
     }
@@ -1374,7 +1388,7 @@ function updateBird(b, dt) {
       const dx = w.x - b.x, dy = w.y - 7 - b.y, d = Math.hypot(dx, dy);
       if (d < 9) { b.carry = w; w.carried = b; b.state = 'carry'; b.t = 0; sfx.screech(); return; }
       const s = Math.min(2, left, d), nx = b.x + dx / d * s, ny = b.y + dy / d * s, hit = stateAt(nx, ny);
-      if (hit === 2) { stunBird(b, TUNE.birdStun, true); stats.blocks++; return; }       // your ink: dazed
+      if (hit === 2) { stunBird(b, TUNE.birdStun * TUNE.toughStun[inkTough(nx, ny)], true); stats.blocks++; return; }       // your ink: dazed, and for longer the Stronger it is
       if (hit === 1) { stunBird(b, 1, true); return; }                                    // rock: brief bonk
       b.x = nx; b.y = ny; b.face = dx > 0 ? 1 : -1; left -= s;
     }
@@ -1382,7 +1396,7 @@ function updateBird(b, dt) {
     const w = b.carry;
     if (!w || !w.alive) { b.carry = null; b.state = 'flee'; return; }
     const ny = b.y - TUNE.birdLift * dt, above = stateAt(b.x, ny - 8);
-    if (above === 2) { stunBird(b, TUNE.birdStun, true); stats.rescues++; popup(b.x, b.y - 14, 'Dropped!', '#1f7a3d'); return; }
+    if (above === 2) { stunBird(b, TUNE.birdStun * TUNE.toughStun[inkTough(b.x, ny - 8)], true); stats.rescues++; popup(b.x, b.y - 14, 'Dropped!', '#1f7a3d'); return; }
     if (above === 0) b.y = ny;
     w.x = Math.round(b.x); w.y = Math.round(b.y + 15);
     if (b.t > TUNE.birdEat) { w.alive = false; w.carried = null; b.carry = null; deathLog.push({ T: +T.toFixed(1), x: w.x, y: w.y, eaten: true }); sfx.gulp(); b.state = 'flee'; nextBird = T + birdGap(); }
@@ -1575,7 +1589,11 @@ function updateBrutes(dt) {
     if (b.state !== 'warn' && b.y < fadeY) { brutes.splice(i, 1); stats.brutes++; nextBrute = T + TUNE.bruteEvery; if (b.raid) raidBrutePaid(b, Math.max(camX + 80, Math.min(camX + VW - 80, b.x)), camY + 22); continue; }      // faded with the page above
     const stuck = T - b.lastMove > 12 || b.above > 3, lost = b.state !== 'warn' && b.y > camY + VH + 900;
     if (stuck || lost) { brutes.splice(i, 1); nextBrute = T + (b.above > 3 ? 4 : TUNE.bruteEvery * 0.6); continue; }   // safety net: never let one block spawning
-    if (b.seen && b.y < camY - 26) {                // left behind above the screen: gone for good
+    // Left behind: off the top of your own view AND well above the highest blot, and it has stayed so for a few seconds.
+    // (A Brute cannot be hurt by falls, so one just above the screen with a clear drop below it is not left behind at all.)
+    const viewTop = camY + viewOff(); let flockTop = Infinity; for (const w of walkers) if (w.alive && w.y < flockTop) flockTop = w.y;
+    if (b.seen && b.y < viewTop - 26 && b.y < flockTop - TUNE.bruteBehind) b.behind = (b.behind || 0) + dt; else b.behind = 0;
+    if (b.behind > TUNE.bruteBehindFor) {
       brutes.splice(i, 1); stats.brutes++; nextBrute = T + TUNE.bruteEvery * (0.8 + Math.random() * 0.5);
       sfx.pickup(1); const px = Math.max(camX + 80, Math.min(camX + VW - 80, b.x));
       if (b.raid) raidBrutePaid(b, px, camY + 22); else addDrops(TUNE.enemyDrops, b.x, camY + 22, true);
@@ -2707,8 +2725,8 @@ const levelFor = (k, n) => k === 'tough' ? (n >= 3 ? TUNE.toughMaxFor : n === 2 
 const say = (text, col) => { notes.push({ text, col: col || '#23211e', life: 2.4 }); if (notes.length > 3) notes.shift(); };
 const CARD_TEXT = {
   last: ['', () => 'A line lasts about ' + lineLife(1) + ' s instead of ' + lineLife(0), () => 'A line lasts about ' + lineLife(2) + ' s, and thick ink lasts half as long again', () => 'Everything you draw holds until ' + TUNE.lastLife[3] + ' s after this timer ends, then all of it dries at once'],
-  wide: ['', 'A broad, soft brush: a fall onto wide ink can be half again as long', 'Falls onto wide ink can be 2\u00bd times as long, and never daze', 'Pillow: no fall onto wide ink hurts, and a long drop sends blots off running'],
-  tough: ['', 'Brutes chew it half as fast', 'Brutes cannot chew it. Leeches drink a third less', 'Crusher: shut any enemy inside ink and it is squeezed out of the cave. Unbreakable too'],
+  wide: ['', 'A broad, soft brush: a fall onto it can be twice as long, and never dazes', 'Holding pen: blots will not step off this ink into a drop. Falls onto it can be three times as long', 'Pillow: no fall onto this ink hurts, and a long drop sends blots off running. Still a holding pen'],
+  tough: ['', 'Brutes chew it half as fast, leeches drink half as much, birds that hit it are stunned half as long again', 'Brutes cannot chew it, leeches cannot drink it, birds are stunned twice as long', 'Crusher: shut any enemy inside ink and it is squeezed out of the cave. Unbreakable too'],
 };
 const ICON = {
   last: '<svg viewBox="0 0 44 44"><circle cx="22" cy="24" r="14" fill="none" stroke="#7d1741" stroke-width="4"/><path d="M22 15v9l6 4" fill="none" stroke="#7d1741" stroke-width="3.5" stroke-linecap="round"/><rect x="18" y="4" width="8" height="4" rx="1.5" fill="#7d1741"/></svg>',
@@ -2771,7 +2789,7 @@ function updateEchoes() {          // as each part of an echoed line is really g
       if (fineState(Math.floor(q.x) >> 1, Math.floor(q.y + e.off) >> 1) === 2) { left++; continue; }   // still wet at the heart of the line: wait (ink dries from the outside in)
       if (!occ) occ = occupied();
       const pr = k ? P[k - 1] : q, nd = T + (q.dry - q.t0), n = Math.max(1, Math.ceil(Math.hypot(q.x - pr.x, q.y - pr.y) / 2));
-      for (let j = k ? 1 : 0; j <= n; j++) { const x = pr.x + (q.x - pr.x) * j / n; if (x < 2 || x > W - 2) continue; stamp(x, pr.y + (q.y - pr.y) * j / n + e.off, e.size, nd, occ, e.tg); }
+      for (let j = k ? 1 : 0; j <= n; j++) { const x = pr.x + (q.x - pr.x) * j / n; if (x < 2 || x > W - 2) continue; stamp(x, pr.y + (q.y - pr.y) * j / n + (q.off == null ? e.off : q.off), q.size || e.size, nd, occ, e.tg); }
       q.done = 1; if (!e.done) { e.done = 1; sfx.echo(); }
     }
     if (!left && !drawingIt) echoes.splice(i, 1);
@@ -2801,12 +2819,14 @@ function fadeOut(w) {
 }
 
 // ---------------- simulation ----------------
-function tick(dt) {
+function tick(rdt) {                     // rdt is real time. In half-time the cave gets half of it; the pen and the ink refill get all of it
+  const half = halfLeft > 0; if (half) halfLeft -= rdt;
+  const dt = half ? rdt * TUNE.halfRate : rdt;
   T += dt; tickN++;
-  if (TUNE.spray && cur && drawing && !paused) updateSpray(dt);
+  if (TUNE.spray && cur && drawing && !paused) updateSpray(rdt);
   if (fluid.length) updateFluid(dt);
   const wasLow = lowSaid; lowSaid = inkLow(); if (lowSaid && !wasLow && T > 1) { sfx.inkLow(); flashInk(); }
-  inkLeft = Math.min(inkCap(), inkLeft + TUNE.inkRegen * (inkLeft < inkCap() * TUNE.lowAt ? TUNE.lowBoost : 1) * (droughtOn() ? 0.3 : 1) * dt);   // low tank: refills faster
+  inkLeft = Math.min(inkCap(), inkLeft + TUNE.inkRegen * (inkLeft < inkCap() * TUNE.lowAt ? TUNE.lowBoost : 1) * (droughtOn() ? 0.3 : 1) * rdt);   // low tank: refills faster
   while (queue.length && T >= queue[0].T) spawn(queue.shift());
   const ys = [];
   let grounded = 0, fuses = 0;
@@ -2822,8 +2842,8 @@ function tick(dt) {
   updateSpikes(dt);
   updateBrush(dt);
   // footsteps: the more feet on the ground, the denser the skitter
-  stepAcc += Math.min(17, grounded * 1.3) * (T < slowUntil ? 0.55 : 1) * dt * (0.6 + Math.random() * 0.8);
-  if (stepAcc >= 1) { stepAcc -= 1; sfx.step(T < slowUntil); }
+  stepAcc += Math.min(17, grounded * 1.3) * dt * (0.6 + Math.random() * 0.8);
+  if (stepAcc >= 1) { stepAcc -= 1; sfx.step(halfLeft > 0); }
   if (fuses && tickN % 9 === 0) sfx.fuse();
   if (shakeT > 0) shakeT -= dt;
   for (let i = popups.length - 1; i >= 0; i--) { const p = popups[i]; p.life -= dt; p.y -= 16 * dt; if (p.life <= 0) popups.splice(i, 1); }
@@ -2865,7 +2885,7 @@ function newWorld(s) {
   lvl = { last: 0, wide: 0, tough: 0 }; burst = { last: 0, wide: 0, tough: 0 }; burstOn = { last: false, wide: false, tough: false };
   until = { last: 0, wide: 0, tough: 0 }; dryUntil = 0; sipping = false; lowSaid = false; fluid = []; flu = []; handN = 0; resUntil = 0; echoN = 0; spreadN = 0; echoes = [];
   drops = 0; hand = null; fadeY = -1e9; flockHigh = 0; slime = new Map(); notes = [];
-  pickups = []; birds = []; popups = []; queue = []; nextBird = 0; slowUntil = 0; shakeT = 0; stepAcc = 0; tickN = 0;
+  pickups = []; birds = []; popups = []; queue = []; nextBird = 0; halfLeft = 0; shakeT = 0; stepAcc = 0; tickN = 0;
   rings = []; brutes = []; nextBrute = 0; leeches = []; nextLeech = 0;
   arenas = []; boss = null; raids = []; raid = null; stratum = 0; carvings = []; recordAt = best; regions = []; regRng = mulberry32(seed ^ 0x7e91a); boRng = mulberry32(seed ^ 0x0b055e5); bossFirst = boRng() < 0.5 ? 0 : 1; nextBoss = 20 + Math.round(TUNE.bossEvery * 4 * (0.82 + boRng() * 0.18)); buildOrders();
   forms = []; trophies = []; chRng = mulberry32(seed ^ 0x0c4a3be); nextChamber = 400 + (chRng() * 200 | 0); reelQ = []; slowUntil2 = 0; freezeUntil = 0;
@@ -3071,7 +3091,7 @@ function showHelp(fromIntro) {
     <li>Draw to catch them. Ink is solid only while it is wet, and it dries from where your stroke began. Thicken a line to make it last.</li>
     <li>Birds come after 15 m. Block a dive with ink to stun the bird, then loop it while it's dazed. Three cages send it off.</li>
     <li>Steer clear of the <b style="color:var(--red)">red spiked bombs</b>.</li>
-    <li>After 60 m a <b>Brute</b> drops in. It can't be hurt by falls: wall it in with ink and leave it behind above the screen.</li>
+    <li>After 60 m a <b>Brute</b> drops in. It can't be hurt by falls: wall it in with ink and leave it well behind, out of sight above the flock.</li>
     <li>Collect <b>drops</b>. Four open a hand of three upgrade cards. The three bars at the top are your upgrade trees: each segment is a level, and the lit one drains as its clock runs.</li>
     <li><b>The camera is yours.</b> The strip on the right wall drags like a page, and the mouse wheel slides the view. The arrow buttons above and below the strip (or the up and down arrow keys) jump straight to a separated group of blots. Leave the view with the middle of the flock off screen and, after a warning, it catches up on its own. Looking never changes what the cave does: enemies, the Fade and rewards follow the flock, not your view.</li>
     <li>Run the tank dry and the pen stays dry for 2 s. Below half a tank, ink refills much faster.</li>
@@ -3080,13 +3100,13 @@ function showHelp(fromIntro) {
     <h3 style="margin:10px 0 0;font-size:16px">Everything else</h3>
     <ul>
       <li><b>Ink</b> is solid only while wet. A line dries in the order you drew it, so start each stroke where the flock steps first. Ink dries from the outside in, a thin skin at a time: a plain line loses its skin first and its heart about a second later, and every extra 2 px of thickness buys about another second. Draw lines side by side to build something that lasts.</li>
-      <li><b>Drops</b> lie around the cave. When you have enough, a hand of three cards opens as soon as you lift your pen; each hand costs a little more than the last. Cards: <b>Time</b> (ink lives longer, turning from indigo to wine; at MAX everything you draw holds until 16 s after the countdown ends, then dries all at once), <b>Wide</b> (a broader brush that is also a soft landing: a fall onto wide ink can be 1\u00bd times as long as a deadly one, 2\u00bd times at level 2 with no daze, and at MAX nothing that lands on it is hurt), <b>Strong</b> (glossy ink Brutes and leeches struggle with; lasts 90 s, then 60 s at level 2; at MAX, 30 s in which any enemy you shut inside ink is crushed), <b>Reinforcements</b> (+6 blots), or <b>Reservoir</b> (a bigger, full ink tank for a while).</li>
+      <li><b>Drops</b> lie around the cave. When you have enough, a hand of three cards opens as soon as you lift your pen; each hand costs a little more than the last. Cards: <b>Time</b> (ink lives longer, turning from indigo to wine; at MAX everything you draw holds until 16 s after the countdown ends, then dries all at once), <b>Wide</b> (a broader brush that is also a soft landing: a fall onto it can be twice as long as a deadly one and never dazes; at level 2 three times, and blots will not step off the end of this ink into a drop, so a line becomes a holding pen; at MAX nothing that lands on it is hurt), <b>Strong</b> (glossy ink every enemy struggles with: Brutes chew it slowly and then not at all, leeches drink less and then nothing, birds that hit it stay stunned longer; lasts 90 s, then 60 s at level 2; at MAX, 30 s in which any enemy you shut inside ink is crushed), <b>Reinforcements</b> (+6 blots), or <b>Reservoir</b> (a bigger, full ink tank for a while).</li>
       <li><b>Chests</b> sit on some gold shelves. A blot that reaches one opens a free hand holding a special card. <b>Echo</b> lasts 20 seconds and sometimes turns up in ordinary hands too: every line you draw leaves a shimmering outline, and as each part of the line dries (or is chewed or drunk), fresh ink pours back into it once, with the same width, toughness and life. Everything you draw lasts twice as long.</li>
       <li>Every level runs on its own clock, shown on the bars at the top: level 1 lasts 45 s, level 2 30 s, and MAX is a 15 s burst (Strong runs 90, 60 and 30). When a clock runs out the track steps down one level and that level's clock starts fresh, so taking the next level just before the old one runs out is two for one.</li>
       <li><b>The fade:</b> the page goes blank 60 m above the deepest point the middle of your flock has reached. Blots still up there are lost, and so are Brutes and leeches.</li>
       <li><b>Falls</b> past the red dots kill. A short dash halfway down splits one deadly fall into two safe ones.</li>
       <li><b>Birds</b> (3 health) hover, screech and dive along a red line. Ink across the line stuns them for 4 s. Draw a closed loop around a <i>stunned</i> bird to take a health point; it gets faster each time. A loop around a bird that isn't stunned only holds it. Trapping a bird that carries a blot makes it drop it.</li>
-      <li><b>Pickups:</b> bare ink drops are the currency. Grey ring = +1 blot, teal on ledges (+3, three drops, slow, haste), gold on high shelves (+5 blots or a chest, draw a ramp up). Beaten birds, leeches and Brutes pay out drops too.</li>
+      <li><b>Pickups:</b> bare ink drops are the currency. Grey ring = +1 blot, teal on ledges (+3, three drops, haste, and \u00bd half-time: the whole cave slows for a few seconds while your pen does not), gold on high shelves (+5 blots or a chest, draw a ramp up). Beaten birds, leeches and Brutes pay out drops too.</li>
       <li><b>Blots</b> differ a little in speed: tall and thin is fast, short and squat is slow. A rough landing (close to deadly) dazes them for 2 s.</li>
       <li><b>The Brute</b> is slow and heavy, takes no fall damage and shoves blots aside; blots pinned against a wall are crushed. When it lands from a drop it slams the ground: blots right under it die, and those nearby are thrown back and stunned. It chews through plain ink about 3x faster than ink dries. Hold it behind ink and let the flock walk away: once it's above the top of the screen, it's gone. A bomb kills it too.</li>
       <li><b>The Leech</b> (after 35 m) crawls over rock, walls and ceilings toward any ink that touches rock, and drinks your ink meter while it sits on it (only while it is on screen; the ink bar turns green-striped). It can't reach ink floating in open air. Blots that touch it, or step in the trail it leaves for 8 s, are slimed: a third of their speed for 6 s, never hurt. With no ink to drink it heads for your tightest group. It dies from a long fall, so lure it onto ink over a deadly drop and let the ink dry. A bomb kills it too.</li>
@@ -3416,7 +3436,7 @@ function drawBird(b) {
 
 function drawWalker(w) {
   const x = w.x, y = w.y;
-  let col = T < w.slimed ? '#3f8a2c' : T < slowUntil ? '#2c4a52' : '#23211e';
+  let col = T < w.slimed ? '#3f8a2c' : '#23211e';
   if (w.bomb) { const left = w.bomb - T; if (Math.sin(T * (left < 2 ? 34 : 16)) > 0) col = '#d6402b'; }
   if (T < w.haste) { ctx.fillStyle = 'rgba(232,170,30,.5)'; ctx.fillRect(x - w.dir * 9 - 2, y - 9, 4, 1.5); ctx.fillRect(x - w.dir * 11 - 2, y - 5, 4, 1.5); }
   if (!w.grounded && !w.carried) { const f = (y - w.fallStart) / TUNE.fatalFall; if (f > 0.55) col = mix([35, 33, 30], [214, 64, 43], Math.min(1, (f - 0.55) / 0.45)); }
@@ -3561,7 +3581,11 @@ function renderView() {
       if (Math.random() < 0.3) particles.push({ x: b.x + (Math.random() - 0.5) * 20, y: camY + 2, vx: 0, vy: 30, life: 0.6, max: 0.6, col: '#a8997c', sz: 2 });
     } else edge(b.x, b.y - 10, '#3b3346', true);
   }
-  if (T < slowUntil) { ctx.fillStyle = 'rgba(31,158,143,.9)'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('Slow ' + Math.ceil(slowUntil - T) + 's', VW - 24, 8); }
+  if (halfLeft > 0) {                      // half-time: a teal wash over the cave and a clock
+    ctx.fillStyle = 'rgba(31,158,143,.07)'; ctx.fillRect(0, 0, VW, VH);
+    ctx.fillStyle = 'rgba(31,158,143,.95)'; ctx.font = '700 14px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('\u00bd Half time ' + Math.ceil(halfLeft) + 's', VW - 24, 8);
+  }
+  if (DEV && cur) { ctx.fillStyle = 'rgba(35,33,30,.55)'; ctx.font = '600 11px system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('pen ' + Math.round(cur.v) + ' px/s \u00b7 ' + cur.w.toFixed(1) + ' px', 44, 8); }      // dev build: what the pen is doing, for tuning
   if (pointer && state === 'play' && !paused) {
     ctx.strokeStyle = 'rgba(28,45,107,.5)'; ctx.lineWidth = 1;
     const bn = brushNow(); ctx.beginPath(); ctx.arc(pointer.x, pointer.y + bn.off, bn.size / 2 + 1, 0, 7); ctx.stroke();
@@ -3616,6 +3640,8 @@ const TUNE_UI = [
   ['lastLife.0', 'Ink life, plain line: its skin starts to dry after (s)', 1, 20, 0.5], ['lastLife.1', 'Ink life, Time 1 (s)', 1, 30, 0.5], ['lastLife.2', 'Ink life, Time 2 (s)', 1, 40, 0.5], ['lastLife.3', 'Time MAX: holds this long after the burst (s)', 1, 40, 0.5],
   ['lastLayer.0', 'Each 2 px layer of thickness adds (s): plain and Time 1', 0.2, 4, 0.1], ['lastLayer.2', 'Each 2 px layer adds (s): Time 2 and MAX', 0.2, 4, 0.1],
   ['dryJitter', 'Drying grain (0 = clean layers, 1 = cell by cell)', 0, 1, 0.05],
+  ['penNormal', 'Pen: speed (px/s) that gives the standard line', 100, 2000, 25], ['penRange', 'Pen: how much speed changes the line (0 = fixed)', 0, 1, 0.05], ['penEase', 'Pen: px of travel to ease to a new width', 2, 80, 2],
+  ['slowFor', 'Half-time lasts (s)', 2, 20, 1], ['halfRate', 'Half-time: speed of the cave', 0.2, 1, 0.05], ['bruteBehind', 'Brute left behind: px above the highest blot', 0, 900, 20],
   ['spray', 'Airbrush: 0 off \u00b7 1 pool \u00b7 2 bleed \u00b7 3 pour', 0, 3, 1], ['sprayRate', 'Airbrush: px\u00b2 of ink per second at full flow', 100, 3000, 50],
   ['spraySlow', 'Bleed / pour: flows when the pen is slower than (px/s)', 10, 400, 10], ['sprayAfter', 'Airbrush: how soon it starts (s)', 0.02, 1, 0.02],
   ['flowSide', 'Pour: runniness (0 paste, 1 water)', 0, 1, 0.05], ['flowSet', 'Pour: sets after lying still (s)', 0.05, 2, 0.05], ['flowDrop', 'Pour: a drop is lost after falling (px)', 40, 600, 20],
@@ -3846,7 +3872,7 @@ cv.addEventListener('pointerdown', e => {
   sfx.init();
   const wp = toWorld(pointer);
   for (const w of walkers) if (w.alive && w.bomb && Math.hypot(w.x - wp.x, w.y - 6 - wp.y) < (e.pointerType === 'touch' ? 30 : 18)) { detonate(w); endStroke(); return; }   // click a bomber to set it off
-  strokeStart(wp);
+  strokeStart(wp, e.timeStamp / 1000);
 });
 cv.addEventListener('pointermove', e => {
   if (touches.has(e.pointerId)) touches.set(e.pointerId, e.clientY);
@@ -3854,7 +3880,7 @@ cv.addEventListener('pointermove', e => {
   if (panning) { if (touches.size >= 2) { const a = touchAvg(); panBy((panLast - a) * k); panLast = a; } return; }
   if (lookY != null) { panBy((lookY - e.clientY) * k); lookY = e.clientY; return; }
   pointer = toScreen(e);
-  if (cur && e.pointerId === drawId && state === 'play' && !paused) strokeTo(toWorld(pointer));
+  if (cur && e.pointerId === drawId && state === 'play' && !paused) strokeTo(toWorld(pointer), e.timeStamp / 1000);
 });
 const pointerEnd = e => {
   touches.delete(e.pointerId);
@@ -3932,7 +3958,7 @@ if (window.WETINK_DEV) window.__wetink = {
   shelves: n => { for (let k = 0; k < n; k++) genBand(); return gaps.filter(g => g.isl && g.cols[1] - g.cols[0] - 1 < 14).map(g => { checkGap(g); return { y: g.rows[0] * CELL, x: g.cols[0] * CELL, deadly: [g.dead[0].deadly, g.dead[1].deadly] }; }); },
   look: y => { viewY = y; panY = y - camY - autoOff; lastScroll = performance.now(); },
   step(n) { for (let i = 0; i < n && state === 'play'; i++) tick(STEP); },
-  press(x, y) { drawing = true; return strokeStart({ x, y }); }, strokeTo(x, y) { strokeTo({ x, y }); }, release() { cur = null; drawing = false; }, spray: () => cur ? { r: cur.sprayR, still: cur.still, v: cur.v, flowing: cur.flowing } : null, fluid: () => fluid.length,
+  press(x, y, ts) { drawing = true; return strokeStart({ x, y }, ts); }, strokeTo(x, y, ts) { strokeTo({ x, y }, ts); }, pen: () => cur ? { v: cur.v, w: cur.w } : null, half: () => halfLeft, giveHalf(s) { halfLeft = s; }, seeBrute() { for (const b of brutes) { b.seen = true; b.state = 'walk'; b.vy = 0; b.hold = true; } }, release() { cur = null; drawing = false; }, spray: () => cur ? { r: cur.sprayR, still: cur.still, v: cur.v, flowing: cur.flowing } : null, fluid: () => fluid.length,
   line(x1, y1, x2, y2) { if (strokeStart({ x: x1, y: y1 })) { strokeTo({ x: x2, y: y2 }); cur = null; } },
   liveCells: () => live.length, renderMs(n) { const t0 = performance.now(); for (let i = 0; i < n; i++) { render(); ctx.getImageData(0, 0, 1, 1); } return (performance.now() - t0) / n; }, inkMs(n) { const t0 = performance.now(); const logic = camY; camY = logic + viewOff(); for (let i = 0; i < n; i++) { drawInk(); ctx.getImageData(0, 0, 1, 1); } camY = logic; return (performance.now() - t0) / n; }, wetCells: () => { let n = 0; for (const k of live) { const ir = (k / ICOLS) | 0; if (ink[ir][k - ir * ICOLS] > T) n++; } return n; }, fine: (x, y) => fineState(Math.floor(x) >> 1, Math.floor(y) >> 1), solidAt: (x, y) => solid(x, y), inkTough: (x, y) => inkTough(x, y), weather: () => weather(),
   brush: () => ({ lvl: { ...lvl }, eff: { last: eff('last'), wide: eff('wide'), tough: eff('tough') }, drops, handN, echoN, spreadN, cost: handCost(), until: { ...until }, resUntil, fadeY, flockHigh, hand, slime: slime.size, pen: brushNow() }),
