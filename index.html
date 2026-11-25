@@ -24,6 +24,7 @@
   .tube{width:170px;height:18px;border-radius:9px;background:#ebe4d3;border:1px solid var(--line);overflow:hidden}
   .tube b{display:block;height:100%;width:100%;background:var(--ink);border-radius:7px}
   .tube.flash{animation:fl .35s 2}
+  .tube.low{border-color:#c98a00;box-shadow:0 0 0 2px rgba(201,138,0,.3)} .tube.low b{background:#c98a00}
   .tube.dry{border-color:#b3261e;box-shadow:0 0 0 2px rgba(179,38,30,.3)} .tube.dry b{background:#b3261e}
   .tube.sip b{background:repeating-linear-gradient(135deg,var(--ink) 0 6px,#4d8a3c 6px 10px)} .tube.sip{border-color:#4d8a3c}
   @keyframes fl{50%{box-shadow:0 0 0 3px #d6402b99}}
@@ -43,6 +44,12 @@
   .share{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);text-align:center} .share button{font-size:13px}
   .sharecard{text-align:center} .sharecard .qr{display:block;width:min(240px,60vw,52vh);height:auto;margin:6px auto;border-radius:8px;border:1px solid var(--line)}
   .sharecard p{margin:4px 0;color:var(--muted)} .sharecard .url{font-size:12px;user-select:all;word-break:break-all;color:var(--ink)} .sharecard .row{justify-content:center}
+  .tune{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 16px;width:min(460px,94%);max-height:92%;overflow:auto;line-height:1.3;box-shadow:0 6px 24px rgba(60,45,20,.16)}
+  .tune h2{margin:0 0 2px;font-size:18px} .tune p{margin:0 0 8px;font-size:12px;color:var(--muted)}
+  .tune label{display:grid;grid-template-columns:1fr 52px;gap:2px 8px;align-items:center;font-size:13px;margin:7px 0}
+  .tune label input{grid-column:1 / 3;width:100%;accent-color:var(--ink)} .tune label b{text-align:right;font-variant-numeric:tabular-nums}
+  .tune select{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:7px;background:#fff;grid-column:2 / 3;justify-self:end;min-width:0}
+  .tune .row{display:flex;gap:8px;margin-top:10px} .tune button.primary{background:var(--ink);border-color:var(--ink);color:#fff}
   .chip{display:inline-flex;align-items:center;gap:2px;font-size:12px;font-weight:700;padding:1px 5px;border-radius:7px;border:1px solid var(--line);background:#f8f4ea;font-variant-numeric:tabular-nums}
   .chip u{text-decoration:none;margin-right:1px} .chip em{font-style:normal;font-size:11px}
   .chip i{display:inline-block;width:7px;height:7px;border-radius:50%;border:1.3px solid currentColor;opacity:.45}
@@ -198,6 +205,12 @@ const TUNE = {
   maxStepUp: 12, maxStepDown: 12,   // px a walker can step without turning or falling
   inkMax: 50, inkRegen: 6.5,        // ink units, units per second (the tank was 100 when ink dried in 4 s; now it lasts twice as long, so half the tank)
   dryLock: 2,         // seconds the pen stays dry after the tank runs empty (the penalty for running out)
+  lowWarn: 0.25,      // below this share of the tank the pen warns: a scratchy sound once, and the tube turns amber
+  sputterAt: 0.12,    // below this share the pen sputters: thinner, broken line
+  spray: 1,           // airbrush: hold the pen still and ink pools outward from it (1 on, 0 off). On the dev build for now
+  sprayAfter: 0.18,   // seconds the pen must be still before it starts to pool
+  sprayRate: 800,     // px^2 of ink a second while pooling (about 10 ink a second: a full pad in 3 s)
+  sprayMax: [22, 30, 36, 46],   // biggest pool radius in px, by Wide level
   lowAt: 0.5, lowBoost: 2.5,        // below this share of the tank, ink refills this many times faster
   fuseSpeed: 48,      // px per second the drying front travels along a stroke
   birdFromDepth: 15,  // metres before the first bird shows up
@@ -771,6 +784,16 @@ const sfx = (() => {
     burst() { tone('sawtooth', 220, 880, 0.35, 0.16); for (let i = 0; i < 5; i++) tone('triangle', 660 * Math.pow(1.26, i), 660 * Math.pow(1.26, i), 0.2, 0.2, 0.25 + i * 0.07); noise('highpass', 4000, 8000, 1, 0.5, 0.12, 0.2); },
     burstEnd() { tone('triangle', 880, 330, 0.4, 0.2); tone('sine', 440, 165, 0.5, 0.2, 0.05); },
     down() { tone('square', 330, 196, 0.22, 0.1); tone('square', 247, 147, 0.3, 0.1, 0.16); },
+    inkLow() {                                  // the nib starts to scratch: a dry rasp and a falling note
+      noise('bandpass', 3800, 1600, 6, 0.18, 0.22); noise('bandpass', 2600, 1200, 8, 0.12, 0.16, 0.14);
+      tone('triangle', 520, 330, 0.22, 0.12, 0.05);
+    },
+    inkOut() {                                  // the pen runs dry: a squeak, a hollow click, a fizz of nothing
+      tone('sawtooth', 1500, 2200, 0.09, 0.08); tone('square', 180, 120, 0.05, 0.14, 0.1); noise('highpass', 5000, 7000, 1, 0.22, 0.09, 0.13);
+      tone('sine', 220, 110, 0.25, 0.1, 0.16);
+    },
+    sputter() { noise('bandpass', 3000 + Math.random() * 1500, 1800, 7, 0.03, 0.08); },
+    spray() { noise('bandpass', 2400, 2000, 1.2, 0.12, 0.05); },
     fadeAway() { tone('sine', 700, 1400, 0.5, 0.08); noise('highpass', 6000, 2000, 1, 0.4, 0.05); },
     crack() { noise('highpass', 2600, 4200, 1, 0.05, 0.35); noise('bandpass', 1500, 700, 4, 0.09, 0.3, 0.06); },
     thunk() { tone('sine', 130, 48, 0.16, 0.7); noise('lowpass', 700, 150, 1, 0.1, 0.45); },
@@ -843,7 +866,9 @@ function occupied() {
   for (const w of walkers) if (w.alive) occ.push({ c0: (w.x - 3) >> 2, c1: (w.x + 3) >> 2, r0: (w.y - BODY) >> 2, r1: (w.y - 1) >> 2 });
   return occ;
 }
-function goDry() { if (T < dryUntil) return; dryUntil = T + TUNE.dryLock; flashInk(); say('Pen dry!', '#b3261e'); sfx.down(); hudC = {}; }
+function goDry() { if (T < dryUntil) return; dryUntil = T + TUNE.dryLock; flashInk(); say('Pen dry!', '#b3261e'); sfx.inkOut(); hudC = {}; }
+let lowSaid = false;    // the warning sounds once each time the tank falls below the line
+const inkLow = () => inkLeft < inkCap() * TUNE.lowWarn, sputtering = () => inkLeft < inkCap() * TUNE.sputterAt;
 function flashInk() { const t = $('tube'); t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash'); }
 
 const inkTough = (px, py) => { const tr = tag[Math.floor(py) >> 2]; return tr ? (tr[Math.floor(px) >> 2] >> 2) & 3 : 0; };
@@ -857,7 +882,7 @@ function strokeStart(p) {
   if (T < dryUntil) { flashInk(); return false; }      // the pen is dry for a moment after running out
   if (inkLeft < c0 + 0.5) { goDry(); return false; }
   inkLeft -= c0;
-  cur = { pen, s: 0, last: { x: p.x, y: p.y }, start: { x: p.x, y: p.y }, copies: [], echo: null };
+  cur = { pen, s: 0, last: { x: p.x, y: p.y }, start: { x: p.x, y: p.y }, copies: [], echo: null, still: 0, sprayR: 0 };
   stamp(p.x, p.y + pen.off, pen.size, T + pen.life, occupied(), pen.tg);
   if (T < echoN) {                                 // Echo: every line of this stroke will redraw itself once as it dries
     const mk = () => { const e = { size: pen.size, tg: pen.tg, life: pen.life, off: pen.off, pts: [{ x: p.x, y: p.y, dry: T + pen.life, t0: T }], i: 0, done: 0 }; echoes.push(e); return e; };
@@ -870,6 +895,7 @@ function strokeTo(p) {
   const a = cur.last;
   let d = Math.hypot(p.x - a.x, p.y - a.y);
   if (d < 3) return;
+  cur.still = 0; cur.sprayR = 0;              // moving again: the pool stops growing
   let b = p, out = false;
   const cost = d * cur.pen.cost;
   if (inkLeft < cost) {            // out of ink: draw as far as it reaches, then stop
@@ -881,14 +907,32 @@ function strokeTo(p) {
   // the fuse: each bit of ink dries one "life" after it was drawn, plus the time the
   // drying front needs to travel there from the start of the stroke
   const dry = cur.pen.hold ? cur.pen.hold : T + cur.pen.life + cur.s / TUNE.fuseSpeed;
-  const occ = occupied(), n = Math.ceil(d / 2);
-  for (let j = 1; j <= n; j++) stamp(a.x + (b.x - a.x) * j / n, a.y + (b.y - a.y) * j / n + cur.pen.off, cur.pen.size, dry, occ, cur.pen.tg);
+  const occ = occupied(), n = Math.ceil(d / 2), sp = sputtering();
+  if (sp && Math.random() < 0.25) sfx.sputter();
+  for (let j = 1; j <= n; j++) { if (sp && (cur.s + j) % 3 === 0) continue; stamp(a.x + (b.x - a.x) * j / n, a.y + (b.y - a.y) * j / n + cur.pen.off, cur.pen.size * (sp ? 0.6 : 1), dry, occ, cur.pen.tg); }
   cur.last = { x: b.x, y: b.y };
   if (cur.echo && T >= echoN) cur.echo = null;      // the timer ran out mid-stroke: the rest of the line is plain
   if (cur.echo) cur.echo.pts.push({ x: b.x, y: b.y, dry, t0: T });
   if (out) { goDry(); cur = null; }
 }
 
+// The airbrush: keep the button down and the pen still, and ink pools outward from the point. The pool grows by area at a steady
+// rate (so the radius slows as it widens), costs the same ink per square pixel as a line, and stops at the Wide level's limit.
+function updateSpray(dt) {
+  const px = cur.last.x, py = cur.last.y + cur.pen.off;
+  cur.still += dt; if (cur.still < TUNE.sprayAfter) return;
+  const cap = TUNE.sprayMax[eff('wide')], r0 = Math.max(cur.sprayR, cur.pen.size / 2);
+  if (r0 >= cap) return;
+  const perPx2 = TUNE.inkCost / 6, dA = TUNE.sprayRate * dt, cost = dA * perPx2;      // a 6 px line costs inkCost per px of length, so this much per px^2
+  if (inkLeft < cost) { goDry(); cur = null; return; }
+  inkLeft -= cost;
+  const r = Math.min(cap, Math.sqrt(r0 * r0 + dA / Math.PI));
+  cur.sprayR = r;
+  const dry = cur.pen.hold ? cur.pen.hold : T + cur.pen.life + cur.s / TUNE.fuseSpeed;
+  stamp(px, py, r * 2, dry, occupied(), cur.pen.tg);
+  if (cur.echo) { cur.echo.pts.push({ x: px, y: cur.last.y, dry, t0: T }); }
+  if (tickN % 7 === 0) { sfx.spray(); const a = Math.random() * 6.283; particles.push({ x: px + Math.cos(a) * r, y: py + Math.sin(a) * r, vx: Math.cos(a) * 40, vy: Math.sin(a) * 40, life: 0.3, max: 0.3, col: LAST_CSS[cur.pen.tg & 3], sz: 1.8 }); }
+}
 // ---------------- walkers ----------------
 function spawn(q) {
   const u = walkRng(), spd = 1 - TUNE.speedSpread / 2 + u * TUNE.speedSpread;
@@ -2648,6 +2692,8 @@ function fadeOut(w) {
 // ---------------- simulation ----------------
 function tick(dt) {
   T += dt; tickN++;
+  if (TUNE.spray && cur && drawing && !paused) updateSpray(dt);
+  const wasLow = lowSaid; lowSaid = inkLow(); if (lowSaid && !wasLow && T > 1) { sfx.inkLow(); flashInk(); }
   inkLeft = Math.min(inkCap(), inkLeft + TUNE.inkRegen * (inkLeft < inkCap() * TUNE.lowAt ? TUNE.lowBoost : 1) * (droughtOn() ? 0.3 : 1) * dt);   // low tank: refills faster
   while (queue.length && T >= queue[0].T) spawn(queue.shift());
   const ys = [];
@@ -2705,7 +2751,7 @@ function newWorld(s) {
   terrain = []; ink = []; bands = []; gaps = []; prevGaps = []; nextF = 20; chunks = new Map();
   walkers = []; spawned = 0; cur = null; particles = []; decals = []; live = []; tag = [];
   lvl = { last: 0, wide: 0, tough: 0 }; burst = { last: 0, wide: 0, tough: 0 }; burstOn = { last: false, wide: false, tough: false };
-  until = { last: 0, wide: 0, tough: 0 }; dryUntil = 0; sipping = false; handN = 0; resUntil = 0; echoN = 0; spreadN = 0; echoes = [];
+  until = { last: 0, wide: 0, tough: 0 }; dryUntil = 0; sipping = false; lowSaid = false; handN = 0; resUntil = 0; echoN = 0; spreadN = 0; echoes = [];
   drops = 0; hand = null; fadeY = -1e9; flockHigh = 0; slime = new Map(); notes = [];
   pickups = []; birds = []; popups = []; queue = []; nextBird = 0; slowUntil = 0; shakeT = 0; stepAcc = 0; tickN = 0;
   rings = []; brutes = []; nextBrute = 0; leeches = []; nextLeech = 0;
@@ -3404,6 +3450,7 @@ function renderView() {
   if (pointer && state === 'play' && !paused) {
     ctx.strokeStyle = 'rgba(28,45,107,.5)'; ctx.lineWidth = 1;
     const bn = brushNow(); ctx.beginPath(); ctx.arc(pointer.x, pointer.y + bn.off, bn.size / 2 + 1, 0, 7); ctx.stroke();
+    if (TUNE.spray && cur && cur.sprayR) { ctx.strokeStyle = 'rgba(28,45,107,.35)'; ctx.setLineDash([2, 4]); ctx.beginPath(); ctx.arc(pointer.x, pointer.y + bn.off, TUNE.sprayMax[eff('wide')], 0, 7); ctx.stroke(); ctx.setLineDash([]); }
     if (T < echoN) { ctx.strokeStyle = 'rgba(94,200,224,.9)'; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.arc(pointer.x, pointer.y + bn.off, bn.size / 2 + 4, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
   }
   drawBossBar();
@@ -3418,7 +3465,7 @@ function renderView() {
 
   if (frameN++ % 6 === 0) {
     $('inkfill').style.width = (100 * inkLeft / inkCap()).toFixed(1) + '%';
-    const tb = $('tube'); tb.classList.toggle('dry', T < dryUntil); tb.classList.toggle('sip', sipping); tb.classList.toggle('drought', droughtOn());
+    const tb = $('tube'); tb.classList.toggle('dry', T < dryUntil); tb.classList.toggle('low', !(T < dryUntil) && inkLow()); tb.classList.toggle('sip', sipping); tb.classList.toggle('drought', droughtOn());
     hud();
     $('sFlock').textContent = flockCount();
   }
@@ -3445,6 +3492,41 @@ function hud() {
   setIf('res', resLeft, v => { const el = $('cRes'); el.style.display = v ? '' : 'none'; el.textContent = '+' + TUNE.resBoost + '% ' + v; $('tube').classList.toggle('big', !!v); });
   const need = handCost();
   setIf('open', drops + '/' + need, () => { const b = $('bOpen'); b.innerHTML = DROP_SVG + drops + '/' + need; });
+}
+// ---------------- tuning (dev build only): sliders for the numbers under test ----------------
+const TUNE_UI = [
+  ['inkMax', 'Ink tank', 20, 200, 5], ['inkRegen', 'Ink refill per second', 1, 20, 0.5], ['dryLock', 'Pen dry after running out (s)', 0, 6, 0.5],
+  ['lowAt', 'Fast refill below (share of tank)', 0, 1, 0.05], ['lowBoost', 'Fast refill speed (x)', 1, 5, 0.25],
+  ['lowWarn', 'Warning sound below (share of tank)', 0, 1, 0.05], ['sputterAt', 'Pen sputters below (share of tank)', 0, 1, 0.02],
+  ['spray', 'Airbrush: hold still to pool ink (0 off, 1 on)', 0, 1, 1], ['sprayAfter', 'Airbrush starts after (s) still', 0, 1, 0.02], ['sprayRate', 'Airbrush: px\u00b2 of ink per second', 100, 3000, 50],
+  ['inkCost', 'Ink per px of line', 0.02, 0.3, 0.005], ['fuseSpeed', 'Drying front speed (px/s)', 10, 200, 2],
+  ['wheelStep', 'Mouse wheel: cave px per wheel unit', 0.1, 2, 0.05], ['camIdle', 'Camera catches up after (s)', 0.5, 15, 0.5],
+  ['lvl1For', 'Time/Wide level 1 lasts (s)', 5, 120, 5], ['lvl2For', 'Time/Wide level 2 lasts (s)', 5, 120, 5], ['burstFor', 'Time/Wide MAX lasts (s)', 3, 60, 1],
+  ['toughL1For', 'Strong level 1 lasts (s)', 5, 180, 5], ['toughL2For', 'Strong level 2 lasts (s)', 5, 180, 5], ['toughMaxFor', 'Strong MAX lasts (s)', 5, 90, 5],
+  ['wideHaste', 'Wide MAX: haste after a long drop (s)', 0, 8, 0.5], ['fatalFall', 'Deadly fall (px)', 60, 300, 4],
+  ['handCost', 'First hand costs', 2, 15, 1], ['handMax', 'Most a hand can cost', 3, 30, 1], ['strataCost', 'Hand costs more per stratum', 0, 3, 1], ['dropRate', 'Drops in the cave (x)', 0.2, 3, 0.1],
+  ['specialOdds', 'Echo odds in a hand', 0, 2, 0.05], ['chestOdds', 'Gold shelves holding a chest', 0, 1, 0.05], ['bossEvery', 'A boss arena every (m)', 60, 800, 20], ['trophyRate', 'Trophies outside chambers (x)', 0, 4, 0.25],
+];
+const TKEYS = TUNE_UI.map(u => u[0]).concat(['forceArena', 'forceEvent']);
+const TUNE_SEL = { forceArena: ['All of them, in turn', 'Matriarch', 'Wyrm', 'Crown', 'Leech Queen', 'Sponge Golem', 'Rival', 'Twins'], forceEvent: ['All of them, in turn', 'Brute raid', 'Flock of birds', 'Leech swarm', 'Drought', 'Grinder', 'Rager stampede'] };
+const TUNE_DEF = {}; for (const k of TKEYS) TUNE_DEF[k] = TUNE[k];
+const DEV = !!window.WETINK_DEV;
+if (DEV) { try { const sv = JSON.parse(localStorage.getItem('wetink_tune14') || '{}'); for (const k of TKEYS) if (typeof sv[k] === 'number') TUNE[k] = sv[k]; } catch (e) {} }
+function saveTune() { try { const o = {}; for (const k of TKEYS) o[k] = TUNE[k]; localStorage.setItem('wetink_tune14', JSON.stringify(o)); } catch (e) {} }
+function showTune() {
+  if (!DEV || hand) return;
+  const wasPaused = paused; if (state === 'play' && !paused) togglePause();
+  overlay.className = '';
+  overlay.innerHTML = '<div class="tune"><h2>Tuning <small style="font-size:12px;color:var(--muted)">dev build only</small></h2><p>Changes apply now and are saved in this browser. Boss and event picks apply from the next cave.</p>' +
+    [['forceArena', 'Test: which arena boss'], ['forceEvent', 'Test: which roaming event']].map(([k, label]) => `<label>${label}<select data-k="${k}">${TUNE_SEL[k].map((n, i) => `<option value="${i}"${TUNE[k] === i ? ' selected' : ''}>${n}</option>`).join('')}</select></label>`).join('') +
+    '<p style="margin:8px 0 2px"><b>Sounds:</b></p><div class="row" style="margin:0 0 10px;flex-wrap:wrap"><button data-snd="inkLow">Ink low</button><button data-snd="inkOut">Ran out</button><button data-snd="sputter">Sputter</button><button data-snd="spray">Spray</button><button data-snd="splat">Blot splat</button></div>' +
+    TUNE_UI.map(([k, label, lo, hi, st]) => `<label>${label}<b id="tv_${k}">${TUNE[k]}</b><input type="range" min="${lo}" max="${hi}" step="${st}" value="${TUNE[k]}" data-k="${k}"></label>`).join('') +
+    '<div class="row"><button class="primary" id="tDone">Done</button><button id="tReset">Reset all</button></div></div>';
+  overlay.querySelectorAll('select').forEach(el => { el.onchange = () => { TUNE[el.dataset.k] = +el.value; saveTune(); }; });
+  overlay.querySelectorAll('[data-snd]').forEach(b => { b.onclick = () => { sfx.init(); sfx[b.dataset.snd](); }; });
+  overlay.querySelectorAll('input[type=range][data-k]').forEach(el => { el.oninput = () => { const k = el.dataset.k; TUNE[k] = +el.value; $('tv_' + k).textContent = el.value; hudC = {}; saveTune(); }; });
+  $('tDone').onclick = () => backOut(wasPaused);
+  $('tReset').onclick = () => { Object.assign(TUNE, TUNE_DEF); saveTune(); hudC = {}; showTune(); };
 }
 // ---------------- the player's camera ----------------
 function blotGroups() {                    // up to three groups of blots, split wherever they are too far apart to share a screen
@@ -3688,6 +3770,7 @@ function showMenu(wasPausedBefore) {
       <button id="mHome">&#8962; Home</button>
       <button id="mRetry">Retry this cave</button>
       <button id="mNew">New cave</button>
+      ${DEV ? '<button id="mTune" class="wide">&#9881; Tuning (dev build)</button>' : ''}
     </div>
     <p class="small" style="margin:10px 0 0">Keys: Space pause · 1 2 3 pick a card · C trophies · H or Esc home · R retry · M sound · arrows jump between groups</p></div>`;
   $('mBack').onclick = () => backOut(wasPaused);
@@ -3696,6 +3779,7 @@ function showMenu(wasPausedBefore) {
   $('mHelp').onclick = () => { backTo = () => showMenu(wasPaused); showHelp(state !== 'play'); };
   $('mHome').onclick = showHome;
   const fresh = (go, what) => { if (state === 'play' && depthM() > 20) confirmCard(what + '?', `Your current run (${depthM()} m) will end. Its depth still counts toward your best.`, 'End run and ' + what.toLowerCase(), go, showMenu); else go(); };
+  if (DEV) $('mTune').onclick = showTune;
   $('mRetry').onclick = () => fresh(() => startGame(seed), 'Retry this cave');
   $('mNew').onclick = () => fresh(() => startGame(randSeed()), 'Start a new cave');
 }
@@ -3712,6 +3796,7 @@ window.addEventListener('keydown', e => {
   if (mine() && state === 'play' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); jumpGroup(e.key === 'ArrowUp' ? -1 : 1); return; }
   if (e.key === ' ') { e.preventDefault(); togglePause(); }
   else if (e.key === 'c' || e.key === 'C') showCabinet();
+  else if ((e.key === 't' || e.key === 'T') && DEV) showTune();
   else if (e.key === 'r' || e.key === 'R') { if (state !== 'play' || depthM() <= 20) startGame(seed); else showMenu(); }
   else if (e.key === 'm' || e.key === 'M') toggleSound();
 });
@@ -3724,6 +3809,7 @@ if (window.WETINK_DEV) window.__wetink = {
   shelves: n => { for (let k = 0; k < n; k++) genBand(); return gaps.filter(g => g.isl && g.cols[1] - g.cols[0] - 1 < 14).map(g => { checkGap(g); return { y: g.rows[0] * CELL, x: g.cols[0] * CELL, deadly: [g.dead[0].deadly, g.dead[1].deadly] }; }); },
   look: y => { viewY = y; panY = y - camY - autoOff; lastScroll = performance.now(); },
   step(n) { for (let i = 0; i < n && state === 'play'; i++) tick(STEP); },
+  press(x, y) { drawing = true; return strokeStart({ x, y }); }, release() { cur = null; drawing = false; }, spray: () => cur ? { r: cur.sprayR, still: cur.still } : null,
   line(x1, y1, x2, y2) { if (strokeStart({ x: x1, y: y1 })) { strokeTo({ x: x2, y: y2 }); cur = null; } },
   liveCells: () => live.length,
   brush: () => ({ lvl: { ...lvl }, eff: { last: eff('last'), wide: eff('wide'), tough: eff('tough') }, drops, handN, echoN, spreadN, cost: handCost(), until: { ...until }, resUntil, fadeY, flockHigh, hand, slime: slime.size, pen: brushNow() }),
