@@ -32,5 +32,6 @@ jobs:
           git push
       - name: Nudge Pages rebuild
         continue-on-error: true
-        env: { GH_TOKEN: ${{ github.token }} }
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds"
