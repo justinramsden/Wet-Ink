@@ -10,7 +10,7 @@
   html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--char);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-user-select:none;user-select:none}
   .wrap{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:1200px;margin:0 auto;
         padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
-  .bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:7px 10px;margin-bottom:8px;font-size:14px}
+  .bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:7px 12px;margin-bottom:8px;font-size:15px}
   .logo{font-size:17px;font-weight:700;letter-spacing:.2px}
   .tag{color:var(--muted);font-size:13px;margin-left:-6px}
   .group{display:flex;gap:4px;align-items:center}
@@ -21,7 +21,7 @@
   button i{display:inline-block;border-radius:50%;background:var(--ink)}
   button small{color:var(--muted)}
   .meter{display:flex;align-items:center;gap:6px;color:var(--muted)}
-  .tube{width:130px;height:12px;border-radius:7px;background:#ebe4d3;border:1px solid var(--line);overflow:hidden}
+  .tube{width:170px;height:18px;border-radius:9px;background:#ebe4d3;border:1px solid var(--line);overflow:hidden}
   .tube b{display:block;height:100%;width:100%;background:var(--ink);border-radius:7px}
   .tube.flash{animation:fl .35s 2}
   .tube.dry{border-color:#b3261e;box-shadow:0 0 0 2px rgba(179,38,30,.3)} .tube.dry b{background:#b3261e}
@@ -30,7 +30,6 @@
   .tube.big{border-color:#1f9e8f;box-shadow:0 0 0 2px rgba(31,158,143,.35)}
   .chip.res{color:#1f7a6f}
   #cEcho{color:#fff;background:#1a8fa8;border-color:transparent}
-  #bCab svg{width:13px;height:13px;fill:#a37612} #bCab b{font-variant-numeric:tabular-nums}
   .cab{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;width:min(760px,96%);max-height:94%;overflow:auto;line-height:1.3;box-shadow:0 6px 24px rgba(60,45,20,.16)}
   .cab h2{margin:0 0 2px;font-size:20px} .cab h2 small{font-size:14px;color:var(--muted);font-weight:600;margin-left:6px}
   .cab p{margin:0 0 10px;font-size:12px;color:var(--muted)} .cab p.empty{font-size:14px;margin:18px 0}
@@ -49,8 +48,25 @@
   .chip i{display:inline-block;width:7px;height:7px;border-radius:50%;border:1.3px solid currentColor;opacity:.45}
   .chip i.on{background:currentColor;opacity:1}
   .chip.max{color:#fff!important;border-color:transparent;animation:glow .5s infinite alternate}
-  #cLast{color:#7d1741} #cWide{color:#1c2d6b} #cTough{color:#8a6410}
-  #cLast.max{background:#7d1741} #cWide.max{background:#1c2d6b} #cTough.max{background:#a37612}
+  /* the three upgrade trees: as big as a health bar. Each segment is a level; the lit one drains as its clock runs */
+  .trees{display:flex;gap:10px}
+  .tree{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:7px;align-items:center;min-width:132px;padding:3px 8px 4px;border-radius:10px;border:1px solid var(--line);background:#fbf8f0;color:var(--c)}
+  .tree .tn{grid-row:1;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;opacity:.85}
+  .tree em{grid-row:1;grid-column:2;justify-self:end;font-style:normal;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;min-width:28px;text-align:right;opacity:.9}
+  .tree .segs{grid-row:2;grid-column:1 / 3;display:flex;gap:3px;height:11px}
+  .tree .segs i{flex:1;border-radius:3px;background:#e4dcc8;border:1px solid #d6cdb6;overflow:hidden;position:relative}
+  .tree .segs i b{display:block;height:100%;width:0;background:var(--c);transition:width .25s linear}
+  .tree .segs i.full b{width:100%}
+  .tree .segs i.run b{transition:width .9s linear}
+  .tree.lit{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+  .tree.max{background:var(--c);color:#fff;animation:glow .5s infinite alternate}
+  .tree.max .segs i{background:rgba(255,255,255,.25);border-color:transparent} .tree.max .segs i b{background:#fff}
+  .tree.low em{color:var(--red);animation:blink .5s infinite alternate} .tree.max.low em{color:#ffd1c8}
+  @keyframes blink{to{opacity:.35}}
+  .stat.flock{display:inline-flex;align-items:center;gap:6px;font-size:22px;font-weight:800;color:var(--char)} .stat.flock svg{width:22px;height:22px;fill:#23211e} .stat.flock b{font-variant-numeric:tabular-nums}
+  #bOpen{font-size:16px;padding:7px 11px} #bOpen svg{width:12px;height:14px}
+  .menu-card .mrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px} .menu-card .mrow button{justify-content:center;font-size:15px;padding:9px 12px}
+  .menu-card .mrow button.wide{grid-column:1 / 3}
   @keyframes glow{to{box-shadow:0 0 0 3px rgba(201,138,0,.45)}}
   #bOpen{font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted)}
   #bOpen svg{width:10px;height:12px;fill:var(--ink)}
@@ -90,11 +106,13 @@
   body.compact .bar .stat, body.compact .bar .meter{background:rgba(255,253,248,.72);border-radius:8px;padding:3px 6px}
   body.compact .bar button{background:rgba(255,253,248,.78);padding:5px 7px;font-size:12px}
   body.compact .bar .group{gap:3px}
-  body.compact .logo, body.compact .tag, body.compact .lbl, body.compact .best, body.compact #bSound, body.compact #bMusic{display:none}
+  body.compact .logo, body.compact .tag, body.compact .lbl, body.compact .best{display:none}
   body.compact .tube{width:54px}
   body.compact.tall .bar{flex-wrap:wrap}
   body.compact .bar .stat, body.compact .bar button{white-space:nowrap}
-  @media (max-width:720px){ body.compact:not(.tall) .bar{font-size:11px;gap:3px} body.compact:not(.tall) .bar button{padding:4px 6px;font-size:11px} body.compact:not(.tall) .bar .stat{padding:3px 5px} body.compact:not(.tall) .tube{width:40px} body.compact:not(.tall) .stratum{display:none} }
+  body.compact .trees{gap:4px} body.compact .tree{min-width:84px;padding:2px 5px 3px} body.compact .tree .tn{font-size:9px} body.compact .tree em{font-size:10px} body.compact .tree .segs{height:7px}
+  body.compact .stat.flock{font-size:16px} body.compact .stat.flock svg{width:16px;height:16px}
+  @media (max-width:720px){ body.compact:not(.tall) .bar{font-size:11px;gap:3px} body.compact:not(.tall) .bar button{padding:4px 6px;font-size:11px} body.compact:not(.tall) .bar .stat{padding:3px 5px} body.compact:not(.tall) .tube{width:40px} }
   @media (max-width:620px){ body.compact:not(.tall) .bar{font-size:10px;gap:2px} body.compact:not(.tall) .bar button{padding:3px 5px;font-size:10px} body.compact:not(.tall) .bar .stat{padding:3px 4px} body.compact:not(.tall) .tube{width:30px} body.compact:not(.tall) .chip{transform:scale(.9);margin:0 -2px} }
   /* phones: one or two tight rows, short labels */
   @media (max-width:760px), (max-height:520px){
@@ -102,7 +120,9 @@
     .bar{gap:5px 8px;padding:4px 6px;margin-bottom:4px;font-size:12px;border-radius:9px}
     .logo,.tag,.lbl,.best{display:none}
     button{font-size:12px;padding:6px 8px;gap:4px}
-    .tube{width:54px}
+    .tube{width:70px;height:14px}
+    .trees{gap:5px} .tree{min-width:96px;padding:2px 6px 3px} .tree .segs{height:8px}
+    .stat.flock{font-size:17px} .stat.flock svg{width:17px;height:17px}
     .hcard{padding:9px 5px} .hcard b{font-size:14px} .hcard span{font-size:12px} .hcard svg{width:34px;height:34px} .hcard kbd{display:none}
     .card{padding:14px 16px} .card ul{font-size:14px}
   }
@@ -140,27 +160,19 @@
 <body>
 <div class="wrap">
   <div class="bar">
-    <span class="logo">Wet Ink</span><span class="tag">test 32</span>
-    <div class="meter"><span class="lbl">Ink</span>
-      <div class="tube" id="tube"><b id="inkfill"></b></div><span class="chip res" id="cRes" title="Reservoir: bigger ink tank" style="display:none"></span>
-      <span class="chip" id="cLast" title="Lasting"><u>L</u><i></i><i></i><em></em></span>
-      <span class="chip" id="cWide" title="Wide"><u>W</u><i></i><i></i><em></em></span>
-      <span class="chip" id="cTough" title="Tough"><u>T</u><i></i><i></i><em></em></span>
-      <span class="chip sp" id="cEcho" title="Echo: seconds left" style="display:none"></span>
+    <span class="logo">Wet Ink</span>
+    <div class="meter" title="Ink"><div class="tube" id="tube"><b id="inkfill"></b></div><span class="chip res" id="cRes" title="Reservoir: bigger ink tank" style="display:none"></span></div>
+    <div class="trees">
+      <div class="tree" id="tLast" style="--c:#7d1741"><span class="tn">Time</span><span class="segs"><i><b></b></i><i><b></b></i><i><b></b></i></span><em></em></div>
+      <div class="tree" id="tWide" style="--c:#1c2d6b"><span class="tn">Wide</span><span class="segs"><i><b></b></i><i><b></b></i><i><b></b></i></span><em></em></div>
+      <div class="tree" id="tTough" style="--c:#a37612"><span class="tn">Strong</span><span class="segs"><i><b></b></i><i><b></b></i><i><b></b></i></span><em></em></div>
     </div>
+    <span class="chip sp" id="cEcho" title="Echo: seconds left" style="display:none"></span>
     <button id="bOpen" title="Drops collected / drops needed for the next hand"></button>
-    <div class="stat">Flock <b id="sFlock">16</b></div>
-    <div class="stat">Depth <b id="sDepth">0 m</b></div>
-    <div class="stat stratum" title="Each boss arena you pass starts a harder stratum">Stratum <b id="sStr">1</b></div>
-    <div class="stat best">Best <b id="sBest">0 m</b></div>
+    <div class="stat flock" title="Blots in the flock"><svg viewBox="0 0 14 14"><rect x="1" y="4" width="5" height="7" rx="2"/><rect x="8" y="2" width="5" height="9" rx="2"/><rect x="3.5" y="6" width="1.2" height="1.2" fill="#fff"/><rect x="10.5" y="4" width="1.2" height="1.2" fill="#fff"/></svg><b id="sFlock">16</b></div>
     <div class="group right">
       <button id="bHome" title="Home (H or Esc): pauses the run">&#8962;<span class="lbl">Home</span></button>
-      <button id="bCab" title="Trophies"><svg viewBox="0 0 14 14"><path d="M3 1h8v4a4 4 0 0 1-8 0zM1 2h2v3a2 2 0 0 1-2-2zm10 0h2v1a2 2 0 0 1-2 2zM6 9h2v2h2v2H4v-2h2z"/></svg><b id="sCab">0</b></button>
-      <button id="bHelp">?</button>
-      <button id="bSound"><span class="lbl">Sound</span>&#9834; on</button>
-      <button id="bPause">Pause</button>
-      <button id="bRetry">Retry<span class="lbl">cave</span></button>
-      <button id="bNew">New<span class="lbl">cave</span></button>
+      <button id="bMenu" title="Menu: pause, sound, trophies, help, new cave">&#9776;<span class="lbl">Menu</span></button>
     </div>
   </div>
   <div class="stage">
@@ -244,6 +256,7 @@ const TUNE = {
   wheelStep: 0.45,    // cave px per unit of mouse-wheel delta (a notch is usually 100). Halved from 0.9 and eased, so a notched wheel pans smoothly
 };
 
+const VERSION = '1.0 (dev)';   // shown on the Home screen; set to the release number when dev is promoted to the public site
 const W = 960, H = 640, CELL = 4, COLS = W / CELL, CH = 40;   // CH = rows per cached terrain chunk
 const STEP = 1 / 60, BODY = 12, HATCH_X = 120, HATCH_Y = 44, M = 16;  // M = px per "metre"
 const PAPER = '#f5eedf', ROCK = ['#cbbd9f', '#c6b899', '#d0c2a5', '#c9bb9c'];
@@ -2622,7 +2635,6 @@ function newWorld(s) {
   for (let k = 0; k < TUNE.walkers; k++) queue.push({ T: 0.6 + k * TUNE.spawnEvery, x: HATCH_X, y: HATCH_Y, dir: 1 });
   deathLog = []; T = 0; inkLeft = TUNE.inkMax; camY = 0; autoOff = 0; panY = 0; viewY = 0; viewV = 0; jumpTo = null; catchS = 0; groupsNow = []; camX = Math.max(0, Math.min(W - VW, HATCH_X - VW * 0.3)); maxY = 0; accT = 0; paused = false;
   genBand();
-  $('bPause').textContent = 'Pause';
 }
 function startGame(s) { leaveHome(); sfx.init(); cloudInit(); newWorld(s); state = 'play'; overlay.className = 'hide'; hudC = {}; }
 function gameOver() {
@@ -2672,7 +2684,7 @@ function showHome() {
       <button id="hCab">Trophies <small>${cab.length}</small></button>
       <button id="hShare">Share with QR code</button>
     </div>
-    <div class="ver">test 32</div></div>`;
+    <div class="ver">${VERSION}</div></div>`;
   $('hGo').onclick = () => { if (runWaiting()) { leaveHome(); overlay.className = 'hide'; if (paused) togglePause(); } else startGame(state === 'ready' ? seed : randSeed()); };
   if (run) $('hNew').onclick = () => confirmCard('Start a new game?', `Your current run (${depthM()} m) will end. Its depth still counts toward your best.`, 'End run and start', () => { abandonRun(); startGame(seed); }, showHome);
   $('hHelp').onclick = () => showHelp(true);
@@ -2809,9 +2821,8 @@ function showHelp(fromIntro) {
     <li>Birds come after 15 m. Block a dive with ink to stun the bird, then loop it while it's dazed. Three cages send it off.</li>
     <li>Steer clear of the <b style="color:var(--red)">red spiked bombs</b>.</li>
     <li>After 60 m a <b>Brute</b> drops in. It can't be hurt by falls: wall it in with ink and leave it behind above the screen.</li>
-    <li>Collect <b>drops</b>. Four open a hand of three upgrade cards.</li>
-    <li><b>Looking around:</b> two fingers on the screen (or the mouse wheel) slide the view up and down. While paused, drag to look. Looking never changes what the cave does: enemies, the Fade and rewards follow the flock, not your view.</li>
-    <li><b>Cam</b> (or V) picks who runs the camera. <b>Auto</b> follows the flock. <b>Dial</b> and <b>Strip</b> leave it to you, with a control on the right wall: spin the dial, or drag the strip like a page. The arrow buttons above and below it (or the up and down arrow keys) jump straight to a separated group of blots. Leave the view alone with the middle of the flock off screen and, after a warning, it catches up by itself.</li>
+    <li>Collect <b>drops</b>. Four open a hand of three upgrade cards. The three bars at the top are your upgrade trees: each segment is a level, and the lit one drains as its clock runs.</li>
+    <li><b>The camera is yours.</b> The strip on the right wall drags like a page, and the mouse wheel slides the view. The arrow buttons above and below the strip (or the up and down arrow keys) jump straight to a separated group of blots. Leave the view with the middle of the flock off screen and, after a warning, it catches up on its own. Looking never changes what the cave does: enemies, the Fade and rewards follow the flock, not your view.</li>
     <li>Run the tank dry and the pen stays dry for 2 s. Below half a tank, ink refills much faster.</li>
     <li>Don't leave blots far behind: the page above you fades.</li>
     <li><b>&#8962; Home</b> (or H / Esc) pauses the run; Continue picks it up again.</li></ul>
@@ -2845,7 +2856,7 @@ function showHelp(fromIntro) {
       <li><b>Music (test):</b> a placeholder piece that follows the game instead of a script. More instruments join as trouble builds, it turns tense when the flock is in danger, it changes again for a boss, and it stops: for the hush before a boss, after a win, and dead when several blots are lost at once. The small panel at the bottom left shows what it is doing. N switches it off. Tuning (T) has a volume slider and buttons to hear each part.</li>
       <li><b>Bombs</b> are rare and bad. A blot who touches one explodes after 5 s, taking nearby blots and rock with it. Tap it to set it off early, ideally far from the flock.</li>
     </ul>
-    <p class="small">Keys: 1 2 3 pick a card · C trophies · T tuning · Space pause · H or Esc home · V camera · R retry · M sound · N music</p>
+    <p class="small">Keys: 1 2 3 pick a card · Space pause · C trophies · H or Esc home · R retry · M sound · arrows jump between groups</p>
     <div class="row"><button class="primary" id="oBack">${fromIntro || state !== 'play' ? 'Back' : 'Resume'}</button></div></div>`;
   $('oBack').onclick = () => backOut(wasPaused);
 }
@@ -3256,25 +3267,25 @@ function renderView() {
     const tb = $('tube'); tb.classList.toggle('dry', T < dryUntil); tb.classList.toggle('sip', sipping); tb.classList.toggle('drought', droughtOn());
     hud();
     $('sFlock').textContent = flockCount();
-    $('sDepth').textContent = depthM() + ' m';
-    $('sBest').textContent = Math.max(best, state === 'play' ? depthM() : 0) + ' m';
   }
 }
 
 let hudC = {}, pendingChest = 0;
 const setIf = (key, val, fn) => { if (hudC[key] !== val) { hudC[key] = val; fn(val); } };     // touch the page only when something changed
 const DROP_SVG = '<svg viewBox="0 0 12 14"><path d="M6 0C8 4 11 6 11 9a5 5 0 0 1-10 0C1 6 4 4 6 0z"/></svg>';
+const TREE_EL = { last: 'tLast', wide: 'tWide', tough: 'tTough' };
 function hud() {
-  for (const k of TRACKS) {                       // pips for the level, and the seconds the current level has left
-    const el = $(k === 'last' ? 'cLast' : k === 'wide' ? 'cWide' : 'cTough'), on = T < burst[k];
-    const left = on ? Math.ceil(burst[k] - T) : lvl[k] ? Math.ceil(until[k] - T) : 0;
-    setIf('c' + k, lvl[k] + (on ? 'm' : '') + left, () => {
-      const pips = el.querySelectorAll('i'); pips[0].className = lvl[k] >= 1 ? 'on' : ''; pips[1].className = lvl[k] >= 2 ? 'on' : '';
-      el.classList.toggle('max', on); el.querySelector('em').textContent = left ? left : '';
+  for (const k of TRACKS) {                       // the tree bars: one segment per level; the live level's segment drains as its clock runs out
+    const el = $(TREE_EL[k]), on = T < burst[k], n = on ? 3 : lvl[k];
+    const total = n ? levelFor(k, n) : 1, leftF = on ? burst[k] - T : n ? until[k] - T : 0, left = Math.max(0, Math.ceil(leftF));
+    const frac = n ? Math.max(0, Math.min(1, leftF / total)) : 0, pct = Math.round(frac * 50) * 2;      // 2 % steps: the page is touched only when the bar visibly moves
+    setIf('t' + k, n + (on ? 'm' : '') + ':' + left + ':' + pct, () => {
+      const segs = el.querySelectorAll('.segs i');
+      segs.forEach((sg, i) => { const L = i + 1; sg.className = L < n ? 'full' : L === n ? 'run' : ''; sg.firstChild.style.width = L < n ? '100%' : L === n ? pct + '%' : '0%'; });
+      el.classList.toggle('lit', n > 0); el.classList.toggle('max', on); el.classList.toggle('low', n > 0 && leftF < 6);
+      el.querySelector('em').textContent = n ? left + 's' : '';
     });
   }
-  setIf('str', stratum, v => { $('sStr').textContent = v + 1; });
-  setIf('cab', cab.length, v => { $('sCab').textContent = v; });
   setIf('echo', Math.max(0, Math.ceil(echoN - T)), v => { const el = $('cEcho'); el.style.display = v ? '' : 'none'; el.textContent = 'Echo ' + v + 's'; });
   const resLeft = T < resUntil ? Math.ceil(resUntil - T) : 0;
   setIf('res', resLeft, v => { const el = $('cRes'); el.style.display = v ? '' : 'none'; el.textContent = '+' + TUNE.resBoost + '% ' + v; $('tube').classList.toggle('big', !!v); });
@@ -3503,28 +3514,50 @@ cv.addEventListener('wheel', e => {
 }, { passive: false });
 cv.addEventListener('pointerleave', () => { pointer = null; });
 
-function togglePause() { if (state !== 'play' || hand || homeOpen) return; paused = !paused; cur = null; drawing = false; drawId = null; lookY = null; panIdle = 0; $('bPause').textContent = paused ? 'Resume' : 'Pause'; }
-$('bPause').onclick = togglePause;
+function togglePause() { if (state !== 'play' || hand || homeOpen) return; paused = !paused; cur = null; drawing = false; drawId = null; lookY = null; panIdle = 0; }
 $('bOpen').onclick = () => { sfx.init(); openHand(); };
-$('bCab').onclick = showCabinet;
-$('bHelp').onclick = () => { if (hand) return; showHelp(state !== 'play'); };
 $('bHome').onclick = showHome;
-const toggleSound = () => { sfx.init(); soundOn = sfx.toggle(); $('bSound').innerHTML = '<span class="lbl">Sound</span>&#9834; ' + (soundOn ? 'on' : 'off'); };
-$('bSound').onclick = toggleSound;
+const toggleSound = () => { sfx.init(); soundOn = sfx.toggle(); };
+// The menu: everything that is not needed every second lives here, so the bar stays a HUD. Opening it pauses the run.
+function showMenu() {
+  if (hand || homeOpen) return;
+  const wasPaused = paused; if (state === 'play' && !paused) togglePause();
+  overlay.className = '';
+  overlay.innerHTML = `<div class="card menu-card"><h2>Wet Ink</h2>
+    <p class="small" style="margin:0">Cave #${seed} · ${depthM()} m · stratum ${stratum + 1} · best ${Math.max(best, depthM())} m</p>
+    <div class="mrow">
+      <button class="primary wide" id="mBack">${state === 'play' ? 'Back to the cave' : 'Close'}</button>
+      <button id="mSound">&#9834; Sound ${soundOn ? 'on' : 'off'}</button>
+      <button id="mCab">Trophies <small>${cab.length}</small></button>
+      <button id="mHelp">How to play</button>
+      <button id="mHome">&#8962; Home</button>
+      <button id="mRetry">Retry this cave</button>
+      <button id="mNew">New cave</button>
+    </div>
+    <p class="small" style="margin:10px 0 0">Keys: Space pause · 1 2 3 pick a card · C trophies · H or Esc home · R retry · M sound · arrows jump between groups</p></div>`;
+  $('mBack').onclick = () => backOut(wasPaused);
+  $('mSound').onclick = () => { toggleSound(); $('mSound').innerHTML = '&#9834; Sound ' + (soundOn ? 'on' : 'off'); };
+  $('mCab').onclick = showCabinet;
+  $('mHelp').onclick = () => showHelp(state !== 'play');
+  $('mHome').onclick = showHome;
+  const fresh = (go, what) => { if (state === 'play' && depthM() > 20) confirmCard(what + '?', `Your current run (${depthM()} m) will end. Its depth still counts toward your best.`, 'End run and ' + what.toLowerCase(), go, showMenu); else go(); };
+  $('mRetry').onclick = () => fresh(() => startGame(seed), 'Retry this cave');
+  $('mNew').onclick = () => fresh(() => startGame(randSeed()), 'Start a new cave');
+}
+$('bMenu').onclick = showMenu;
 const quietly = p => { if (p && p.catch) p.catch(() => {}); };
 document.addEventListener('visibilitychange', () => { const ac = sfx.ctx(); if (!ac) return; try { quietly(document.hidden ? ac.suspend() : ac.resume()); } catch (e) {} });      // the game stops when its tab is hidden, so the music must too
 document.addEventListener('pointerdown', () => { const ac = sfx.ctx(); if (ac && ac.state !== 'running' && !document.hidden) { try { quietly(ac.resume()); } catch (e) {} } }, true);      // some phones only let sound restart on a touch
-$('bRetry').onclick = () => startGame(seed);
-$('bNew').onclick = () => startGame(randSeed());
 window.addEventListener('keydown', e => {
   if (hand) { if (e.key >= '1' && e.key <= '3') pickCard(+e.key - 1); return; }
   if (e.target && e.target.tagName === 'INPUT') return;           // typing a player's name
   if (homeOpen) { if (e.key === 'm' || e.key === 'M') { toggleSound(); const b = $('hSound'); if (b) b.innerHTML = '&#9834; ' + (soundOn ? 'on' : 'off'); } else if (e.key === 'Enter' && $('hGo')) $('hGo').click(); return; }
   if ((e.key === 'h' || e.key === 'H' || e.key === 'Escape') && state === 'play' && overlay.className === 'hide') { showHome(); return; }
+  if (e.key === 'Escape' && overlay.className !== 'hide' && !homeOpen && state === 'play' && overlay.querySelector('.menu-card')) { backOut(false); return; }
   if (mine() && state === 'play' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); jumpGroup(e.key === 'ArrowUp' ? -1 : 1); return; }
   if (e.key === ' ') { e.preventDefault(); togglePause(); }
   else if (e.key === 'c' || e.key === 'C') showCabinet();
-  else if (e.key === 'r' || e.key === 'R') startGame(seed);
+  else if (e.key === 'r' || e.key === 'R') { if (state !== 'play' || depthM() <= 20) startGame(seed); else showMenu(); }
   else if (e.key === 'm' || e.key === 'M') toggleSound();
 });
 
