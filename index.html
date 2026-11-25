@@ -112,6 +112,7 @@
   body.compact .bar .stat, body.compact .bar button{white-space:nowrap}
   body.compact .trees{gap:4px} body.compact .tree{min-width:84px;padding:2px 5px 3px} body.compact .tree .tn{font-size:9px} body.compact .tree em{font-size:10px} body.compact .tree .segs{height:7px}
   body.compact .stat.flock{font-size:16px} body.compact .stat.flock svg{width:16px;height:16px}
+  @media (max-width:1040px){ .tree{min-width:108px} .tube{width:120px} .bar{gap:6px 10px} }
   @media (max-width:720px){ body.compact:not(.tall) .bar{font-size:11px;gap:3px} body.compact:not(.tall) .bar button{padding:4px 6px;font-size:11px} body.compact:not(.tall) .bar .stat{padding:3px 5px} body.compact:not(.tall) .tube{width:40px} }
   @media (max-width:620px){ body.compact:not(.tall) .bar{font-size:10px;gap:2px} body.compact:not(.tall) .bar button{padding:3px 5px;font-size:10px} body.compact:not(.tall) .bar .stat{padding:3px 4px} body.compact:not(.tall) .tube{width:30px} body.compact:not(.tall) .chip{transform:scale(.9);margin:0 -2px} }
   /* phones: one or two tight rows, short labels */
@@ -1551,8 +1552,10 @@ const T_ADJ = ['Brass', 'Hollow', 'Patient', 'Salt', 'Ember', 'Quiet', 'Crooked'
 const T_NOUN = ['Moth', 'Idol', 'Key', 'Tooth', 'Lantern', 'Beetle', 'Mask', 'Bell', 'Crown', 'Spoon', 'Knot', 'Compass', 'Thimble', 'Owl', 'Anchor', 'Button', 'Hinge', 'Whistle', 'Root', 'Ladle', 'Comb', 'Eye', 'Wheel', 'Kettle', 'Glove', 'Rook', 'Snail', 'Door', 'Saint', 'Hat', 'Fork', 'Candle', 'Toad', 'Buckle', 'Stamp', 'Pilgrim', 'Brush', 'Seal', 'Urn', 'Heron', 'Lamp', 'Stair', 'Jar', 'Hound', 'Clock', 'Idler', 'Ferryman', 'Cog', 'Goblet', 'Witness'];
 const T_PLACE = ['Low Vigil', 'the Third Stair', 'Nowhere Much', 'the Long Drop', 'Cold Harbour', 'the Under-Shelf', 'Seven Echoes', 'the Wet Margin', 'Old Blot', 'the Quiet Seam', 'Inkwell Deep', 'the Last Ledge', 'Hollow Row', 'the Pale Fold', 'Dry Hollow', 'the Slow Fall', 'Smear Street', 'the Lost Page', 'Under-Nothing', 'the Kind Dark', 'Patience Gap', 'the Wrong Turn', 'Lower Elsewhere', 'the Sunk Mile', 'Blot-on-Water', 'the Thin Place', 'Far Margin', 'the Second Thought', 'Spike Row', 'the Leaning Hall', 'Mushroom Stair', 'the Brute\'s Rest', 'Wick End', 'the Folded Corner', 'Deep Erratum', 'the Unread Line'];
 const trophyCache = new Map();
-function mkTrophy(sd) {                    // everything about a trophy grows from its one number
-  let t = trophyCache.get(sd); if (t) return t;
+// Trophies come in two resolutions. v1 (9 x 11) is kept only to draw trophies won before the change; new ones are v2 (19 x 23).
+function mkTrophy(sd, v) {
+  if (v !== 1) return mkTrophy2(sd);
+  const key = 'v1:' + sd; let t = trophyCache.get(key); if (t) return t;
   const r = mulberry32(sd), fam = r() * 4 | 0, TW = 9, TH = 11, g = new Uint8Array(TW * TH);
   const set = (x, y, v) => { if (x < 0 || x > 4 || y < 0 || y >= TH) return; g[y * TW + x] = v; g[y * TW + 8 - x] = v; };
   for (let y = 0; y < TH; y++) for (let x = 0; x < 5; x++) {
@@ -1573,19 +1576,63 @@ function mkTrophy(sd) {                    // everything about a trophy grows fr
   if (ey >= 0) { set(4, ey, 1); set(3, ey, 3); set(4, ey + 1, 1); if (fam === 1) { set(2, ey, 3); set(3, ey, 1); set(2, ey - 1, 1); set(2, ey + 1, 1); set(1, ey, 1); } else { set(2, ey, 1); set(3, ey - 1 < 0 ? 0 : ey - 1, 1); } }
   let n = 0; for (const v of g) if (v) n++;
   if (n < 20) for (let y = 1; y < TH - 1; y++) { set(4, y, g[y * TW + 4] || 1); if (y % 2) set(3, y, g[y * TW + 3] || 1); }
+  t = trophyFinish(sd, g, fam, TW, TH, r, 1);
+  trophyCache.set(key, t); return t;
+}
+function trophyFinish(sd, g, fam, w, h, r, v) {      // colours and a name, from the same stream of numbers
   const hue = r() * 360, gilt = r() < 0.08;
-  t = { seed: sd, g, fam,
-        body: gilt ? '#d9a514' : `hsl(${hue.toFixed(0)} ${(48 + r() * 28).toFixed(0)}% ${(40 + r() * 16).toFixed(0)}%)`,
-        accent: gilt ? '#fff1b8' : `hsl(${((hue + 110 + r() * 140) % 360).toFixed(0)} 72% 64%)`,
-        eye: '#fffdf6', out: gilt ? '#5a3d05' : `hsl(${hue.toFixed(0)} 38% 15%)`,
-        name: 'The ' + T_ADJ[r() * T_ADJ.length | 0] + ' ' + T_NOUN[r() * T_NOUN.length | 0], place: 'of ' + T_PLACE[r() * T_PLACE.length | 0] };
+  return { seed: sd, g, fam, w, h, v, k: v === 1 ? 2 : 1,     // k: pixel size in the cave, so both versions stand about the same height
+           body: gilt ? '#d9a514' : `hsl(${hue.toFixed(0)} ${(48 + r() * 28).toFixed(0)}% ${(40 + r() * 16).toFixed(0)}%)`,
+           accent: gilt ? '#fff1b8' : `hsl(${((hue + 110 + r() * 140) % 360).toFixed(0)} 72% 64%)`,
+           eye: '#fffdf6', out: gilt ? '#5a3d05' : `hsl(${hue.toFixed(0)} 38% 15%)`,
+           name: 'The ' + T_ADJ[r() * T_ADJ.length | 0] + ' ' + T_NOUN[r() * T_NOUN.length | 0], place: 'of ' + T_PLACE[r() * T_PLACE.length | 0] };
+}
+// v2: the same four families (idol, mask, beetle, glyph) at twice the detail, smoothed so they stay chunky rather than speckled
+function mkTrophy2(sd) {
+  let t = trophyCache.get(sd); if (t) return t;
+  const r = mulberry32(sd), fam = r() * 4 | 0, TW = 19, TH = 23, HW = 9, g = new Uint8Array(TW * TH);
+  const set = (x, y, v) => { if (x < 0 || x > HW || y < 0 || y >= TH) return; g[y * TW + x] = v; g[y * TW + (TW - 1 - x)] = v; };
+  const get = (x, y) => (x < 0 || x >= TW || y < 0 || y >= TH) ? 0 : g[y * TW + x];
+  const spine = 0.6 + r() * 0.5, head = 0.2 + r() * 0.3, waist = 0.4 + r() * 0.5, legs = 2 + (r() * 3 | 0), tilt = r() * 0.6;     // a build of its own, not only noise
+  for (let y = 0; y < TH; y++) for (let x = 0; x <= HW; x++) {
+    const dx = (HW - x) / HW, dy = (y - 11) / 11.5; let pr;
+    if (fam === 0) pr = 0.98 - dx * (0.95 + 0.3 * Math.abs(dy)) * spine - Math.abs(dy) * 0.15 + (y < 8 ? head * (1 - dx) : 0) + (y > 17 ? 0.35 : 0) + (Math.abs(dy) < 0.15 ? -waist * dx : 0);
+    else if (fam === 1) pr = 1.08 - (dx * dx * (0.5 + tilt * 0.3) + dy * dy * 1.05);
+    else if (fam === 2) pr = 1.0 - (dx * dx * 1.3 + dy * dy * 0.75) + (x < 4 && y % (legs + 2) === 1 && y > 3 && y < 20 ? 0.6 : 0);
+    else pr = x === HW ? 0.85 : y === 4 || y === 5 || y === 17 || y === 18 ? 0.8 : (x === 4 || x === 5) && y > 5 && y < 17 ? 0.55 : 0.1;
+    if (r() < pr) set(x, y, 1);
+  }
+  for (let pass = 0; pass < (fam === 3 ? 1 : 2); pass++) {          // smooth: fill holes with 5+ solid neighbours, drop crumbs
+    const nx = new Uint8Array(g);
+    for (let y = 0; y < TH; y++) for (let x = 0; x <= HW; x++) {
+      let nb = 0; for (let ay = -1; ay <= 1; ay++) for (let ax = -1; ax <= 1; ax++) if ((ax || ay) && get(x + ax, y + ay)) nb++;
+      const v = get(x, y);
+      if (!v && nb >= 5) { nx[y * TW + x] = 1; nx[y * TW + TW - 1 - x] = 1; }
+      else if (v && nb <= (fam === 3 ? 1 : 2)) { nx[y * TW + x] = 0; nx[y * TW + TW - 1 - x] = 0; }
+    }
+    g.set(nx);
+  }
+  const band = r() < 0.5, bphase = r() * 6 | 0, bstep = 3 + (r() * 3 | 0);     // the second colour comes in bands or blobs, never single pixels
+  for (let y = 0; y < TH; y++) for (let x = 0; x <= HW; x++) if (g[y * TW + x] === 1) { const on = band ? ((y + bphase) % bstep) < Math.max(1, bstep >> 1) && r() < 0.8 : r() < 0.2; if (on) set(x, y, 2); }
+  if (!band) { const nx = new Uint8Array(g); for (let y = 0; y < TH; y++) for (let x = 0; x <= HW; x++) if (g[y * TW + x] === 2) for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (get(x + ax, y + ay) === 1) { nx[(y + ay) * TW + x + ax] = 2; nx[(y + ay) * TW + TW - 1 - (x + ax)] = 2; } g.set(nx); }
+  const ey = fam === 0 ? 4 : fam === 1 ? 8 : fam === 2 ? 3 : -1;
+  if (ey >= 0) {                                                      // eyes: 2x2 whites with a pupil looking inward, always set in rock
+    const ex = fam === 1 ? 5 : 6;
+    for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) set(ex + a, ey + b, 3);
+    set(ex + 1, ey + 1, 4);
+    for (let a = -1; a < 3; a++) for (let b = -1; b < 3; b++) if (!get(ex + a, ey + b)) set(ex + a, ey + b, 1);
+    if (fam === 1) for (let x = 2; x <= HW; x++) if (r() < 0.75) set(x, 14 + (x % 2 && r() < 0.3 ? 1 : 0), 2);     // a mouth
+  }
+  let n = 0; for (const v of g) if (v) n++;
+  if (n < 70) for (let y = 2; y < TH - 2; y++) { set(HW, y, g[y * TW + HW] || 1); if (y % 2) set(HW - 1, y, g[y * TW + HW - 1] || 1); set(HW - 2, y, g[y * TW + HW - 2] || (y % 3 ? 1 : 0)); }
+  t = trophyFinish(sd, g, fam, TW, TH, r, 2);
   trophyCache.set(sd, t); return t;
 }
 function drawTrophy(c2, t, x, y, k, only) {      // x, y = top-left; k = pixel size; `only` limits it to some columns (for the reels)
-  const g = t.g;
+  const g = t.g, w = t.w, h = t.h, o = t.v === 1 ? 1 : Math.max(0.6, k * 0.6);     // outline thickness
   c2.fillStyle = t.out;
-  for (let yy = 0; yy < 11; yy++) for (let xx = 0; xx < 9; xx++) if (g[yy * 9 + xx] && (!only || only(xx))) c2.fillRect(x + xx * k - 1, y + yy * k - 1, k + 2, k + 2);
-  for (let yy = 0; yy < 11; yy++) for (let xx = 0; xx < 9; xx++) { const v = g[yy * 9 + xx]; if (!v || (only && !only(xx))) continue; c2.fillStyle = v === 1 ? t.body : v === 2 ? t.accent : t.eye; c2.fillRect(x + xx * k, y + yy * k, k, k); }
+  for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) if (g[yy * w + xx] && (!only || only(xx))) c2.fillRect(x + xx * k - o, y + yy * k - o, k + 2 * o, k + 2 * o);
+  for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) { const v = g[yy * w + xx]; if (!v || (only && !only(xx))) continue; c2.fillStyle = v === 1 ? t.body : v === 2 ? t.accent : v === 3 ? t.eye : t.out; c2.fillRect(x + xx * k, y + yy * k, k, k); }
 }
 let cab = [];                                  // the cabinet: [{ s: seed, d: depth, c: cave, t: time }]
 function loadCab(id) { try { const sv = JSON.parse(localStorage.getItem(keyFor(id, 'wetink_cabinet')) || '[]'); if (Array.isArray(sv)) return sv.filter(e => e && typeof e.s === 'number'); } catch (e) {} return []; }
@@ -1631,9 +1678,9 @@ function usePlayer(id) {                    // switch who is playing: their best
 function winTrophy(tr) {
   tr.taken = true; stats.trophies++;
   const t = mkTrophy(tr.seed), now = performance.now();
-  cab.push({ s: tr.seed, d: Math.max(0, Math.round((tr.y - bands[0].F * CELL) / M)), c: seed, t: Math.floor(Date.now() / 1000) });
+  cab.push({ s: tr.seed, v: 2, d: Math.max(0, Math.round((tr.y - bands[0].F * CELL) / M)), c: seed, t: Math.floor(Date.now() / 1000) });
   cabLocal(); cloudSave(); hudC = {};
-  for (let yy = 0; yy < 11; yy++) for (let xx = 0; xx < 9; xx++) { const v = t.g[yy * 9 + xx]; if (v) particles.push({ x: tr.x - 9 + xx * 2, y: tr.y - 28 + yy * 2, vx: (xx - 4) * 26 + (Math.random() - 0.5) * 30, vy: (yy - 7) * 22 - 40, life: 0.9, max: 0.9, col: v === 1 ? t.body : v === 2 ? t.accent : t.eye, sz: 2.5 }); }
+  for (let yy = 0; yy < t.h; yy++) for (let xx = 0; xx < t.w; xx++) { const v = t.g[yy * t.w + xx]; if (v && (t.v === 1 || (xx + yy) % 2 === 0)) particles.push({ x: tr.x - t.w * t.k / 2 + xx * t.k, y: tr.y - 28 + yy * t.k, vx: (xx - t.w / 2) * 26 * (2 / t.w * 4.5) + (Math.random() - 0.5) * 30, vy: (yy - t.h * 0.65) * 22 * (11 / t.h) - 40, life: 0.9, max: 0.9, col: v === 1 ? t.body : v === 2 ? t.accent : v === 3 ? t.eye : t.out, sz: 2.5 }); }
   popup(tr.x, tr.y - 34, 'Trophy!', '#a37612'); sfx.trophy();
   reelQ.push({ t, at: 0 });
   freezeUntil = now + 90; slowUntil2 = now + 1100;       // a held breath, then a second of slow motion
@@ -1645,7 +1692,7 @@ function drawTrophyInWorld(tr) {
   for (let k = 0; k < 6; k++) { ctx.rotate(Math.PI / 3); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-4, -23); ctx.lineTo(4, -23); ctx.fill(); }
   ctx.restore();
   ctx.fillStyle = 'rgba(255,241,184,.5)'; ctx.beginPath(); ctx.arc(x, y + 11, 13, 0, 7); ctx.fill();
-  drawTrophy(ctx, t, x - 9, y, 2);
+  drawTrophy(ctx, t, x - t.w * t.k / 2, y, t.k);
   ctx.fillStyle = '#7a6a4a'; ctx.fillRect(x - 6, tr.y - 4, 12, 4); ctx.fillStyle = '#a8997c'; ctx.fillRect(x - 7, tr.y - 5, 14, 1.5);
   if (Math.sin(T * 6 + tr.x * 0.3) > 0.8) { ctx.fillStyle = '#fff'; ctx.fillRect(x + 8, y - 2, 2, 2); }
 }
@@ -1653,23 +1700,23 @@ function drawReel(now) {                       // top-left: three reels spin and
   const cur = reelQ[0]; if (!cur) return;
   if (!cur.at) { cur.at = now; sfx.reel(); }
   const el = now - cur.at; if (el > 4600) { reelQ.shift(); return; }
-  const t = cur.t, k = 6, bx = 10, by = 10, fade = el > 4100 ? 1 - (el - 4100) / 500 : 1;
+  const t = cur.t, k = t.v === 1 ? 6 : 3, bx = 10, by = 10, fade = el > 4100 ? 1 - (el - 4100) / 500 : 1, th = Math.ceil(t.w / 3);     // th: columns per reel
   ctx.globalAlpha = fade;
-  ctx.fillStyle = 'rgba(255,253,246,.96)'; rr(bx, by, 9 * k + 18, 11 * k + 18, 9); ctx.fill(); ctx.strokeStyle = '#c98a00'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,253,246,.96)'; rr(bx, by, t.w * k + 18, t.h * k + 18, 9); ctx.fill(); ctx.strokeStyle = '#c98a00'; ctx.lineWidth = 2; ctx.stroke();
   const ox = bx + 9, oy = by + 9, cols = [t.body, t.accent, t.out, null, null];
   for (let j = 0; j < 3; j++) {
     const lock = 500 + j * 300;
     if (el >= lock) {
-      drawTrophy(ctx, t, ox, oy, k, xx => xx >= j * 3 && xx < j * 3 + 3);
-      if (el - lock < 130) { ctx.fillStyle = `rgba(255,255,255,${0.8 * (1 - (el - lock) / 130)})`; ctx.fillRect(ox + j * 3 * k, oy, 3 * k, 11 * k); }
+      drawTrophy(ctx, t, ox, oy, k, xx => xx >= j * th && xx < j * th + th);
+      if (el - lock < 130) { ctx.fillStyle = `rgba(255,255,255,${0.8 * (1 - (el - lock) / 130)})`; ctx.fillRect(ox + j * th * k, oy, Math.min(th, t.w - j * th) * k, t.h * k); }
     } else {
       const fr2 = Math.floor(el / 55);
-      for (let yy = 0; yy < 11; yy++) for (let xx = j * 3; xx < j * 3 + 3; xx++) { const c = cols[(hash2(xx * 31 + ((yy + fr2 * (j + 2)) % 23) * 7 + fr2 * 3, 77) * cols.length) | 0]; if (c) { ctx.fillStyle = c; ctx.fillRect(ox + xx * k, oy + yy * k, k, k); } }
+      for (let yy = 0; yy < t.h; yy++) for (let xx = j * th; xx < Math.min(t.w, j * th + th); xx++) { const c = cols[(hash2(xx * 31 + ((yy + fr2 * (j + 2)) % 23) * 7 + fr2 * 3, 77) * cols.length) | 0]; if (c) { ctx.fillStyle = c; ctx.fillRect(ox + xx * k, oy + yy * k, k, k); } }
     }
-    if (j) { ctx.fillStyle = 'rgba(201,138,0,.35)'; ctx.fillRect(ox + j * 3 * k - 0.5, oy - 3, 1, 11 * k + 6); }
+    if (j) { ctx.fillStyle = 'rgba(201,138,0,.35)'; ctx.fillRect(ox + j * th * k - 0.5, oy - 3, 1, t.h * k + 6); }
   }
   if (el > 1150) {
-    const a = Math.min(1, (el - 1150) / 250), tx = bx + 9 * k + 28;
+    const a = Math.min(1, (el - 1150) / 250), tx = bx + t.w * k + 28;
     ctx.globalAlpha = fade * a; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,253,246,.95)';
     ctx.font = '800 16px system-ui'; ctx.strokeText(t.name, tx, by + 14); ctx.fillStyle = '#23211e'; ctx.fillText(t.name, tx, by + 14);
     ctx.font = '600 13px system-ui'; ctx.strokeText(t.place, tx, by + 36); ctx.fillStyle = '#766c5b'; ctx.fillText(t.place, tx, by + 36);
@@ -1683,10 +1730,10 @@ function showCabinet() {
   const list = cab.slice(-240).reverse();
   overlay.className = homeOpen ? 'homebg' : '';
   overlay.innerHTML = '<div class="cab"><h2>Trophies <small>' + cab.length + '</small></h2><p>' + (cloudRef ? 'Kept in your Claude account, and in this browser.' : 'Kept in this browser on this device.') + (cab.length > list.length ? ' Showing the newest ' + list.length + '.' : '') + '</p>' +
-    (list.length ? '<div class="cgrid">' + list.map((e, i) => { const t = mkTrophy(e.s), esc = v => String(v).replace(/[&<>]/g, ''), bn = e.b ? esc(e.n || '').split('|') : null; return `<div class="tcard${e.b ? ' boss' : ''}"><canvas width="66" height="78" data-i="${i}"></canvas>${e.b ? '<em>Boss</em>' : ''}<b>${bn ? bn[0] : t.name}</b><span>${bn ? bn[1] || '' : t.place}</span><small>${e.d} m · cave ${e.c}</small></div>`; }).join('') + '</div>'
+    (list.length ? '<div class="cgrid">' + list.map((e, i) => { const t = mkTrophy(e.s, e.v || 1), esc = v => String(v).replace(/[&<>]/g, ''), bn = e.b ? esc(e.n || '').split('|') : null; return `<div class="tcard${e.b ? ' boss' : ''}"><canvas width="66" height="78" data-i="${i}"></canvas>${e.b ? '<em>Boss</em>' : ''}<b>${bn ? bn[0] : t.name}</b><span>${bn ? bn[1] || '' : t.place}</span><small>${e.d} m · cave ${e.c}</small></div>`; }).join('') + '</div>'
                  : '<p class="empty">Nothing here yet. Trophies wait in out-of-the-way places: on top of formations, on high shelves, and at the summit of the giant in each chamber.</p>') +
     '<div class="row"><button class="primary" id="cDone">Close</button></div></div>';
-  overlay.querySelectorAll('canvas').forEach(cv2 => { const c2 = cv2.getContext('2d'); drawTrophy(c2, mkTrophy(list[+cv2.dataset.i].s), 6, 6, 6); });
+  overlay.querySelectorAll('canvas').forEach(cv2 => { const c2 = cv2.getContext('2d'), e = list[+cv2.dataset.i], t = mkTrophy(e.s, e.v || 1); drawTrophy(c2, t, t.v === 1 ? 6 : 4.5, t.v === 1 ? 6 : 4.5, t.v === 1 ? 6 : 3); });
   $('cDone').onclick = () => backOut(wasPaused);
 }
 
@@ -2667,10 +2714,22 @@ function abandonRun() {                                    // end the paused run
   const d = depthM(); if (d > best) { best = d; saveBest(); }
   newWorld(randSeed()); state = 'ready'; hudC = {};
 }
+let phoneWarned = false;
 function showHome() {
   if (hand) return;
   if (state === 'play' && !paused) togglePause();
   homeOpen = true; document.body.classList.add('athome');
+  if (compact && !phoneWarned && state !== 'play') {        // a phone: say so once. It is a mouse-drawing game, made for a big screen
+    phoneWarned = true; cur = null; drawing = false;
+    overlay.className = 'homebg';
+    overlay.innerHTML = `<div class="card"><h2>Wet Ink wants a bigger screen</h2>
+      <p style="margin:4px 0 10px">This is a drawing game: it is made for a computer with a mouse, or a tablet. On a phone the cave is too small to see the dangers coming.</p>
+      <p class="small" style="margin:0 0 14px">Open <b>${SHARE_URL.replace('https://', '')}</b> on a computer or tablet.</p>
+      <div class="row"><button class="primary" id="kYes">Try anyway</button><button id="kNo">Copy the link</button></div></div>`;
+    $('kYes').onclick = showHome;
+    $('kNo').onclick = async () => { try { await navigator.clipboard.writeText(SHARE_URL); $('kNo').textContent = 'Copied'; } catch (e) { $('kNo').textContent = SHARE_URL.replace('https://', ''); } };
+    return;
+  }
   cur = null; drawing = false;
   const run = runWaiting(), pl = curPlayer(), many = profiles.list.length > 1 || pl.name !== 'Player 1';
   overlay.className = 'homebg';
