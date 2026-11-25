@@ -172,6 +172,7 @@
     <button id="bOpen" title="Drops collected / drops needed for the next hand"></button>
     <div class="stat flock" title="Blots in the flock"><svg viewBox="0 0 14 14"><rect x="1" y="4" width="5" height="7" rx="2"/><rect x="8" y="2" width="5" height="9" rx="2"/><rect x="3.5" y="6" width="1.2" height="1.2" fill="#fff"/><rect x="10.5" y="4" width="1.2" height="1.2" fill="#fff"/></svg><b id="sFlock">16</b></div>
     <div class="group right">
+      <button id="bPause" title="Pause (Space)">&#10074;&#10074;<span class="lbl">Pause</span></button>
       <button id="bHome" title="Home (H or Esc): pauses the run">&#8962;<span class="lbl">Home</span></button>
       <button id="bMenu" title="Menu: pause, sound, trophies, help, new cave">&#9776;<span class="lbl">Menu</span></button>
     </div>
@@ -257,7 +258,7 @@ const TUNE = {
   wheelStep: 0.45,    // cave px per unit of mouse-wheel delta (a notch is usually 100). Halved from 0.9 and eased, so a notched wheel pans smoothly
 };
 
-const VERSION = '1.0 (dev)';   // shown on the Home screen; set to the release number when dev is promoted to the public site
+const VERSION = '1.0';   // shown on the Home screen; set to the release number when dev is promoted to the public site
 const W = 960, H = 640, CELL = 4, COLS = W / CELL, CH = 40;   // CH = rows per cached terrain chunk
 const STEP = 1 / 60, BODY = 12, HATCH_X = 120, HATCH_Y = 44, M = 16;  // M = px per "metre"
 const PAPER = '#f5eedf', ROCK = ['#cbbd9f', '#c6b899', '#d0c2a5', '#c9bb9c'];
@@ -1747,6 +1748,7 @@ function drawReel(now) {                       // top-left: three reels spin and
   }
   ctx.globalAlpha = 1;
 }
+let backTo = null;    // where a page opened from the menu returns to
 function showCabinet() {
   if (hand) return;
   const wasPaused = paused; if (state === 'play' && !paused) togglePause();
@@ -1757,7 +1759,7 @@ function showCabinet() {
                  : '<p class="empty">Nothing here yet. Trophies wait in out-of-the-way places: on top of formations, on high shelves, and at the summit of the giant in each chamber.</p>') +
     '<div class="row"><button class="primary" id="cDone">Close</button></div></div>';
   overlay.querySelectorAll('canvas').forEach(cv2 => { const c2 = cv2.getContext('2d'), e = list[+cv2.dataset.i], t = mkTrophy(e.s, e.v || 1); drawTrophy(c2, t, t.v === 1 ? 6 : 4.5, t.v === 1 ? 6 : 4.5, t.v === 1 ? 6 : 3); });
-  $('cDone').onclick = () => backOut(wasPaused);
+  $('cDone').onclick = () => { if (backTo) { const f = backTo; backTo = null; f(); } else backOut(wasPaused); };
 }
 
 // ---------------- bosses: a sealed arena every few hundred metres ----------------
@@ -2715,7 +2717,7 @@ function newWorld(s) {
   deathLog = []; T = 0; inkLeft = TUNE.inkMax; camY = 0; autoOff = 0; panY = 0; viewY = 0; viewV = 0; jumpTo = null; catchS = 0; groupsNow = []; camX = Math.max(0, Math.min(W - VW, HATCH_X - VW * 0.3)); maxY = 0; accT = 0; paused = false;
   genBand();
 }
-function startGame(s) { leaveHome(); sfx.init(); cloudInit(); newWorld(s); state = 'play'; overlay.className = 'hide'; hudC = {}; }
+function startGame(s) { leaveHome(); backTo = null; sfx.init(); cloudInit(); newWorld(s); state = 'play'; overlay.className = 'hide'; hudC = {}; }
 function gameOver() {
   state = 'over'; cur = null;
   const d = depthM(), isBest = d > best;
@@ -2747,7 +2749,7 @@ function abandonRun() {                                    // end the paused run
 }
 let phoneWarned = false;
 function showHome() {
-  if (hand) return;
+  if (hand) return; backTo = null;
   if (state === 'play' && !paused) togglePause();
   homeOpen = true; document.body.classList.add('athome');
   if (compact && !phoneWarned && state !== 'play') {        // a phone: say so once. It is a mouse-drawing game, made for a big screen
@@ -2949,7 +2951,7 @@ function showHelp(fromIntro) {
     </ul>
     <p class="small">Keys: 1 2 3 pick a card · Space pause · C trophies · H or Esc home · R retry · M sound · arrows jump between groups</p>
     <div class="row"><button class="primary" id="oBack">${fromIntro || state !== 'play' ? 'Back' : 'Resume'}</button></div></div>`;
-  $('oBack').onclick = () => backOut(wasPaused);
+  $('oBack').onclick = () => { if (backTo) { const f = backTo; backTo = null; f(); } else backOut(wasPaused); };
 }
 
 // ---------------- rendering ----------------
@@ -3411,7 +3413,7 @@ function renderView() {
     ctx.fillStyle = 'rgba(245,238,223,.38)'; ctx.fillRect(0, 0, VW, VH);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(255,253,246,.9)';
     ctx.font = '700 22px system-ui'; ctx.strokeText('Paused', VW / 2, VH / 2 - 12); ctx.fillStyle = '#23211e'; ctx.fillText('Paused', VW / 2, VH / 2 - 12);
-    ctx.font = '600 13px system-ui'; ctx.strokeText('drag to look around', VW / 2, VH / 2 + 12); ctx.fillStyle = '#766c5b'; ctx.fillText('drag to look around', VW / 2, VH / 2 + 12);
+    ctx.font = '600 13px system-ui'; ctx.strokeText('Space or the Resume button to carry on \u00b7 drag to look around', VW / 2, VH / 2 + 12); ctx.fillStyle = '#766c5b'; ctx.fillText('Space or the Resume button to carry on \u00b7 drag to look around', VW / 2, VH / 2 + 12);
   }
 
   if (frameN++ % 6 === 0) {
@@ -3666,14 +3668,15 @@ cv.addEventListener('wheel', e => {
 }, { passive: false });
 cv.addEventListener('pointerleave', () => { pointer = null; });
 
-function togglePause() { if (state !== 'play' || hand || homeOpen) return; paused = !paused; cur = null; drawing = false; drawId = null; lookY = null; panIdle = 0; }
+function togglePause() { if (state !== 'play' || hand || homeOpen) return; paused = !paused; cur = null; drawing = false; drawId = null; lookY = null; panIdle = 0; $('bPause').innerHTML = paused ? '&#9654;<span class="lbl">Resume</span>' : '&#10074;&#10074;<span class="lbl">Pause</span>'; $('bPause').classList.toggle('on', paused); }
+$('bPause').onclick = togglePause;
 $('bOpen').onclick = () => { sfx.init(); openHand(); };
 $('bHome').onclick = showHome;
 const toggleSound = () => { sfx.init(); soundOn = sfx.toggle(); };
 // The menu: everything that is not needed every second lives here, so the bar stays a HUD. Opening it pauses the run.
-function showMenu() {
+function showMenu(wasPausedBefore) {
   if (hand || homeOpen) return;
-  const wasPaused = paused; if (state === 'play' && !paused) togglePause();
+  const wasPaused = wasPausedBefore != null ? wasPausedBefore : paused; if (state === 'play' && !paused) togglePause();
   overlay.className = '';
   overlay.innerHTML = `<div class="card menu-card"><h2>Wet Ink</h2>
     <p class="small" style="margin:0">Cave #${seed} · ${depthM()} m · stratum ${stratum + 1} · best ${Math.max(best, depthM())} m</p>
@@ -3689,14 +3692,14 @@ function showMenu() {
     <p class="small" style="margin:10px 0 0">Keys: Space pause · 1 2 3 pick a card · C trophies · H or Esc home · R retry · M sound · arrows jump between groups</p></div>`;
   $('mBack').onclick = () => backOut(wasPaused);
   $('mSound').onclick = () => { toggleSound(); $('mSound').innerHTML = '&#9834; Sound ' + (soundOn ? 'on' : 'off'); };
-  $('mCab').onclick = showCabinet;
-  $('mHelp').onclick = () => showHelp(state !== 'play');
+  $('mCab').onclick = () => { backTo = () => showMenu(wasPaused); showCabinet(); };
+  $('mHelp').onclick = () => { backTo = () => showMenu(wasPaused); showHelp(state !== 'play'); };
   $('mHome').onclick = showHome;
   const fresh = (go, what) => { if (state === 'play' && depthM() > 20) confirmCard(what + '?', `Your current run (${depthM()} m) will end. Its depth still counts toward your best.`, 'End run and ' + what.toLowerCase(), go, showMenu); else go(); };
   $('mRetry').onclick = () => fresh(() => startGame(seed), 'Retry this cave');
   $('mNew').onclick = () => fresh(() => startGame(randSeed()), 'Start a new cave');
 }
-$('bMenu').onclick = showMenu;
+$('bMenu').onclick = () => showMenu();
 const quietly = p => { if (p && p.catch) p.catch(() => {}); };
 document.addEventListener('visibilitychange', () => { const ac = sfx.ctx(); if (!ac) return; try { quietly(document.hidden ? ac.suspend() : ac.resume()); } catch (e) {} });      // the game stops when its tab is hidden, so the music must too
 document.addEventListener('pointerdown', () => { const ac = sfx.ctx(); if (ac && ac.state !== 'running' && !document.hidden) { try { quietly(ac.resume()); } catch (e) {} } }, true);      // some phones only let sound restart on a touch
