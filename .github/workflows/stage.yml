@@ -1,0 +1,36 @@
+# Private staging: every push to the dev branch rebuilds the hidden
+# /dev-msusiuzy/ copy on the public site (main). Public root is untouched.
+name: Stage dev build
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+concurrency: stage
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out dev
+        uses: actions/checkout@v4
+        with: { path: dev }
+      - name: Check out main
+        uses: actions/checkout@v4
+        with: { ref: main, path: site }
+      - name: Build staging copy
+        run: dev/.github/stage.sh dev/index.html "site/dev-msusiuzy"
+      - name: Commit to main
+        working-directory: site
+        run: |
+          git config user.name "wet-ink-stager"
+          git config user.email "stager@users.noreply.github.com"
+          git add "dev-msusiuzy"
+          git diff --cached --quiet && { echo "no change"; exit 0; }
+          git commit -m "stage: dev ${GITHUB_SHA::7} [skip ci]"
+          git push
+      - name: Nudge Pages rebuild
+        continue-on-error: true
+        env: { GH_TOKEN: ${{ github.token }} }
+        run: gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds"
