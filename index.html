@@ -10,7 +10,7 @@
   html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--char);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-user-select:none;user-select:none}
   .wrap{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:1200px;margin:0 auto;
         padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
-  .bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:7px 10px;margin-bottom:8px;font-size:14px}
+  .bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:7px 12px;margin-bottom:8px;font-size:15px}
   .logo{font-size:17px;font-weight:700;letter-spacing:.2px}
   .tag{color:var(--muted);font-size:13px;margin-left:-6px}
   .group{display:flex;gap:4px;align-items:center}
@@ -21,7 +21,7 @@
   button i{display:inline-block;border-radius:50%;background:var(--ink)}
   button small{color:var(--muted)}
   .meter{display:flex;align-items:center;gap:6px;color:var(--muted)}
-  .tube{width:130px;height:12px;border-radius:7px;background:#ebe4d3;border:1px solid var(--line);overflow:hidden}
+  .tube{width:170px;height:18px;border-radius:9px;background:#ebe4d3;border:1px solid var(--line);overflow:hidden}
   .tube b{display:block;height:100%;width:100%;background:var(--ink);border-radius:7px}
   .tube.flash{animation:fl .35s 2}
   .tube.dry{border-color:#b3261e;box-shadow:0 0 0 2px rgba(179,38,30,.3)} .tube.dry b{background:#b3261e}
@@ -30,7 +30,6 @@
   .tube.big{border-color:#1f9e8f;box-shadow:0 0 0 2px rgba(31,158,143,.35)}
   .chip.res{color:#1f7a6f}
   #cEcho{color:#fff;background:#1a8fa8;border-color:transparent}
-  #bCab svg{width:13px;height:13px;fill:#a37612} #bCab b{font-variant-numeric:tabular-nums}
   .cab{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;width:min(760px,96%);max-height:94%;overflow:auto;line-height:1.3;box-shadow:0 6px 24px rgba(60,45,20,.16)}
   .cab h2{margin:0 0 2px;font-size:20px} .cab h2 small{font-size:14px;color:var(--muted);font-weight:600;margin-left:6px}
   .cab p{margin:0 0 10px;font-size:12px;color:var(--muted)} .cab p.empty{font-size:14px;margin:18px 0}
@@ -40,24 +39,34 @@
   .tcard canvas{position:static;inset:auto;width:66px;height:78px;image-rendering:pixelated;cursor:default;touch-action:auto}
   .tcard b{font-size:12.5px;line-height:1.2} .tcard span{font-size:11.5px;color:var(--muted);line-height:1.2} .tcard small{font-size:10.5px;color:#a8997c;margin-top:2px}
   .cab .row{display:flex;gap:8px;margin-top:12px}
-  .tune select{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:7px;background:#fff;margin-left:auto;max-width:58%;min-width:0}
   .tube.drought{border-color:#a37612} .tube.drought b{background:repeating-linear-gradient(90deg,var(--ink) 0 5px,#c9a03a 5px 8px)}
   .share{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);text-align:center} .share button{font-size:13px}
   .sharecard{text-align:center} .sharecard .qr{display:block;width:min(240px,60vw,52vh);height:auto;margin:6px auto;border-radius:8px;border:1px solid var(--line)}
   .sharecard p{margin:4px 0;color:var(--muted)} .sharecard .url{font-size:12px;user-select:all;word-break:break-all;color:var(--ink)} .sharecard .row{justify-content:center}
-  .tune{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 16px;width:min(440px,94%);max-height:92%;overflow:auto;line-height:1.3;box-shadow:0 6px 24px rgba(60,45,20,.16)}
-  .tune h2{margin:0 0 2px;font-size:18px} .tune p{margin:0 0 8px;font-size:12px;color:var(--muted)}
-  .tune label{display:grid;grid-template-columns:1fr 46px;gap:2px 8px;align-items:center;font-size:13px;margin:7px 0}
-  .tune label input{grid-column:1 / 3;width:100%;accent-color:var(--ink)}
-  .tune label b{text-align:right;font-variant-numeric:tabular-nums}
-  .tune .row{display:flex;gap:8px;margin-top:10px}
   .chip{display:inline-flex;align-items:center;gap:2px;font-size:12px;font-weight:700;padding:1px 5px;border-radius:7px;border:1px solid var(--line);background:#f8f4ea;font-variant-numeric:tabular-nums}
   .chip u{text-decoration:none;margin-right:1px} .chip em{font-style:normal;font-size:11px}
   .chip i{display:inline-block;width:7px;height:7px;border-radius:50%;border:1.3px solid currentColor;opacity:.45}
   .chip i.on{background:currentColor;opacity:1}
   .chip.max{color:#fff!important;border-color:transparent;animation:glow .5s infinite alternate}
-  #cLast{color:#7d1741} #cWide{color:#1c2d6b} #cTough{color:#8a6410}
-  #cLast.max{background:#7d1741} #cWide.max{background:#1c2d6b} #cTough.max{background:#a37612}
+  /* the three upgrade trees: as big as a health bar. Each segment is a level; the lit one drains as its clock runs */
+  .trees{display:flex;gap:10px}
+  .tree{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:7px;align-items:center;min-width:132px;padding:3px 8px 4px;border-radius:10px;border:1px solid var(--line);background:#fbf8f0;color:var(--c)}
+  .tree .tn{grid-row:1;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;opacity:.85}
+  .tree em{grid-row:1;grid-column:2;justify-self:end;font-style:normal;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;min-width:28px;text-align:right;opacity:.9}
+  .tree .segs{grid-row:2;grid-column:1 / 3;display:flex;gap:3px;height:11px}
+  .tree .segs i{flex:1;border-radius:3px;background:#e4dcc8;border:1px solid #d6cdb6;overflow:hidden;position:relative}
+  .tree .segs i b{display:block;height:100%;width:0;background:var(--c);transition:width .25s linear}
+  .tree .segs i.full b{width:100%}
+  .tree .segs i.run b{transition:width .9s linear}
+  .tree.lit{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+  .tree.max{background:var(--c);color:#fff;animation:glow .5s infinite alternate}
+  .tree.max .segs i{background:rgba(255,255,255,.25);border-color:transparent} .tree.max .segs i b{background:#fff}
+  .tree.low em{color:var(--red);animation:blink .5s infinite alternate} .tree.max.low em{color:#ffd1c8}
+  @keyframes blink{to{opacity:.35}}
+  .stat.flock{display:inline-flex;align-items:center;gap:6px;font-size:22px;font-weight:800;color:var(--char)} .stat.flock svg{width:22px;height:22px;fill:#23211e} .stat.flock b{font-variant-numeric:tabular-nums}
+  #bOpen{font-size:16px;padding:7px 11px} #bOpen svg{width:12px;height:14px}
+  .menu-card .mrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px} .menu-card .mrow button{justify-content:center;font-size:15px;padding:9px 12px}
+  .menu-card .mrow button.wide{grid-column:1 / 3}
   @keyframes glow{to{box-shadow:0 0 0 3px rgba(201,138,0,.45)}}
   #bOpen{font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted)}
   #bOpen svg{width:10px;height:12px;fill:var(--ink)}
@@ -97,11 +106,14 @@
   body.compact .bar .stat, body.compact .bar .meter{background:rgba(255,253,248,.72);border-radius:8px;padding:3px 6px}
   body.compact .bar button{background:rgba(255,253,248,.78);padding:5px 7px;font-size:12px}
   body.compact .bar .group{gap:3px}
-  body.compact .logo, body.compact .tag, body.compact .lbl, body.compact .best, body.compact #bSound, body.compact #bMusic{display:none}
+  body.compact .logo, body.compact .tag, body.compact .lbl, body.compact .best{display:none}
   body.compact .tube{width:54px}
   body.compact.tall .bar{flex-wrap:wrap}
   body.compact .bar .stat, body.compact .bar button{white-space:nowrap}
-  @media (max-width:720px){ body.compact:not(.tall) .bar{font-size:11px;gap:3px} body.compact:not(.tall) .bar button{padding:4px 6px;font-size:11px} body.compact:not(.tall) .bar .stat{padding:3px 5px} body.compact:not(.tall) .tube{width:40px} body.compact:not(.tall) .stratum{display:none} }
+  body.compact .trees{gap:4px} body.compact .tree{min-width:84px;padding:2px 5px 3px} body.compact .tree .tn{font-size:9px} body.compact .tree em{font-size:10px} body.compact .tree .segs{height:7px}
+  body.compact .stat.flock{font-size:16px} body.compact .stat.flock svg{width:16px;height:16px}
+  @media (max-width:1040px){ .tree{min-width:108px} .tube{width:120px} .bar{gap:6px 10px} }
+  @media (max-width:720px){ body.compact:not(.tall) .bar{font-size:11px;gap:3px} body.compact:not(.tall) .bar button{padding:4px 6px;font-size:11px} body.compact:not(.tall) .bar .stat{padding:3px 5px} body.compact:not(.tall) .tube{width:40px} }
   @media (max-width:620px){ body.compact:not(.tall) .bar{font-size:10px;gap:2px} body.compact:not(.tall) .bar button{padding:3px 5px;font-size:10px} body.compact:not(.tall) .bar .stat{padding:3px 4px} body.compact:not(.tall) .tube{width:30px} body.compact:not(.tall) .chip{transform:scale(.9);margin:0 -2px} }
   /* phones: one or two tight rows, short labels */
   @media (max-width:760px), (max-height:520px){
@@ -109,7 +121,9 @@
     .bar{gap:5px 8px;padding:4px 6px;margin-bottom:4px;font-size:12px;border-radius:9px}
     .logo,.tag,.lbl,.best{display:none}
     button{font-size:12px;padding:6px 8px;gap:4px}
-    .tube{width:54px}
+    .tube{width:70px;height:14px}
+    .trees{gap:5px} .tree{min-width:96px;padding:2px 6px 3px} .tree .segs{height:8px}
+    .stat.flock{font-size:17px} .stat.flock svg{width:17px;height:17px}
     .hcard{padding:9px 5px} .hcard b{font-size:14px} .hcard span{font-size:12px} .hcard svg{width:34px;height:34px} .hcard kbd{display:none}
     .card{padding:14px 16px} .card ul{font-size:14px}
   }
@@ -142,53 +156,30 @@
   .players input{font:inherit;font-size:15px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;flex:1;min-width:0;background:#fff;-webkit-user-select:text;user-select:text}
   .players .add{display:flex;gap:6px;margin:12px 0 4px}
   .card button.danger{background:var(--red);border-color:var(--red);color:#fff}
-  .tune button.primary{background:var(--ink);border-color:var(--ink);color:#fff}
-  /* ---------- what the music is doing: beat lamp, section, stems, tension ---------- */
-  .mm{position:absolute;left:8px;bottom:8px;z-index:4;display:flex;align-items:center;gap:7px;padding:4px 8px;border-radius:9px;background:rgba(255,253,248,.86);border:1px solid var(--line);font-size:11px;line-height:1;color:var(--muted);pointer-events:none}
-  #mmS{font-weight:700;color:var(--char);min-width:50px;text-transform:uppercase;letter-spacing:.04em}
-  .mm[data-s=tense] #mmS{color:#c2410c} .mm[data-s=boss] #mmS{color:var(--red)} .mm[data-s=silence] #mmS, .mm[data-s=loading] #mmS{color:#a8997c}
-  .mmL{display:flex;gap:3px} .mmL i{font-style:normal;padding:2px 5px;border-radius:6px;border:1px solid var(--line);opacity:.45} .mmL i.on{opacity:1;background:var(--ink);border-color:var(--ink);color:#fff}
-  .mmB{position:relative;width:84px;height:8px;border-radius:5px;background:#ebe4d3;border:1px solid var(--line)}
-  .mmB b{display:block;height:100%;width:0;border-radius:5px;background:var(--ink)} .mm[data-s=tense] .mmB b{background:#c2410c} .mm[data-s=boss] .mmB b{background:var(--red)}
-  .mmB u{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--char);opacity:.5}
-  #mmK{flex:none;width:9px;height:9px;border-radius:50%;background:#d9cfb8} #mmK.beat{background:var(--ember)} #mmK.bar{background:var(--red);box-shadow:0 0 0 2px rgba(214,64,43,.3)}
-  body.compact .mm{left:max(6px,env(safe-area-inset-left));bottom:max(6px,env(safe-area-inset-bottom));font-size:10px;gap:5px;padding:3px 6px} body.compact .mmB{width:54px} body.compact #mmS{min-width:44px} body.compact #mmW{display:none}
-  #mmW{white-space:nowrap} #mmW:empty{display:none}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="bar">
-    <span class="logo">Wet Ink</span><span class="tag">test 32</span>
-    <div class="meter"><span class="lbl">Ink</span>
-      <div class="tube" id="tube"><b id="inkfill"></b></div><span class="chip res" id="cRes" title="Reservoir: bigger ink tank" style="display:none"></span>
-      <span class="chip" id="cLast" title="Lasting"><u>L</u><i></i><i></i><em></em></span>
-      <span class="chip" id="cWide" title="Wide"><u>W</u><i></i><i></i><em></em></span>
-      <span class="chip" id="cTough" title="Tough"><u>T</u><i></i><i></i><em></em></span>
-      <span class="chip sp" id="cEcho" title="Echo: seconds left" style="display:none"></span>
+    <span class="logo">Wet Ink</span>
+    <div class="meter" title="Ink"><div class="tube" id="tube"><b id="inkfill"></b></div><span class="chip res" id="cRes" title="Reservoir: bigger ink tank" style="display:none"></span></div>
+    <div class="trees">
+      <div class="tree" id="tLast" style="--c:#7d1741"><span class="tn">Time</span><span class="segs"><i><b></b></i><i><b></b></i><i><b></b></i></span><em></em></div>
+      <div class="tree" id="tWide" style="--c:#1c2d6b"><span class="tn">Wide</span><span class="segs"><i><b></b></i><i><b></b></i><i><b></b></i></span><em></em></div>
+      <div class="tree" id="tTough" style="--c:#a37612"><span class="tn">Strong</span><span class="segs"><i><b></b></i><i><b></b></i><i><b></b></i></span><em></em></div>
     </div>
+    <span class="chip sp" id="cEcho" title="Echo: seconds left" style="display:none"></span>
     <button id="bOpen" title="Drops collected / drops needed for the next hand"></button>
-    <div class="stat">Flock <b id="sFlock">16</b></div>
-    <div class="stat">Depth <b id="sDepth">0 m</b></div>
-    <div class="stat stratum" title="Each boss arena you pass starts a harder stratum">Stratum <b id="sStr">1</b></div>
-    <div class="stat best">Best <b id="sBest">0 m</b></div>
+    <div class="stat flock" title="Blots in the flock"><svg viewBox="0 0 14 14"><rect x="1" y="4" width="5" height="7" rx="2"/><rect x="8" y="2" width="5" height="9" rx="2"/><rect x="3.5" y="6" width="1.2" height="1.2" fill="#fff"/><rect x="10.5" y="4" width="1.2" height="1.2" fill="#fff"/></svg><b id="sFlock">16</b></div>
     <div class="group right">
+      <button id="bPause" title="Pause (Space)">&#10074;&#10074;<span class="lbl">Pause</span></button>
       <button id="bHome" title="Home (H or Esc): pauses the run">&#8962;<span class="lbl">Home</span></button>
-      <button id="bCam" title="Camera (V): Auto follows the flock; Dial and Strip leave it to you">Cam: Auto</button>
-      <button id="bCab" title="Trophies"><svg viewBox="0 0 14 14"><path d="M3 1h8v4a4 4 0 0 1-8 0zM1 2h2v3a2 2 0 0 1-2-2zm10 0h2v1a2 2 0 0 1-2 2zM6 9h2v2h2v2H4v-2h2z"/></svg><b id="sCab">0</b></button>
-      <button id="bTune" title="Tuning (T)">&#9881;</button>
-      <button id="bHelp">?</button>
-      <button id="bSound"><span class="lbl">Sound</span>&#9834; on</button>
-      <button id="bMusic" title="Music (N)"><span class="lbl">Music</span>&#9835; on</button>
-      <button id="bPause">Pause</button>
-      <button id="bRetry">Retry<span class="lbl">cave</span></button>
-      <button id="bNew">New<span class="lbl">cave</span></button>
+      <button id="bMenu" title="Menu: pause, sound, trophies, help, new cave">&#9776;<span class="lbl">Menu</span></button>
     </div>
   </div>
   <div class="stage">
     <canvas id="c"></canvas>
     <canvas id="sc"></canvas>
-    <div id="mm" class="mm" style="display:none" title="What the music is doing"><b id="mmK"></b><span id="mmS">music</span><span class="mmL"><i>pad</i><i>pluck</i><i>drums</i></span><span class="mmB"><b id="mmF"></b><u id="mmT1"></u><u id="mmT2"></u></span><span id="mmW"></span></div>
     <div id="overlay"></div>
   </div>
 </div>
@@ -205,7 +196,7 @@ const TUNE = {
   gravity: 600, terminal: 240,
   fatalFall: 136,     // px; a longer fall kills
   maxStepUp: 12, maxStepDown: 12,   // px a walker can step without turning or falling
-  inkMax: 100, inkRegen: 6.5,       // ink units, units per second
+  inkMax: 50, inkRegen: 6.5,        // ink units, units per second (the tank was 100 when ink dried in 4 s; now it lasts twice as long, so half the tank)
   dryLock: 2,         // seconds the pen stays dry after the tank runs empty (the penalty for running out)
   lowAt: 0.5, lowBoost: 2.5,        // below this share of the tank, ink refills this many times faster
   fuseSpeed: 48,      // px per second the drying front travels along a stroke
@@ -232,9 +223,11 @@ const TUNE = {
   slimeFor: 6, slimeSlow: 0.3,   // seconds a slimed walker stays slow, and how slow
   slimeTrail: 8,      // seconds a surface stays slimy after the leech crawled it
   // the brush: three upgrade tracks. Every level runs on its own timer and steps down one level when it ends.
-  lastLife:  [4, 6, 10, 25],      // seconds a line lives before it starts to dry
+  lastLife:  [8, 11, 16, 16],     // seconds a line lives before it starts to dry (base doubled from 4, so Time is a choice rather than a must). [3]: at Time MAX, ink holds until this long after the countdown ends
   lastLayer: [2, 2, 3, 3],        // seconds each extra layer of thickness adds
-  wideSize:  [6, 10, 24, 38],     // brush width in px (ink cost per length stays the same)
+  wideSize:  [6, 16, 18, 22],     // brush width in px (ink cost per length stays the same). Wide is mostly about soft landings now, not size
+  wideFall:  [1, 1.5, 2.5, 99],   // a fall onto wide ink may be this many times longer than a deadly one onto rock and still be safe
+  wideHaste: 3,                   // Wide MAX: seconds of haste a blot gets from a long drop onto wide ink
   toughChew: [2, 1, 0, 0],        // extra seconds of drying per second a brute pushes (0 = it cannot chew)
   toughDrain: [1, 1, 0.67, 0],    // share of its usual thirst a leech gets from this ink
   inkCost: 0.075,     // ink units per px drawn
@@ -262,16 +255,16 @@ const TUNE = {
   slimeSound: 1,      // which slime splat plays (1 gloop, 2 squirt, 3 jelly)
   camIdle: 3, camWarn: 0.8, camAccel: 500, camTop: 2600,   // your camera: seconds without scrolling before it catches up, warning time, how gently it starts, top speed
   dialGear: 2.5, dialFric: 1.2,   // the dial: cave px per px of finger travel (negative flips it), and how quickly a spin dies away
-  musTense: 0.5, musCalm: 0.32,   // music: the tension (0 to 1) at which the calm section gives way to the tense one, and how far it must fall to come back
-  musCut: 4,          // music: this many blots lost at once stops it dead (0 = never)
+  wheelStep: 0.45,    // cave px per unit of mouse-wheel delta (a notch is usually 100). Halved from 0.9 and eased, so a notched wheel pans smoothly
 };
 
+const VERSION = '1.0';   // shown on the Home screen; set to the release number when dev is promoted to the public site
 const W = 960, H = 640, CELL = 4, COLS = W / CELL, CH = 40;   // CH = rows per cached terrain chunk
 const STEP = 1 / 60, BODY = 12, HATCH_X = 120, HATCH_Y = 44, M = 16;  // M = px per "metre"
 const PAPER = '#f5eedf', ROCK = ['#cbbd9f', '#c6b899', '#d0c2a5', '#c9bb9c'];
 const INK_RGB = [28, 45, 107], EMBER_RGB = [232, 118, 43];
 const LAST_RGB = [[28, 45, 107], [69, 39, 138], [100, 31, 115], [125, 23, 65]], LAST_CSS = ['#1c2d6b', '#45278a', '#641f73', '#7d1741'];   // lasting ink: indigo, violet, plum, wine
-const TRACKS = ['last', 'wide', 'tough'], NAME = { last: 'Lasting', wide: 'Wide', tough: 'Tough' }, TCOL = { last: '#7d1741', wide: '#1c2d6b', tough: '#a37612' };
+const TRACKS = ['last', 'wide', 'tough'], NAME = { last: 'Time', wide: 'Wide', tough: 'Strong' }, TCOL = { last: '#7d1741', wide: '#1c2d6b', tough: '#a37612' };
 
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const sc = document.getElementById('sc'), sctx = sc.getContext('2d');
@@ -279,9 +272,9 @@ const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 let autoOff = 0, panY = 0, panIdle = 0, panning = false;      // the view sits this far below the flock camera: an automatic part (phones) and the player's own pan
 // Camera modes. 'auto': the view follows the flock (the original). 'mine': the view stays where the player puts it,
 // and only catches up, after a warning, when they have not scrolled for a while and no group of blots is in view.
-let camMode = 'auto', scrollUI = 'dial', viewY = 0, viewV = 0, jumpTo = null, lastScroll = 0, scDrag = null, groupsNow = [];
+// The stable build locks the camera to 'mine' with the strip: the player runs the camera (Auto and the dial stay in the code for later).
+let camMode = 'mine', scrollUI = 'strip', viewY = 0, viewV = 0, jumpTo = null, lastScroll = 0, scDrag = null, groupsNow = [];
 let catchS = 0, catchT = 0, catchV = 0, catchDir = 1;      // catch-up: 0 resting, 1 warning, 2 moving
-try { const m = localStorage.getItem('wetink_cam'); if (m === 'dial' || m === 'strip') { camMode = 'mine'; scrollUI = m; } } catch (e) {}
 const mine = () => camMode === 'mine';
 const viewOff = () => mine() ? Math.max(0, viewY) - camY : Math.max(-camY, autoOff + panY);
 function viewMax() {                       // as far down as the view may go: a little past the lowest blot, never past the cave made so far
@@ -325,6 +318,8 @@ let pickups, birds, queue, popups, nextBird, slowUntil, shakeT, stepAcc, stats, 
 let brutes, nextBrute, walkRng, drawing = false, rings = [], leeches, nextLeech;
 let wick, crumbles, spikes, stakes, mushrooms, biomes, biomeRng, rowPal;
 let arenas, boss = null, boRng, nextBoss, stratum = 0, bossFirst = 0, raids = [], raid = null;
+let carvings = [], recordAt = 0;   // words cut into the rock: each new stratum, and the record you set out to beat
+let regions = [], regRng;          // the cave is divided into named reaches: carved at their borders, and where trophies and bosses say they are from
 let forms, trophies, chRng, nextChamber, reelQ = [], slowUntil2 = 0, freezeUntil = 0;
 const FORM_MAX = 96;   // a formation may rise this many rows above its floor, so rows that close to the newest floor are not final yet
 const tt = (c, r) => (c < 0 || c >= COLS || r < 0 || r >= terrain.length) ? 0 : terrain[r][c];   // terrain type: 1 rock, 2 sponge, 3 cracked floor, 4 landed spike
@@ -807,408 +802,6 @@ const sfx = (() => {
   };
 })();
 
-// ---------------- music: it follows the game, not a script ----------------
-// The game boils everything down to one number, tension (0 to 1). The music listens to it and only ever changes in time:
-//   layers   - each section is three stems playing in step; tension fades them in and out, on the next beat
-//   sections - calm, tense and boss are different loops; they swap on a bar line (half a bar when things turn bad)
-//   stingers - short one-off phrases that answer a single event (a blot lost, a boss arriving or sent packing)
-//   silence  - it stops for the hush before a boss, after a win, and dead when a lot of blots are lost at once
-// The piece is a placeholder made in code by musicSynth(). Real recordings would be loaded in load() instead, cut to the same shape:
-// every stem of a section the same length, a whole number of bars at one tempo.
-const MUSIC = {     // tension at which each stem joins (it leaves again a little lower). 0 = always playing. Stems: 0 pad + bass, 1 plucked line, 2 drums
-  calm:  [0.1, 0, 0.26],
-  tense: [0, 0.4, 0.62],
-  boss:  [0, 0.62, 0],
-};
-// The placeholder piece, made in code: three sections of three stems each, plus a few one-shots.
-// Everything is 100 BPM in A minor / C major, so any part can follow any other. Stems: 0 bed (pad + bass), 1 plucked line, 2 drums.
-// It has no outside dependencies, so it can run in a worker. It returns plain Float32Arrays at the given sample rate.
-function musicSynth(sr) {
-  'use strict';
-  const BPM = 100, BEAT = 60 / BPM, BAR = BEAT * 4, S8 = BEAT / 2, S16 = BEAT / 4, TAU = 2 * Math.PI;
-  const N = s => Math.round(s * sr), hz = m => 440 * Math.pow(2, (m - 69) / 12);
-  let seed = 20261124;
-  const rnd = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
-  const white = n => { const a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = rnd() * 2 - 1; return a; };
-  const peak = a => { let p = 0; for (let i = 0; i < a.length; i++) { const v = Math.abs(a[i]); if (v > p) p = v; } return p; };
-  const rms = a => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * a[i]; return Math.sqrt(s / a.length); };
-  const scale = (a, g) => { for (let i = 0; i < a.length; i++) a[i] *= g; return a; };
-  const norm = (a, to) => scale(a, (to || 1) / (peak(a) || 1));
-  const tail = (a, s) => { const n = Math.min(a.length, N(s)); for (let i = 0; i < n; i++) a[a.length - 1 - i] *= i / n; return a; };   // fade the end to nothing
-  function biquad(x, type, f0, Q) {
-    const w = TAU * Math.min(f0, sr * 0.45) / sr, cs = Math.cos(w), al = Math.sin(w) / (2 * Q), a0 = 1 + al, a1 = -2 * cs, a2 = 1 - al;
-    let b0, b1, b2;
-    if (type === 'lp') { b0 = (1 - cs) / 2; b1 = 1 - cs; b2 = b0; } else if (type === 'hp') { b0 = (1 + cs) / 2; b1 = -(1 + cs); b2 = b0; } else { b0 = al; b1 = 0; b2 = -al; }
-    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
-    for (let i = 0; i < x.length; i++) { const v = x[i], y = (b0 * v + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0; x2 = x1; x1 = v; y2 = y1; y1 = y; x[i] = y; }
-    return x;
-  }
-  const memo = f => { const c = {}; return (...a) => c[a] || (c[a] = f(...a)); };      // each different note or drum hit is worked out once and reused
-  // ---- instruments ----
-  const pluck = memo((m, dur, bright, ring) => {       // a plucked string (Karplus-Strong, kept in tune with an all-pass). ring = seconds to die away
-    const f = hz(m), P = sr / f, n = N(dur), out = new Float32Array(n);
-    let L = Math.floor(P - 0.5), fr = P - 0.5 - L; if (fr < 0.1) { L--; fr += 1; }
-    const C = (1 - fr) / (1 + fr), d = new Float32Array(L), rho = Math.pow(0.001, 1 / (ring * f)), pick = 0.19;
-    let lp = 0, mean = 0;
-    for (let i = 0; i < L; i++) {              // the string's starting shape: pulled into a triangle, with a little pick noise
-      const u = i / L, tri = u < pick ? u / pick : (1 - u) / (1 - pick);
-      lp += 0.5 * (rnd() * 2 - 1 - lp); d[i] = tri * 2 - 1 + bright * lp * 1.6; mean += d[i];
-    }
-    mean /= L; for (let i = 0; i < L; i++) d[i] -= mean;
-    let k = 0, x1 = 0, a1 = 0, y1 = 0;
-    for (let i = 0; i < n; i++) {
-      const x = d[k]; out[i] = x;
-      const v = rho * 0.5 * (x + x1); x1 = x;
-      const y = C * v + a1 - C * y1; a1 = v; y1 = y;
-      d[k] = y; if (++k === L) k = 0;
-    }
-    const na = N(0.0015); norm(out); for (let i = 0; i < na; i++) out[i] *= 0.5 - 0.5 * Math.cos(Math.PI * i / na);     // a very short fade-in, so a note starts without a click
-    return tail(out, 0.03);
-  });
-  const wave = memo((f, fc) => {               // one cycle of a soft saw: its overtones fall away above fc
-    const t = new Float32Array(2049), K = Math.max(1, Math.min(48, Math.floor(Math.min(sr * 0.45, 8000) / f)));
-    for (let k = 1; k <= K; k++) { const a = 1 / k / (1 + Math.pow(k * f / fc, 2)); for (let i = 0; i < 2049; i++) t[i] += a * Math.sin(TAU * k * i / 2048); }
-    return norm(t);
-  });
-  function pad(m, dur, att, rel, fc) {         // three slightly detuned voices: a slow, warm chord tone
-    const f = hz(m), tb = wave(f, fc), nd = N(dur), na = N(att), nr = N(rel), n = nd + nr, out = new Float32Array(n);
-    for (const c of [-7, 0, 6]) {
-      let ph = rnd() * 2048; const inc = f * Math.pow(2, c / 1200) * 2048 / sr;
-      for (let i = 0; i < n; i++) { const j = ph | 0; out[i] += tb[j] + (tb[j + 1] - tb[j]) * (ph - j); ph += inc; if (ph >= 2048) ph -= 2048; }
-    }
-    for (let i = 0; i < n; i++) out[i] *= (i < na ? 0.5 - 0.5 * Math.cos(Math.PI * i / na) : 1) * (i > nd ? 0.5 + 0.5 * Math.cos(Math.PI * (i - nd) / nr) : 1) / 3;
-    return out;
-  }
-  const bass = memo((m, dur, att, tau) => {    // a round bass note with enough overtones to be heard on a phone speaker
-    const w = TAU * hz(m) / sr, nd = N(dur), na = Math.max(1, N(att)), nr = N(0.05), n = nd + nr, out = new Float32Array(n);
-    for (let i = 0; i < n; i++) {
-      const p = w * i, e = Math.min(1, i / na) * Math.exp(-i / sr / tau) * (i > nd ? 1 - (i - nd) / nr : 1);
-      out[i] = e * (Math.sin(p) + 0.5 * Math.sin(2 * p) + 0.28 * Math.sin(3 * p) + 0.12 * Math.sin(4 * p)) / 1.6;
-    }
-    return out;
-  });
-  const kick = memo(amp => {
-    const n = N(0.42), o = new Float32Array(n), c = biquad(white(N(0.01)), 'hp', 2400, 0.7); let ph = 0;      // a low thump, a knock around 200 Hz and a click, so small speakers still play it
-    for (let i = 0; i < n; i++) { const t = i / sr; ph += TAU * (50 + 150 * Math.exp(-t / 0.035)) / sr; o[i] = (Math.sin(ph) * Math.exp(-t / 0.14) + 0.45 * Math.sin(TAU * 215 * t) * Math.exp(-t / 0.022)) * Math.min(1, i / (0.0015 * sr)); }
-    for (let i = 0; i < c.length; i++) o[i] += c[i] * 0.5 * (1 - i / c.length);
-    return scale(tail(o, 0.03), amp);
-  });
-  const snare = memo(amp => {
-    const n = N(0.32), o = biquad(white(n), 'bp', 1900, 0.7); let ph = 0;
-    for (let i = 0; i < n; i++) { const t = i / sr; ph += TAU * (160 + 60 * Math.exp(-t / 0.02)) / sr; o[i] = o[i] * Math.exp(-t / 0.075) * 0.8 + Math.sin(ph) * Math.exp(-t / 0.045) * 0.6; }
-    return scale(tail(o, 0.02), amp);
-  });
-  const hat = memo((amp, open) => { const n = N(open ? 0.3 : 0.07), o = biquad(white(n), 'hp', 7200, 0.8), tau = open ? 0.085 : 0.016; for (let i = 0; i < n; i++) o[i] *= Math.exp(-i / sr / tau); return scale(tail(o, 0.01), amp); });
-  const shaker = memo(amp => { const n = N(0.14), na = N(0.014), o = biquad(white(n), 'bp', 5200, 1.1); for (let i = 0; i < n; i++) o[i] *= Math.min(1, i / na) * Math.exp(-Math.max(0, i - na) / sr / 0.03); return scale(tail(o, 0.01), amp); });
-  const tom = memo((f, amp) => { const n = N(0.4), o = new Float32Array(n); let ph = 0; for (let i = 0; i < n; i++) { const t = i / sr; ph += TAU * f * (1 + 0.6 * Math.exp(-t / 0.018)) / sr; o[i] = Math.sin(ph) * Math.exp(-t / 0.15) * Math.min(1, i / (0.002 * sr)); } return scale(tail(o, 0.03), amp); });
-  function rim(amp) { const n = N(0.06), o = new Float32Array(n); for (let i = 0; i < n; i++) { const t = i / sr; o[i] = (Math.sin(TAU * 1750 * t) + 0.6 * Math.sin(TAU * 430 * t)) * Math.exp(-t / 0.012) * Math.min(1, i / (0.0005 * sr)); } return scale(o, amp); }
-  function crash(amp, len) { const n = N(len), o = biquad(white(n), 'hp', 3800, 0.7); for (let i = 0; i < n; i++) o[i] *= Math.exp(-i / sr / (len * 0.28)) * Math.min(1, i / (0.003 * sr)); return scale(tail(o, 0.05), amp); }
-  function thud() { const n = N(0.25), o = biquad(white(n), 'lp', 700, 0.8); for (let i = 0; i < n; i++) o[i] *= Math.exp(-i / sr / 0.045) * Math.min(1, i / (0.001 * sr)); return tail(o, 0.02); }
-  function boom(f0, f1, tau, len) { const n = N(len), o = new Float32Array(n); let ph = 0; for (let i = 0; i < n; i++) { const t = i / sr; ph += TAU * (f1 + (f0 - f1) * Math.exp(-t / 0.06)) / sr; o[i] = (Math.sin(ph) + 0.35 * Math.sin(2 * ph) + 0.15 * Math.sin(3 * ph)) * Math.exp(-t / tau) * Math.min(1, i / (0.003 * sr)); } return tail(o, 0.1); }
-  // ---- putting notes into loops ----
-  const loop = bars => new Float32Array(N(bars * BAR));
-  function put(buf, clip, t, g) {              // lay a clip into a loop at time t; whatever runs past the end wraps round to the start, so the loop has no seam
-    const n = buf.length; let p = ((N(t) % n) + n) % n;
-    for (let i = 0; i < clip.length; i++) { buf[p] += clip[i] * g; if (++p === n) p = 0; }
-  }
-  function shot(len, parts) { const o = new Float32Array(N(len)); for (const [clip, t, g] of parts) { const p = N(t); for (let i = 0; i < clip.length && p + i < o.length; i++) o[p + i] += clip[i] * g; } return o; }
-  function reverb(x, mix, t60, wrap) {         // a small room. For a loop, the tail of the end is carried round into the start
-    const cd = [0.0297, 0.0371, 0.0411, 0.0437, 0.0253, 0.0339].map(s => N(s) | 1), cb = cd.map(n => new Float32Array(n)), ci = cd.map(() => 0), cl = cd.map(() => 0), cg = cd.map(n => Math.pow(10, -3 * n / sr / t60));
-    const ab = [0.005, 0.0017].map(s => new Float32Array(Math.max(2, N(s)))), ai = [0, 0], out = new Float32Array(x.length);
-    for (let pass = wrap ? 0 : 1; pass < 2; pass++) for (let i = pass ? 0 : Math.max(0, x.length - N(t60 * 2)); i < x.length; i++) {      // pass 0 only warms the room up with the end of the loop
-      const v = x[i]; let w = 0;
-      for (let c = 0; c < 6; c++) { const b = cb[c], k = ci[c], y = b[k]; cl[c] += 0.45 * (y - cl[c]); b[k] = v + cl[c] * cg[c]; ci[c] = k + 1 === b.length ? 0 : k + 1; w += y; }
-      w /= 6;
-      for (let a = 0; a < 2; a++) { const b = ab[a], k = ai[a], d = b[k], y = d - 0.7 * w; b[k] = w + 0.7 * y; ai[a] = k + 1 === b.length ? 0 : k + 1; w = y; }
-      if (pass) out[i] = v + mix * w;
-    }
-    return out;
-  }
-  const level = (a, r) => scale(a, Math.min(r / (rms(biquad(a.slice(), 'hp', 160, 0.7)) || 1), 0.9 / (peak(a) || 1)));   // set a stem's loudness by what a small speaker can play (above 160 Hz), never letting it clip
-  // a line of eighth notes: one list of 8 MIDI notes per bar (0 = rest). The first beat of the bar is played hardest
-  function line(buf, bars, g, dur, bright, ring, up) { bars.forEach((b, bi) => b.forEach((m, k) => { if (m) put(buf, pluck(m + (up || 0), dur, bright, ring), bi * BAR + k * S8, g * (k === 0 ? 1 : k % 2 === 0 ? 0.82 : 0.68)); })); }
-
-  // ---- CALM: 8 bars, C / Am / F / G, two bars each. The plucked line carries it alone; the pad and a light shaker join as things happen ----
-  const calm = [loop(8), loop(8), loop(8)];
-  line(calm[1], [[60, 67, 72, 76, 0, 67, 72, 0], [74, 72, 67, 64, 0, 67, 0, 0], [57, 64, 69, 72, 0, 64, 69, 0], [71, 69, 64, 60, 0, 64, 0, 0],
-                 [53, 60, 65, 69, 0, 60, 65, 0], [67, 65, 60, 57, 0, 60, 0, 0], [55, 62, 67, 71, 0, 62, 67, 0], [69, 67, 62, 59, 0, 62, 0, 0]], 1, 2.6, 0.3, 2.4);
-  [[55, 60, 64, 48], [57, 60, 64, 45], [57, 60, 65, 41], [55, 59, 62, 43]].forEach((c, i) => {
-    for (let k = 0; k < 3; k++) { put(calm[0], pad(c[k], 2 * BAR - 0.5, 0.7, 1.3, 1100), i * 2 * BAR - 0.3, 1); put(calm[0], pad(c[k] + 12, 2 * BAR - 0.5, 0.9, 1.3, 1100), i * 2 * BAR - 0.3, 0.3); }
-    put(calm[0], bass(c[3], 2 * BAR - 0.5, 0.06, 3.5), i * 2 * BAR, 0.9);
-  });
-  for (let b = 0; b < 8; b++) for (let k = 0; k < 8; k++) {
-    const t = b * BAR + k * S8;
-    put(calm[2], shaker(k % 2 ? 0.9 : 0.5), t, 1);
-    if (k === 0) put(calm[2], kick(0.5), t, 1); else if (k === 4) put(calm[2], kick(0.3), t, 1);
-    if (k === 6 && b % 2) put(calm[2], rim(0.5), t, 1);
-  }
-  // ---- TENSE: 4 bars over a held A in the bass. Am, F/A, Dm/A, Asus2. The pulsing bass and dark pad come first, then the riff, then drums ----
-  const tense = [loop(4), loop(4), loop(4)];
-  [[52, 57, 60], [53, 57, 60], [53, 57, 62], [52, 57, 59]].forEach((c, b) => {
-    for (const m of c) put(tense[0], pad(m, BAR - 0.2, 0.25, 0.5, 650), b * BAR - 0.1, 0.8);
-    for (const k of [0, 2, 3, 5, 6]) { const t = b * BAR + k * S8, g = k === 0 ? 1 : 0.8; put(tense[0], pluck(45, 0.6, 0.5, 0.4), t, g); put(tense[0], bass(45, 0.2, 0.004, 0.1), t, g * 0.7); }
-  });
-  line(tense[1], [[64, 0, 69, 0, 72, 71, 69, 0], [65, 0, 69, 0, 72, 71, 69, 0], [65, 0, 69, 0, 74, 72, 69, 0], [64, 0, 69, 0, 71, 0, 64, 64]], 1, 1.3, 0.55, 1);
-  for (let b = 0; b < 4; b++) for (let k = 0; k < 16; k++) {
-    const t = b * BAR + k * S16, fill = b === 3 && k >= 12;
-    if (k === 0 || k === 6 || k === 8 || k === 13) put(tense[2], kick(k === 0 ? 1 : 0.8), t, 1);
-    if (fill) put(tense[2], tom([150, 128, 108, 90][k - 12], 0.8), t, 1); else if (k === 4 || k === 12) put(tense[2], snare(0.7), t, 1);
-    if (k % 2 === 0 || k === 15) put(tense[2], hat(k % 4 === 2 ? 0.5 : 0.3, false), t, 1);
-  }
-  // ---- BOSS: 4 bars, Am / F / G / Em. Galloping bass, held fifths and full drums all the time; the lead comes in when the fight turns ----
-  const boss = [loop(4), loop(4), loop(4)];
-  [[45, 57, 64, 69], [41, 53, 60, 65], [43, 55, 62, 67], [40, 52, 59, 64]].forEach((c, b) => {
-    for (let k = 1; k < 4; k++) put(boss[0], pad(c[k], BAR - 0.12, 0.03, 0.25, 1500), b * BAR, 0.7);
-    for (let q = 0; q < 4; q++) for (const s of [0, 2, 3]) { const t = b * BAR + q * BEAT + s * S16, g = s === 0 ? 1 : 0.75; put(boss[0], pluck(c[0], 0.4, 0.7, 0.28), t, g); put(boss[0], bass(c[0], 0.12, 0.003, 0.07), t, g * 0.8); }
-  });
-  { const L = [[69, 0, 72, 0, 76, 0, 72, 69], [69, 0, 72, 0, 77, 0, 72, 69], [71, 0, 74, 0, 79, 0, 74, 71], [71, 0, 76, 0, 79, 76, 74, 71]];
-    line(boss[1], L, 1, 1.1, 0.8, 0.9); line(boss[1], L, 0.45, 1.1, 0.6, 0.9, -12); }
-  for (let b = 0; b < 4; b++) for (let k = 0; k < 16; k++) {
-    const t = b * BAR + k * S16, fill = b === 3 && k >= 12;
-    if (k % 4 === 0 || (k === 10 && b % 2)) put(boss[2], kick(k % 4 === 0 ? 1 : 0.8), t, 1);
-    if (fill) put(boss[2], tom([170, 145, 120, 98][k - 12], 0.9), t, 1); else if (k === 4 || k === 12) put(boss[2], snare(0.9), t, 1);
-    put(boss[2], hat(k % 2 ? 0.16 : k % 4 === 2 ? 0.42 : 0.3, false), t, 1);
-    if (b === 0 && k === 0) put(boss[2], crash(0.5, 2), t, 1);
-  }
-  const sections = {
-    calm:  { bars: 8, stems: [level(calm[0], 0.05), level(reverb(calm[1], 0.22, 1.7, true), 0.065), level(reverb(calm[2], 0.06, 0.7, true), 0.022)] },
-    tense: { bars: 4, stems: [level(tense[0], 0.065), level(reverb(tense[1], 0.2, 1.4, true), 0.065), level(reverb(tense[2], 0.07, 0.7, true), 0.04)] },
-    boss:  { bars: 4, stems: [level(boss[0], 0.07), level(reverb(boss[1], 0.18, 1.2, true), 0.07), level(reverb(boss[2], 0.07, 0.7, true), 0.05)] },
-  };
-  // ---- one-shots (stingers) ----
-  const riser = (() => { const n = N(BEAT), o = white(n), out = new Float32Array(n), steps = 12;       // a swell that ends exactly on the line
-    for (let s = 0; s < steps; s++) { const a = Math.floor(n * s / steps), b = Math.floor(n * (s + 1) / steps), seg = biquad(o.slice(Math.max(0, a - 200), b), 'bp', 700 * Math.pow(9, s / steps), 1.2), off = a - Math.max(0, a - 200); for (let i = a; i < b; i++) out[i] = seg[i - a + off]; }
-    for (let i = 0; i < n; i++) out[i] *= Math.pow(i / n, 2.2) * Math.min(1, (n - i) / (0.004 * sr)); return norm(out, 0.3); })();
-  const strum = (ms, gap, dur, bright, ring) => ms.map((m, i) => [pluck(m, dur, bright, ring), i * gap, 1 - i * 0.06]);
-  const shots = {
-    riser,
-    hit:  norm(reverb(shot(3.2, [[boom(95, 42, 0.45, 1.6), 0, 0.8], [crash(0.5, 2.2), 0, 1], ...strum([45, 52, 57], 0, 2.4, 0.9, 2).map(p => [p[0], 0, 0.8])]), 0.15, 1.5), 0.7),
-    loss: norm(reverb(shot(2, [[pluck(60, 1, 0.45, 0.9), 0, 0.85], [pluck(57, 1.3, 0.45, 1.2), 0.15, 1], [pluck(45, 0.9, 0.3, 0.5), 0.15, 0.5], [tom(110, 0.3), 0.15, 1]]), 0.2, 1.2), 0.45),
-    cut:  norm(reverb(shot(3.6, [[boom(80, 36, 0.7, 2.4), 0, 0.45], [thud(), 0, 1], [pluck(45, 2.6, 0.8, 2.4), 0, 1], [pluck(52, 2.6, 0.7, 2.2), 0.012, 0.8], [pluck(33, 2.6, 0.6, 2.4), 0, 0.5]]), 0.2, 1.8), 0.7),
-    win:  norm(reverb(shot(4.4, [...strum([48, 55, 60, 64, 67, 72, 76], 0.032, 3.4, 0.5, 3.2), [crash(0.18, 2.6), 0.1, 1]]), 0.3, 2.2), 0.55),
-    over: norm(reverb(shot(5.6, [[pluck(64, 1.6, 0.3, 1.6), 0, 0.8], [pluck(60, 1.6, 0.3, 1.6), 0.45, 0.8], [pluck(57, 2, 0.3, 2), 0.9, 0.9], [pluck(45, 3.6, 0.35, 3.4), 1.5, 1], [pluck(52, 3.6, 0.25, 3.2), 1.53, 0.7]]), 0.3, 2.2), 0.55),
-    end:  norm(reverb(shot(4, strum([45, 52, 57, 60, 64], 0.04, 3, 0.3, 2.6)), 0.3, 2), 0.45),
-  };
-  return { bpm: BPM, sections, shots };
-}
-const music = (() => {
-  const VOL = 0.7, BARLEN = 2.4;            // VOL: how loud the music is against the sound effects with the slider at 100. BARLEN: one bar at 100 BPM
-  let AC = null, bus, stingG, lpF, pauseG, duckG, busG = -1, data = null, loading = false, failed = false;
-  let on = true, vol = 0.55, meter = true;
-  try { const sv = JSON.parse(localStorage.getItem('wetink_music') || '{}'); if (typeof sv.on === 'boolean') on = sv.on; if (typeof sv.vol === 'number') vol = Math.max(0, Math.min(1, sv.vol)); if (typeof sv.meter === 'boolean') meter = sv.meter; } catch (e) {}
-  const save = () => { try { localStorage.setItem('wetink_music', JSON.stringify({ on, vol, meter })); } catch (e) {} };
-  let sec = null;                           // the section playing: name, t0 (when its first bar began, on the audio clock), bar and beat length, sources, layer gains
-  let X = 0, heat = 0, hold = 0, force = null, forceX = 0.5;      // X: smoothed tension. heat: recent losses. hold: silence until this time. force: the tuning panel has taken over
-  let logRef = null, seen = 0, recent = [], cutAt = -1e9, lossAt = -1e9, bPhase = '', rSeen = null, wasPlay = false, fresh = false, muff = false, muffAt = 0, quiet = false, said = [], why = '', whyN = 0, whyT = 0;
-
-  // How much trouble the flock is in right now, 0 to 1. Each danger takes a share of whatever calm is left, so they stack without ever passing 1.
-  function tension(list) {                  // list: an optional array that receives [cause, share] pairs, for the panel and for tuning
-    let calm = 1; const add = (v, c) => { v = Math.max(0, Math.min(1, v)); calm *= 1 - v; if (list && v) list.push([c, v]); };
-    let n = 0, my = 0, top = 1e9, falling = 0, fuse = 0, fading = 0;
-    for (const w of walkers) {
-      if (!w.alive) continue; n++; my += w.y; if (w.y < top) top = w.y;
-      if (!w.grounded && !w.carried && w.vy > 0 && w.y - w.fallStart > TUNE.fatalFall * 0.55) falling++;      // already most of the way through a deadly fall
-      if (w.bomb) fuse++;
-      if (w.y < fadeY + TUNE.fadeWarn * M) fading++;
-    }
-    my = n ? my / n : camY;
-    // things that are simply around count for little (they bring in more instruments); things going wrong count for a lot (they turn the music)
-    for (const b of birds) if (b.state !== 'flee') add(b.state === 'carry' ? 0.6 : b.state === 'dive' ? 0.4 : b.state === 'tell' ? 0.3 : 0.1, 'bird ' + b.state);
-    for (const b of brutes) add(b.state === 'warn' ? 0.15 : Math.abs(b.y - my) < 260 ? (b.rager ? 0.35 : 0.2) : 0.05, 'brute');
-    for (const L of leeches) if (!L.queen) add(L.drinking ? 0.1 : 0.04, 'leech');
-    if (fuse) add(0.6, 'bomb');
-    if (falling) add(Math.min(0.5, 0.15 * falling), 'falling');
-    add(1 - Math.exp(-0.45 * heat), 'losses');                          // blots lost in the last few seconds
-    const fl = n + queue.length;
-    if (fl <= 3) add(0.25, 'few left'); else if (fl <= 6) add(0.12, 'few left');
-    if (T < dryUntil) add(0.25, 'pen dry'); else if (inkLeft < inkCap() * 0.2) add(0.1, 'ink low');
-    if (fading) add(0.2, 'fade');
-    const k = evKind();
-    if (k) add(k === 'grinder' ? 0.65 : 0.5, 'event');
-    if (k === 'grinder' && top - raid.y < 150) add(0.5, 'grinder close');
-    if (boss && boss.phase === 'fight') {                                // a boss fight starts high and climbs as the boss weakens or its clock runs down
-      const o = boss.hpMax ? boss : boss.m || boss.w, left = o ? o.hp / (boss.hpMax || 3) : boss.A.count ? 1 - boss.beat / boss.A.count : 1;      // health left, the way the boss's own bar counts it
-      add(0.5, 'boss'); add(0.45 * (1 - Math.max(0, Math.min(1, left))), 'boss hurt'); if (boss.clock < 20) add(0.3, 'boss clock');
-    }
-    add(Math.min(0.15, 0.025 * stratum), 'stratum');
-    return 1 - calm;
-  }
-  // Count losses and smooth the tension: up fast, down slowly, so the music does not flicker. Runs whether or not any music is playing.
-  function track(dt) {
-    const live = state === 'play' && !paused && !hand; let lost = 0;
-    if (logRef !== deathLog) { logRef = deathLog; seen = deathLog.length; heat = 0; recent = []; X = 0; bPhase = ''; rSeen = null; hold = 0; cutAt = -1e9; fresh = true; }     // a new cave
-    for (; seen < deathLog.length; seen++) { const f = deathLog[seen].faded; heat += f ? 0.5 : 1; if (!f) lost++; }
-    if (lost) recent.push([T, lost]);
-    while (recent.length && T - recent[0][0] > 2.5) recent.shift();
-    if (force) { why = ''; X += (forceX - X) * (1 - Math.exp(-dt / 0.12)); }
-    else if (live) {
-      heat *= Math.exp(-dt / 7);
-      const parts = whyN++ % 6 ? null : [], r = tension(parts);
-      if (parts) { let top = null; for (const q of parts) if (!top || q[1] > top[1]) top = q; if (top && top[1] >= 0.1 && r >= X - 0.03) { why = top[0]; whyT = T; } else if (T - whyT > 1.5 || T < whyT) why = ''; }      // the panel names whatever is pushing tension up right now (and keeps the name up for a moment)
-      X += (r - X) * (1 - Math.exp(-dt / (r > X ? 0.3 : 4)));
-    }
-    return lost;
-  }
-  function graph() {                        // music -> duck (dips under a splat) -> pause (muffles) -> low-pass -> bus (volume) -> out
-    if (bus) return true;
-    AC = sfx.ctx(); if (!AC) return false;
-    bus = AC.createGain(); bus.gain.value = 0; bus.connect(AC.destination);
-    stingG = AC.createGain(); stingG.connect(bus);
-    lpF = AC.createBiquadFilter(); lpF.type = 'lowpass'; lpF.frequency.value = 20000; lpF.Q.value = 0.707; lpF.connect(bus);
-    pauseG = AC.createGain(); pauseG.connect(lpF);
-    duckG = AC.createGain(); duckG.connect(pauseG);
-    return true;
-  }
-  // The piece is rendered off the main thread, at the sound card's own rate (48 kHz at most). Real recordings would be fetched and decoded here instead.
-  function load() {
-    loading = true;
-    const sr = Math.min(AC.sampleRate, 48000);      // a sound card running faster than that gains nothing here, and would double the memory
-    const done = M => {
-      const mk = a => { const b = AC.createBuffer(1, a.length, sr); b.getChannelData(0).set(a); return b; };
-      const S = {}, shots = {};
-      for (const k in M.sections) S[k] = { bars: M.sections[k].bars, stems: M.sections[k].stems.map(mk) };
-      for (const k in M.shots) shots[k] = mk(M.shots[k]);
-      data = { S, shots }; loading = false;
-    };
-    const here = () => setTimeout(() => { try { done(musicSynth(sr)); } catch (e) { failed = true; loading = false; } }, 50);      // no worker: do it here (a short hitch)
-    try {
-      const url = URL.createObjectURL(new Blob(['onmessage=e=>{const M=(' + musicSynth.toString() + ')(e.data),t=[];for(const k in M.sections)for(const s of M.sections[k].stems)t.push(s.buffer);for(const k in M.shots)t.push(M.shots[k].buffer);postMessage(M,t)}'], { type: 'text/javascript' }));
-      const w = new Worker(url); let over = false;
-      const giveUp = () => { if (over) return; over = true; w.terminate(); URL.revokeObjectURL(url); here(); };
-      w.onmessage = e => { if (over) return; over = true; try { done(e.data); } catch (err) { failed = true; loading = false; } w.terminate(); URL.revokeObjectURL(url); };
-      w.onerror = giveUp; setTimeout(giveUp, 12000);      // a worker that fails, or never answers, falls back to rendering here
-      w.postMessage(sr);
-    } catch (e) { here(); }
-  }
-  // The next beat line of the section playing: every `beats` beats from its start, and at least `lead` seconds away
-  const line = (beats, lead) => { const u = sec.beat * beats; return sec.t0 + Math.ceil((AC.currentTime + (lead || 0.06) - sec.t0) / u - 1e-6) * u; };
-  const q8 = () => sec && AC.currentTime >= sec.t0 ? line(0.5, 0.02) : AC.currentTime + 0.02;        // stingers land on the next half beat
-  function start(name, at, fade) {           // all three stems start on the same sample and loop; the layers that are not wanted yet play silently
-    const S = data.S[name], g = AC.createGain(), bar = S.stems[0].duration / S.bars, J = MUSIC[name], srcs = [], lay = [], onNow = [];
-    if (fade > 0.1) { g.gain.setValueAtTime(0.0001, at); g.gain.setTargetAtTime(1, at, fade / 3); }
-    g.connect(duckG);
-    for (let i = 0; i < 3; i++) {
-      const src = AC.createBufferSource(), lg = AC.createGain();
-      onNow[i] = J[i] <= 0 || X >= J[i]; lg.gain.value = onNow[i] ? 1 : 0;
-      src.buffer = S.stems[i]; src.loop = true; src.connect(lg); lg.connect(g); src.start(at); srcs.push(src); lay.push(lg);
-    }
-    srcs[0].onended = () => { try { g.disconnect(); } catch (e) {} };
-    sec = { name, t0: at, bar, beat: bar / 4, g, srcs, lay, on: onNow, chg: [at, at, at], free: [at, at, at] };
-  }
-  function stop(at, fade) {                  // fade the section out from `at` (0.04 = cut on the line, 1 = die away)
-    const s = sec; if (!s) return; sec = null;
-    if (at <= s.t0) { s.g.gain.cancelScheduledValues(0); s.g.gain.value = 0; for (const q of s.srcs) try { q.stop(); } catch (e) {} return; }      // it had not begun yet
-    s.g.gain.setTargetAtTime(0, at, fade / 4);
-    for (const q of s.srcs) try { q.stop(at + fade * 2 + 0.05); } catch (e) {}
-  }
-  function sting(name, at, g) {
-    const b = data.shots[name]; if (!b) return;
-    const s = AC.createBufferSource(), q = AC.createGain(); q.gain.value = g == null ? 1 : g;
-    s.buffer = b; s.connect(q); q.connect(stingG); s.start(Math.max(at, AC.currentTime)); s.onended = () => { try { q.disconnect(); } catch (e) {} };
-    said.push([name, +at.toFixed(3)]); if (said.length > 24) said.shift();
-  }
-  function layers(now) {                     // stems join and leave on the next beat; one that has just joined stays at least a bar
-    const J = MUSIC[sec.name];
-    for (let i = 0; i < 3; i++) {
-      if (J[i] <= 0 || now < sec.free[i]) continue;
-      const w = sec.on[i] ? X >= J[i] - 0.07 : X >= J[i];
-      if (w === sec.on[i]) continue;
-      const at = line(1); sec.lay[i].gain.setTargetAtTime(w ? 1 : 0, at, w ? 0.07 : 0.4);
-      sec.on[i] = w; sec.chg[i] = at; sec.free[i] = at + sec.beat * (w ? 4 : 2);
-    }
-  }
-  function duck(now) { duckG.gain.cancelScheduledValues(now); duckG.gain.setTargetAtTime(0.45, now, 0.012); duckG.gain.setTargetAtTime(1, now + 0.22, 0.2); }      // make room for the splat
-  function cut(now) { stop(now, 0.03); sting('cut', now + 0.01); hold = now + 2 * BARLEN; cutAt = now; recent = []; }                                                  // a disaster: dead stop, two bars of nothing
-  function win(now, bars) { const at = sec && now >= sec.t0 ? line(1) : now + 0.05; stop(at, 0.04); sting('win', at); hold = at + bars * BARLEN; }                      // a final chord on the beat, then a rest
-
-  function frame(dt) {
-    const lost = track(dt), play = state === 'play';
-    if (force && (overlay.classList.contains('hide') || !overlay.querySelector('.tune'))) force = null;      // the tuning panel closed: the game has the music back
-    if (!graph()) { wasPlay = play; drawMeter(); return; }
-    const now = AC.currentTime, loud = on && sfx.on(), g = loud ? vol * VOL : 0, ph = play && boss ? boss.phase : '';
-    if (g !== busG) { busG = g; bus.gain.setTargetAtTime(g, now, 0.03); }
-    if (!loud || AC.state !== 'running' || !data) {
-      if (loud && !data && !loading && !failed) load();
-      if (!loud && sec) stop(now, 0.1);
-      bPhase = ph; wasPlay = play; fresh = false; drawMeter(); return;
-    }
-    if (fresh) { fresh = false; stop(now, 0.15); }
-    if (!force) {                             // single events the music answers
-      if (wasPlay && state === 'over') { stop(now, 0.06); sting('over', now + 0.15); }
-      else if (play) {
-        if (ph !== bPhase) {
-          if (ph === 'gather') stop(now, 0.5);                           // the hush before a boss
-          else if (ph === 'fight') hold = 0;                             // ...then the fight music comes in with a hit (below)
-          else if (ph === 'done' && bPhase === 'fight') { if (boss.won) win(now, 2); else { stop(now, 1.2); sting('end', now + 0.5, 0.8); hold = now + 1.2 + BARLEN; } }
-        }
-        if (raid && raid.state === 'done' && raid !== rSeen) { rSeen = raid; if (raid.won) sting('win', q8(), 0.6); }
-        let burst = 0; for (const r of recent) burst += r[1];
-        if (TUNE.musCut > 0 && burst >= TUNE.musCut && sec && now >= sec.t0 && now - cutAt > 12) cut(now);
-        else if (lost) { duck(now); if (now - lossAt > 1.2) { lossAt = now; sting('loss', q8(), Math.min(1, 0.6 + 0.2 * lost)); } }
-      }
-    }
-    // which section should be playing
-    const byX = () => (sec && sec.name === 'tense' ? X > TUNE.musCalm : X >= TUNE.musTense) ? 'tense' : 'calm';
-    const want = now < hold ? null : force ? (force === 'off' ? null : force === 'hand' ? byX() : force) : !play || ph === 'gather' ? null : ph === 'fight' ? 'boss' : byX();
-    if (!sec) {
-      if (want) { const at = now + 0.06; start(want, at, force || want === 'boss' ? 0 : want === 'calm' ? 1.6 : 0.8); if (want === 'boss') sting('hit', at); }
-    } else if (now >= sec.t0) {
-      if (!want) stop(now, 0.8);
-      else if (want !== sec.name) {           // swap on a line: half a bar when it is getting worse, a whole bar when it eases
-        if (force || now - sec.t0 >= sec.bar * (want === 'calm' ? 2 : 1)) {
-          const at = line(want === 'calm' ? 4 : 2), r = data.shots.riser.duration;
-          if (want !== 'calm' && at - now > r + 0.03) sting('riser', at - r);
-          stop(at, 0.04); start(want, at, 0);
-        }
-      } else layers(now);
-    }
-    // paused: the music carries on, muffled, and fades right out if the pause is a long one
-    const mf = !force && play && (paused || homeOpen);
-    if (mf !== muff) { muff = mf; muffAt = now; quiet = false; lpF.frequency.setTargetAtTime(mf ? 420 : 20000, now, 0.08); pauseG.gain.setTargetAtTime(mf ? 0.5 : 1, now, 0.1); }
-    if (muff && !quiet && now - muffAt > 25) { quiet = true; pauseG.gain.setTargetAtTime(0, now, 1.5); }
-    bPhase = ph; wasPlay = play; drawMeter();
-  }
-  // The little panel at the bottom left: a lamp that blinks on the beat (red on bar lines), the section, the stems playing, tension against the two swap marks, and what is raising it
-  let mm = null, mmL = null; const mc = {};
-  function drawMeter() {
-    if (!mm) { mm = $('mm'); mmL = mm.querySelectorAll('.mmL i'); }
-    const show = meter && on && sfx.on() && (!!force || (state === 'play' && !homeOpen));
-    if (mc.show !== show) { mc.show = show; mm.style.display = show ? '' : 'none'; }
-    if (!show) return;
-    const now = AC ? AC.currentTime : 0, playing = !!sec && now >= sec.t0;
-    const label = failed ? 'no music' : !data ? 'loading' : playing ? sec.name : 'silence';
-    if (mc.label !== label) { mc.label = label; $('mmS').textContent = label; mm.dataset.s = label; }
-    const pct = Math.round(X * 100); if (mc.pct !== pct) { mc.pct = pct; $('mmF').style.width = pct + '%'; }
-    for (let i = 0; i < 3; i++) { const lit = playing && (now >= sec.chg[i] ? sec.on[i] : !sec.on[i]); if (mc['l' + i] !== lit) { mc['l' + i] = lit; mmL[i].className = lit ? 'on' : ''; } }
-    let b = 0; if (playing) { const p = (now - sec.t0) / sec.beat; if (p - Math.floor(p) < 0.3) b = Math.floor(p) % 4 === 0 ? 2 : 1; }
-    if (mc.b !== b) { mc.b = b; $('mmK').className = b === 2 ? 'bar' : b === 1 ? 'beat' : ''; }
-    if (mc.why !== why) { mc.why = why; $('mmW').textContent = why; }
-    const tk = TUNE.musCalm + '|' + TUNE.musTense; if (mc.tk !== tk) { mc.tk = tk; $('mmT1').style.left = TUNE.musCalm * 100 + '%'; $('mmT2').style.left = TUNE.musTense * 100 + '%'; }
-  }
-  return {
-    frame, track, tension,
-    isOn: () => on, vol: () => vol, meterOn: () => meter,
-    toggle() { on = !on; save(); return on; },
-    setVol(v) { vol = Math.max(0, Math.min(1, v)); save(); },
-    setMeter(v) { meter = !!v; save(); },
-    audition(mode, x) { force = mode === 'auto' ? null : mode; if (x != null) forceX = Math.max(0, Math.min(1, x)); hold = 0; },      // tuning panel: 'auto', 'hand' (tension from the slider), a section name, or 'off'
-    mode: () => force || 'auto',
-    test(name) {                              // tuning panel: fire one of the music's answers by hand
-      if (!graph() || !data || AC.state !== 'running') return false;
-      const now = AC.currentTime; if (!force) { force = 'hand'; forceX = X; }
-      if (name === 'loss') { duck(now); sting('loss', q8()); }
-      else if (name === 'cut') cut(now);
-      else if (name === 'win') win(now, 2);
-      else if (name === 'boss') { stop(now, 0.5); force = 'boss'; hold = now + 1.8; }
-      else if (name === 'over') { stop(now, 0.06); sting('over', now + 0.15); hold = now + 5; }
-      return true;
-    },
-    info: () => ({ on, vol, meter, ready: !!data, loading, failed, X, heat, hold, force, muff, quiet, why, said: said.slice(), now: AC ? AC.currentTime : 0, ac: AC ? AC.state : '', sr: AC ? AC.sampleRate : 0,
-      sec: sec ? { name: sec.name, t0: sec.t0, bar: sec.bar, on: sec.on.slice(), chg: sec.chg.slice() } : null }),
-    tap: () => ({ AC, bus, data }),
-  };
-})();
-
 // ---------------- ink ----------------
 function stamp(x, y, size, dry, occ, tg) {
   const rad = size / 2 + 1.5, r2 = rad * rad;
@@ -1254,9 +847,10 @@ function goDry() { if (T < dryUntil) return; dryUntil = T + TUNE.dryLock; flashI
 function flashInk() { const t = $('tube'); t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash'); }
 
 const inkTough = (px, py) => { const tr = tag[Math.floor(py) >> 2]; return tr ? (tr[Math.floor(px) >> 2] >> 2) & 3 : 0; };
+const inkWide = (px, py) => { const c = Math.floor(px) >> 2, r = Math.floor(py) >> 2, ir = ink[r], tr = tag[r]; return ir && tr && ir[c] > T && !(tr[c] & 16) ? (tr[c] >> 5) & 3 : 0; };   // the Wide level of the wet ink here (0 on rock or dry ground)
 function brushNow() {   // a wide brush hangs below the pointer, so the line you trace is (nearly) its top surface and walkers can step onto it
-  const l = eff('last'), size = TUNE.wideSize[eff('wide')], hold = l === 3 && burst.last - T > TUNE.lastLife[2] ? burst.last : 0;     // Lasting MAX: everything holds until the countdown ends
-  return { size, off: Math.max(0, size / 2 - 8), life: hold ? hold - T : TUNE.lastLife[Math.min(l, 2)], hold, cost: TUNE.inkCost, tg: l | (eff('tough') << 2) };
+  const l = eff('last'), size = TUNE.wideSize[eff('wide')], hold = l === 3 ? burst.last + TUNE.lastLife[3] : 0;     // Time MAX: everything holds until a while after the countdown ends, then dries at once
+  return { size, off: Math.max(0, size / 2 - 8), life: hold ? hold - T : TUNE.lastLife[Math.min(l, 2)], hold, cost: TUNE.inkCost, tg: l | (eff('tough') << 2) | (eff('wide') << 5) };
 }
 function strokeStart(p) {
   const pen = brushNow(), c0 = Math.min(1, pen.size * 0.5 * pen.cost);
@@ -1544,8 +1138,16 @@ function updateWalker(w, dt) {
     if (w.vy > 70) for (const m of mushrooms) if (m.alive && Math.abs(m.x - w.x) <= m.hw && y >= m.y - 10 && y <= m.y + 1 && bounce(w, m)) return;
     if (solid(w.x, y)) {
       w.vx = 0; w.bn = 0;
-      if (y - w.fallStart > TUNE.fatalFall) kill(w);
-      else { w.grounded = true; w.fy = y; if (y > maxY) maxY = y; if (y - w.fallStart > TUNE.fatalFall * TUNE.dazeFrom) { w.daze = T + TUNE.dazeFor; sfx.oof(); } }
+      const fell = y - w.fallStart, wl = inkWide(w.x, y), lim = TUNE.fatalFall * TUNE.wideFall[wl];     // wide ink is a soft landing: the deeper the Wide level, the longer a fall it forgives
+      if (fell > lim) kill(w);
+      else {
+        w.grounded = true; w.fy = y; if (y > maxY) maxY = y;
+        if (fell > TUNE.fatalFall * TUNE.dazeFrom) {
+          if (wl >= 3) { w.haste = Math.max(w.haste, T + TUNE.wideHaste); puff(w.x, w.y - 2, '#1c2d6b', 6, 90); sfx.pop(); stats.softLands++; }   // Wide MAX: a long drop onto a pad sends it off running
+          else if (wl >= 2) { puff(w.x, w.y - 2, '#1c2d6b', 4, 70); stats.softLands++; }                                                       // Wide 2: lands soft, never dazed
+          else if (fell > lim * TUNE.dazeFrom) { w.daze = T + TUNE.dazeFor; sfx.oof(); if (wl) stats.softLands++; }
+        }
+      }
     }
   }
 }
@@ -1950,10 +1552,32 @@ function updateLeeches(dt) {
 // ---------------- trophies: pointless, and never the same twice ----------------
 const T_ADJ = ['Brass', 'Hollow', 'Patient', 'Salt', 'Ember', 'Quiet', 'Crooked', 'Velvet', 'Glass', 'Drowned', 'Humming', 'Paper', 'Lantern', 'Moss', 'Iron', 'Sleepless', 'Borrowed', 'Ninth', 'Pale', 'Feral', 'Gilded', 'Dusty', 'Second', 'Wandering', 'Marrow', 'Tin', 'Faint', 'Lucky', 'Backwards', 'Thirsty', 'Folded', 'Stubborn', 'Unfinished', 'Smudged', 'Left-Handed', 'Reluctant', 'Whispering', 'Blotted', 'Seventh', 'Misplaced'];
 const T_NOUN = ['Moth', 'Idol', 'Key', 'Tooth', 'Lantern', 'Beetle', 'Mask', 'Bell', 'Crown', 'Spoon', 'Knot', 'Compass', 'Thimble', 'Owl', 'Anchor', 'Button', 'Hinge', 'Whistle', 'Root', 'Ladle', 'Comb', 'Eye', 'Wheel', 'Kettle', 'Glove', 'Rook', 'Snail', 'Door', 'Saint', 'Hat', 'Fork', 'Candle', 'Toad', 'Buckle', 'Stamp', 'Pilgrim', 'Brush', 'Seal', 'Urn', 'Heron', 'Lamp', 'Stair', 'Jar', 'Hound', 'Clock', 'Idler', 'Ferryman', 'Cog', 'Goblet', 'Witness'];
+const T_FAM_NOUN = [
+  ['Idol', 'Saint', 'Pilgrim', 'Witness', 'Ferryman', 'Sentinel', 'Effigy', 'Abbot', 'Totem', 'Votary', 'Hermit', 'Usher', 'Dowager', 'Warden'],
+  ['Mask', 'Visage', 'Grin', 'Mummer', 'Face', 'Jester', 'Likeness', 'Smile', 'Mourner', 'Oracle', 'Stare', 'Gargoyle', 'Pout', 'Sleeper'],
+  ['Beetle', 'Moth', 'Snail', 'Toad', 'Weevil', 'Tick', 'Scarab', 'Cricket', 'Grub', 'Mite', 'Mantis', 'Woodlouse', 'Newt', 'Earwig'],
+  ['Key', 'Sigil', 'Seal', 'Rune', 'Stamp', 'Letter', 'Knot', 'Cipher', 'Mark', 'Hinge', 'Compass', 'Brand', 'Clasp', 'Tally'],
+];
+const T_OWNER = ['Nobody', 'the Night Shift', 'a Lesser Saint', 'the Second Ferryman', 'No Fixed Address', 'the Under-Clerk', 'Someone Taller', 'the Left Hand', 'an Earlier Flock', 'the Fade', 'the Last Brute', 'a Patient Bird', 'the Wrong Drawer', 'Whoever Was Here'];
+const T_DID = ['Would Not', 'Fits Nothing', 'Nobody Missed', 'Was Here First', 'Kept Count', 'Looked Away', 'Knew Better', 'Came Back', 'Stayed Behind', 'Meant Well', 'Got Wet', 'Waited Anyway', 'Blinked', 'Never Dried'];
+const T_MATERIAL = ['Tin', 'Brass', 'Glass', 'Paper', 'Iron', 'Velvet', 'Salt', 'Moss', 'Chalk', 'Wax', 'Bone', 'Felt', 'Slate', 'Lead'];
+const T_COND = ['Slightly Dented', 'Mostly Whole', 'Still Warm', 'Facing Away', 'Missing Its Twin', 'Unlabelled', 'Lightly Chewed', 'Second-Hand', 'Almost Lucky', 'Unfinished', 'Found Face Down', 'Never Used', 'Quite Heavy', 'Upside Down'];
+const T_ORD = ['Second', 'Third', 'Seventh', 'Ninth', 'Eleventh', 'Thirteenth', 'Last', 'Penultimate', 'Spare', 'Other', 'Missing', 'Forty-First'];
+function trophyName(r, fam, gilt) {                 // a name that suits the picture, in one of several shapes
+  const noun = T_FAM_NOUN[fam][r() * T_FAM_NOUN[fam].length | 0], u = r();
+  if (gilt) return 'The Gilded ' + noun;
+  if (u < 0.42) return 'The ' + T_ADJ[r() * T_ADJ.length | 0] + ' ' + noun;
+  if (u < 0.58) return 'The ' + noun + ' of ' + T_OWNER[r() * T_OWNER.length | 0];
+  if (u < 0.74) return 'The ' + noun + ' That ' + T_DID[r() * T_DID.length | 0];
+  if (u < 0.9) return T_MATERIAL[r() * T_MATERIAL.length | 0] + ' ' + noun + ', ' + T_COND[r() * T_COND.length | 0];
+  return 'The ' + T_ORD[r() * T_ORD.length | 0] + ' ' + noun;
+}
 const T_PLACE = ['Low Vigil', 'the Third Stair', 'Nowhere Much', 'the Long Drop', 'Cold Harbour', 'the Under-Shelf', 'Seven Echoes', 'the Wet Margin', 'Old Blot', 'the Quiet Seam', 'Inkwell Deep', 'the Last Ledge', 'Hollow Row', 'the Pale Fold', 'Dry Hollow', 'the Slow Fall', 'Smear Street', 'the Lost Page', 'Under-Nothing', 'the Kind Dark', 'Patience Gap', 'the Wrong Turn', 'Lower Elsewhere', 'the Sunk Mile', 'Blot-on-Water', 'the Thin Place', 'Far Margin', 'the Second Thought', 'Spike Row', 'the Leaning Hall', 'Mushroom Stair', 'the Brute\'s Rest', 'Wick End', 'the Folded Corner', 'Deep Erratum', 'the Unread Line'];
 const trophyCache = new Map();
-function mkTrophy(sd) {                    // everything about a trophy grows from its one number
-  let t = trophyCache.get(sd); if (t) return t;
+// Trophies come in two resolutions. v1 (9 x 11) is kept only to draw trophies won before the change; new ones are v2 (19 x 23).
+function mkTrophy(sd, v) {
+  if (v !== 1) return mkTrophy2(sd);
+  const key = 'v1:' + sd; let t = trophyCache.get(key); if (t) return t;
   const r = mulberry32(sd), fam = r() * 4 | 0, TW = 9, TH = 11, g = new Uint8Array(TW * TH);
   const set = (x, y, v) => { if (x < 0 || x > 4 || y < 0 || y >= TH) return; g[y * TW + x] = v; g[y * TW + 8 - x] = v; };
   for (let y = 0; y < TH; y++) for (let x = 0; x < 5; x++) {
@@ -1974,19 +1598,64 @@ function mkTrophy(sd) {                    // everything about a trophy grows fr
   if (ey >= 0) { set(4, ey, 1); set(3, ey, 3); set(4, ey + 1, 1); if (fam === 1) { set(2, ey, 3); set(3, ey, 1); set(2, ey - 1, 1); set(2, ey + 1, 1); set(1, ey, 1); } else { set(2, ey, 1); set(3, ey - 1 < 0 ? 0 : ey - 1, 1); } }
   let n = 0; for (const v of g) if (v) n++;
   if (n < 20) for (let y = 1; y < TH - 1; y++) { set(4, y, g[y * TW + 4] || 1); if (y % 2) set(3, y, g[y * TW + 3] || 1); }
+  t = trophyFinish(sd, g, fam, TW, TH, r, 1);
+  trophyCache.set(key, t); return t;
+}
+function trophyFinish(sd, g, fam, w, h, r, v) {      // colours and a name, from the same stream of numbers
   const hue = r() * 360, gilt = r() < 0.08;
-  t = { seed: sd, g, fam,
-        body: gilt ? '#d9a514' : `hsl(${hue.toFixed(0)} ${(48 + r() * 28).toFixed(0)}% ${(40 + r() * 16).toFixed(0)}%)`,
-        accent: gilt ? '#fff1b8' : `hsl(${((hue + 110 + r() * 140) % 360).toFixed(0)} 72% 64%)`,
-        eye: '#fffdf6', out: gilt ? '#5a3d05' : `hsl(${hue.toFixed(0)} 38% 15%)`,
-        name: 'The ' + T_ADJ[r() * T_ADJ.length | 0] + ' ' + T_NOUN[r() * T_NOUN.length | 0], place: 'of ' + T_PLACE[r() * T_PLACE.length | 0] };
+  return { seed: sd, g, fam, w, h, v, k: v === 1 ? 2 : 1,     // k: pixel size in the cave, so both versions stand about the same height
+           body: gilt ? '#d9a514' : `hsl(${hue.toFixed(0)} ${(48 + r() * 28).toFixed(0)}% ${(40 + r() * 16).toFixed(0)}%)`,
+           accent: gilt ? '#fff1b8' : `hsl(${((hue + 110 + r() * 140) % 360).toFixed(0)} 72% 64%)`,
+           eye: '#fffdf6', out: gilt ? '#5a3d05' : `hsl(${hue.toFixed(0)} 38% 15%)`,
+           name: v === 1 ? 'The ' + T_ADJ[r() * T_ADJ.length | 0] + ' ' + T_NOUN[r() * T_NOUN.length | 0] : trophyName(r, fam, gilt),
+           place: 'of ' + T_PLACE[r() * T_PLACE.length | 0] };      // v1 keeps its old place; new trophies take the name of the reach they were found in
+}
+// v2: the same four families (idol, mask, beetle, glyph) at twice the detail, smoothed so they stay chunky rather than speckled
+function mkTrophy2(sd) {
+  let t = trophyCache.get(sd); if (t) return t;
+  const r = mulberry32(sd), fam = r() * 4 | 0, TW = 19, TH = 23, HW = 9, g = new Uint8Array(TW * TH);
+  const set = (x, y, v) => { if (x < 0 || x > HW || y < 0 || y >= TH) return; g[y * TW + x] = v; g[y * TW + (TW - 1 - x)] = v; };
+  const get = (x, y) => (x < 0 || x >= TW || y < 0 || y >= TH) ? 0 : g[y * TW + x];
+  const spine = 0.6 + r() * 0.5, head = 0.2 + r() * 0.3, waist = 0.4 + r() * 0.5, legs = 2 + (r() * 3 | 0), tilt = r() * 0.6;     // a build of its own, not only noise
+  for (let y = 0; y < TH; y++) for (let x = 0; x <= HW; x++) {
+    const dx = (HW - x) / HW, dy = (y - 11) / 11.5; let pr;
+    if (fam === 0) pr = 0.98 - dx * (0.95 + 0.3 * Math.abs(dy)) * spine - Math.abs(dy) * 0.15 + (y < 8 ? head * (1 - dx) : 0) + (y > 17 ? 0.35 : 0) + (Math.abs(dy) < 0.15 ? -waist * dx : 0);
+    else if (fam === 1) pr = 1.08 - (dx * dx * (0.5 + tilt * 0.3) + dy * dy * 1.05);
+    else if (fam === 2) pr = 1.0 - (dx * dx * 1.3 + dy * dy * 0.75) + (x < 4 && y % (legs + 2) === 1 && y > 3 && y < 20 ? 0.6 : 0);
+    else pr = x === HW ? 0.85 : y === 4 || y === 5 || y === 17 || y === 18 ? 0.8 : (x === 4 || x === 5) && y > 5 && y < 17 ? 0.55 : 0.1;
+    if (r() < pr) set(x, y, 1);
+  }
+  for (let pass = 0; pass < (fam === 3 ? 1 : 2); pass++) {          // smooth: fill holes with 5+ solid neighbours, drop crumbs
+    const nx = new Uint8Array(g);
+    for (let y = 0; y < TH; y++) for (let x = 0; x <= HW; x++) {
+      let nb = 0; for (let ay = -1; ay <= 1; ay++) for (let ax = -1; ax <= 1; ax++) if ((ax || ay) && get(x + ax, y + ay)) nb++;
+      const v = get(x, y);
+      if (!v && nb >= 5) { nx[y * TW + x] = 1; nx[y * TW + TW - 1 - x] = 1; }
+      else if (v && nb <= (fam === 3 ? 1 : 2)) { nx[y * TW + x] = 0; nx[y * TW + TW - 1 - x] = 0; }
+    }
+    g.set(nx);
+  }
+  const band = r() < 0.5, bphase = r() * 6 | 0, bstep = 3 + (r() * 3 | 0);     // the second colour comes in bands or blobs, never single pixels
+  for (let y = 0; y < TH; y++) for (let x = 0; x <= HW; x++) if (g[y * TW + x] === 1) { const on = band ? ((y + bphase) % bstep) < Math.max(1, bstep >> 1) && r() < 0.8 : r() < 0.2; if (on) set(x, y, 2); }
+  if (!band) { const nx = new Uint8Array(g); for (let y = 0; y < TH; y++) for (let x = 0; x <= HW; x++) if (g[y * TW + x] === 2) for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (get(x + ax, y + ay) === 1) { nx[(y + ay) * TW + x + ax] = 2; nx[(y + ay) * TW + TW - 1 - (x + ax)] = 2; } g.set(nx); }
+  const ey = fam === 0 ? 4 : fam === 1 ? 8 : fam === 2 ? 3 : -1;
+  if (ey >= 0) {                                                      // eyes: 2x2 whites with a pupil looking inward, always set in rock
+    const ex = fam === 1 ? 5 : 6;
+    for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) set(ex + a, ey + b, 3);
+    set(ex + 1, ey + 1, 4);
+    for (let a = -1; a < 3; a++) for (let b = -1; b < 3; b++) if (!get(ex + a, ey + b)) set(ex + a, ey + b, 1);
+    if (fam === 1) for (let x = 2; x <= HW; x++) if (r() < 0.75) set(x, 14 + (x % 2 && r() < 0.3 ? 1 : 0), 2);     // a mouth
+  }
+  let n = 0; for (const v of g) if (v) n++;
+  if (n < 70) for (let y = 2; y < TH - 2; y++) { set(HW, y, g[y * TW + HW] || 1); if (y % 2) set(HW - 1, y, g[y * TW + HW - 1] || 1); set(HW - 2, y, g[y * TW + HW - 2] || (y % 3 ? 1 : 0)); }
+  t = trophyFinish(sd, g, fam, TW, TH, r, 2);
   trophyCache.set(sd, t); return t;
 }
 function drawTrophy(c2, t, x, y, k, only) {      // x, y = top-left; k = pixel size; `only` limits it to some columns (for the reels)
-  const g = t.g;
+  const g = t.g, w = t.w, h = t.h, o = t.v === 1 ? 1 : Math.max(0.6, k * 0.6);     // outline thickness
   c2.fillStyle = t.out;
-  for (let yy = 0; yy < 11; yy++) for (let xx = 0; xx < 9; xx++) if (g[yy * 9 + xx] && (!only || only(xx))) c2.fillRect(x + xx * k - 1, y + yy * k - 1, k + 2, k + 2);
-  for (let yy = 0; yy < 11; yy++) for (let xx = 0; xx < 9; xx++) { const v = g[yy * 9 + xx]; if (!v || (only && !only(xx))) continue; c2.fillStyle = v === 1 ? t.body : v === 2 ? t.accent : t.eye; c2.fillRect(x + xx * k, y + yy * k, k, k); }
+  for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) if (g[yy * w + xx] && (!only || only(xx))) c2.fillRect(x + xx * k - o, y + yy * k - o, k + 2 * o, k + 2 * o);
+  for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) { const v = g[yy * w + xx]; if (!v || (only && !only(xx))) continue; c2.fillStyle = v === 1 ? t.body : v === 2 ? t.accent : v === 3 ? t.eye : t.out; c2.fillRect(x + xx * k, y + yy * k, k, k); }
 }
 let cab = [];                                  // the cabinet: [{ s: seed, d: depth, c: cave, t: time }]
 function loadCab(id) { try { const sv = JSON.parse(localStorage.getItem(keyFor(id, 'wetink_cabinet')) || '[]'); if (Array.isArray(sv)) return sv.filter(e => e && typeof e.s === 'number'); } catch (e) {} return []; }
@@ -1996,7 +1665,7 @@ const cabLocal = () => { try { localStorage.setItem(pkey('wetink_cabinet'), JSON
 let cloudRef = null, cloudBusy = false, cloudDirty = false, cloudTried = false;
 function mergeCab(list) {
   const have = new Set(cab.map(e => e.s + ':' + e.t)); let added = 0;
-  for (const e of list || []) if (e && typeof e.s === 'number' && !have.has(e.s + ':' + e.t)) { cab.push(Object.assign({ s: e.s >>> 0, d: e.d | 0, c: e.c | 0, t: e.t | 0 }, e.b ? { b: 1, n: String(e.n || '').slice(0, 90) } : {})); added++; }
+  for (const e of list || []) if (e && typeof e.s === 'number' && !have.has(e.s + ':' + e.t)) { cab.push(Object.assign({ s: e.s >>> 0, d: e.d | 0, c: e.c | 0, t: e.t | 0 }, e.v ? { v: e.v | 0 } : {}, e.p ? { p: String(e.p).slice(0, 60) } : {}, e.b ? { b: 1, n: String(e.n || '').slice(0, 90) } : {})); added++; }
   if (added) cab.sort((a, b) => a.t - b.t);
   return added;
 }
@@ -2032,11 +1701,12 @@ function usePlayer(id) {                    // switch who is playing: their best
 function winTrophy(tr) {
   tr.taken = true; stats.trophies++;
   const t = mkTrophy(tr.seed), now = performance.now();
-  cab.push({ s: tr.seed, d: Math.max(0, Math.round((tr.y - bands[0].F * CELL) / M)), c: seed, t: Math.floor(Date.now() / 1000) });
+  const place = 'of ' + regionAt(tr.y).name;
+  cab.push({ s: tr.seed, v: 2, p: place, d: Math.max(0, Math.round((tr.y - bands[0].F * CELL) / M)), c: seed, t: Math.floor(Date.now() / 1000) });
   cabLocal(); cloudSave(); hudC = {};
-  for (let yy = 0; yy < 11; yy++) for (let xx = 0; xx < 9; xx++) { const v = t.g[yy * 9 + xx]; if (v) particles.push({ x: tr.x - 9 + xx * 2, y: tr.y - 28 + yy * 2, vx: (xx - 4) * 26 + (Math.random() - 0.5) * 30, vy: (yy - 7) * 22 - 40, life: 0.9, max: 0.9, col: v === 1 ? t.body : v === 2 ? t.accent : t.eye, sz: 2.5 }); }
+  for (let yy = 0; yy < t.h; yy++) for (let xx = 0; xx < t.w; xx++) { const v = t.g[yy * t.w + xx]; if (v && (t.v === 1 || (xx + yy) % 2 === 0)) particles.push({ x: tr.x - t.w * t.k / 2 + xx * t.k, y: tr.y - 28 + yy * t.k, vx: (xx - t.w / 2) * 26 * (2 / t.w * 4.5) + (Math.random() - 0.5) * 30, vy: (yy - t.h * 0.65) * 22 * (11 / t.h) - 40, life: 0.9, max: 0.9, col: v === 1 ? t.body : v === 2 ? t.accent : v === 3 ? t.eye : t.out, sz: 2.5 }); }
   popup(tr.x, tr.y - 34, 'Trophy!', '#a37612'); sfx.trophy();
-  reelQ.push({ t, at: 0 });
+  reelQ.push({ t, place, at: 0 });
   freezeUntil = now + 90; slowUntil2 = now + 1100;       // a held breath, then a second of slow motion
 }
 function drawTrophyInWorld(tr) {
@@ -2046,7 +1716,7 @@ function drawTrophyInWorld(tr) {
   for (let k = 0; k < 6; k++) { ctx.rotate(Math.PI / 3); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-4, -23); ctx.lineTo(4, -23); ctx.fill(); }
   ctx.restore();
   ctx.fillStyle = 'rgba(255,241,184,.5)'; ctx.beginPath(); ctx.arc(x, y + 11, 13, 0, 7); ctx.fill();
-  drawTrophy(ctx, t, x - 9, y, 2);
+  drawTrophy(ctx, t, x - t.w * t.k / 2, y, t.k);
   ctx.fillStyle = '#7a6a4a'; ctx.fillRect(x - 6, tr.y - 4, 12, 4); ctx.fillStyle = '#a8997c'; ctx.fillRect(x - 7, tr.y - 5, 14, 1.5);
   if (Math.sin(T * 6 + tr.x * 0.3) > 0.8) { ctx.fillStyle = '#fff'; ctx.fillRect(x + 8, y - 2, 2, 2); }
 }
@@ -2054,60 +1724,74 @@ function drawReel(now) {                       // top-left: three reels spin and
   const cur = reelQ[0]; if (!cur) return;
   if (!cur.at) { cur.at = now; sfx.reel(); }
   const el = now - cur.at; if (el > 4600) { reelQ.shift(); return; }
-  const t = cur.t, k = 6, bx = 10, by = 10, fade = el > 4100 ? 1 - (el - 4100) / 500 : 1;
+  const t = cur.t, k = t.v === 1 ? 6 : 3, bx = 10, by = 10, fade = el > 4100 ? 1 - (el - 4100) / 500 : 1, th = Math.ceil(t.w / 3);     // th: columns per reel
   ctx.globalAlpha = fade;
-  ctx.fillStyle = 'rgba(255,253,246,.96)'; rr(bx, by, 9 * k + 18, 11 * k + 18, 9); ctx.fill(); ctx.strokeStyle = '#c98a00'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,253,246,.96)'; rr(bx, by, t.w * k + 18, t.h * k + 18, 9); ctx.fill(); ctx.strokeStyle = '#c98a00'; ctx.lineWidth = 2; ctx.stroke();
   const ox = bx + 9, oy = by + 9, cols = [t.body, t.accent, t.out, null, null];
   for (let j = 0; j < 3; j++) {
     const lock = 500 + j * 300;
     if (el >= lock) {
-      drawTrophy(ctx, t, ox, oy, k, xx => xx >= j * 3 && xx < j * 3 + 3);
-      if (el - lock < 130) { ctx.fillStyle = `rgba(255,255,255,${0.8 * (1 - (el - lock) / 130)})`; ctx.fillRect(ox + j * 3 * k, oy, 3 * k, 11 * k); }
+      drawTrophy(ctx, t, ox, oy, k, xx => xx >= j * th && xx < j * th + th);
+      if (el - lock < 130) { ctx.fillStyle = `rgba(255,255,255,${0.8 * (1 - (el - lock) / 130)})`; ctx.fillRect(ox + j * th * k, oy, Math.min(th, t.w - j * th) * k, t.h * k); }
     } else {
       const fr2 = Math.floor(el / 55);
-      for (let yy = 0; yy < 11; yy++) for (let xx = j * 3; xx < j * 3 + 3; xx++) { const c = cols[(hash2(xx * 31 + ((yy + fr2 * (j + 2)) % 23) * 7 + fr2 * 3, 77) * cols.length) | 0]; if (c) { ctx.fillStyle = c; ctx.fillRect(ox + xx * k, oy + yy * k, k, k); } }
+      for (let yy = 0; yy < t.h; yy++) for (let xx = j * th; xx < Math.min(t.w, j * th + th); xx++) { const c = cols[(hash2(xx * 31 + ((yy + fr2 * (j + 2)) % 23) * 7 + fr2 * 3, 77) * cols.length) | 0]; if (c) { ctx.fillStyle = c; ctx.fillRect(ox + xx * k, oy + yy * k, k, k); } }
     }
-    if (j) { ctx.fillStyle = 'rgba(201,138,0,.35)'; ctx.fillRect(ox + j * 3 * k - 0.5, oy - 3, 1, 11 * k + 6); }
+    if (j) { ctx.fillStyle = 'rgba(201,138,0,.35)'; ctx.fillRect(ox + j * th * k - 0.5, oy - 3, 1, t.h * k + 6); }
   }
   if (el > 1150) {
-    const a = Math.min(1, (el - 1150) / 250), tx = bx + 9 * k + 28;
+    const a = Math.min(1, (el - 1150) / 250), tx = bx + t.w * k + 28;
     ctx.globalAlpha = fade * a; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,253,246,.95)';
     ctx.font = '800 16px system-ui'; ctx.strokeText(t.name, tx, by + 14); ctx.fillStyle = '#23211e'; ctx.fillText(t.name, tx, by + 14);
-    ctx.font = '600 13px system-ui'; ctx.strokeText(t.place, tx, by + 36); ctx.fillStyle = '#766c5b'; ctx.fillText(t.place, tx, by + 36);
+    const pl = cur.place || t.place; ctx.font = '600 13px system-ui'; ctx.strokeText(pl, tx, by + 36); ctx.fillStyle = '#766c5b'; ctx.fillText(pl, tx, by + 36);
     if (el < 2200) for (let q = 0; q < 6; q++) { const ph = (el / 420 + q / 6) % 1; ctx.fillStyle = `rgba(217,165,20,${1 - ph})`; ctx.fillRect(bx + 36 + Math.cos(q * 1.05 + 0.3) * ph * 62, by + 42 + Math.sin(q * 1.05 + 0.3) * ph * 62, 3, 3); }
   }
   ctx.globalAlpha = 1;
 }
+let backTo = null;    // where a page opened from the menu returns to
 function showCabinet() {
   if (hand) return;
   const wasPaused = paused; if (state === 'play' && !paused) togglePause();
   const list = cab.slice(-240).reverse();
   overlay.className = homeOpen ? 'homebg' : '';
   overlay.innerHTML = '<div class="cab"><h2>Trophies <small>' + cab.length + '</small></h2><p>' + (cloudRef ? 'Kept in your Claude account, and in this browser.' : 'Kept in this browser on this device.') + (cab.length > list.length ? ' Showing the newest ' + list.length + '.' : '') + '</p>' +
-    (list.length ? '<div class="cgrid">' + list.map((e, i) => { const t = mkTrophy(e.s), esc = v => String(v).replace(/[&<>]/g, ''), bn = e.b ? esc(e.n || '').split('|') : null; return `<div class="tcard${e.b ? ' boss' : ''}"><canvas width="66" height="78" data-i="${i}"></canvas>${e.b ? '<em>Boss</em>' : ''}<b>${bn ? bn[0] : t.name}</b><span>${bn ? bn[1] || '' : t.place}</span><small>${e.d} m · cave ${e.c}</small></div>`; }).join('') + '</div>'
+    (list.length ? '<div class="cgrid">' + list.map((e, i) => { const t = mkTrophy(e.s, e.v || 1), esc = v => String(v).replace(/[&<>]/g, ''), bn = e.b ? esc(e.n || '').split('|') : null; return `<div class="tcard${e.b ? ' boss' : ''}"><canvas width="66" height="78" data-i="${i}"></canvas>${e.b ? '<em>Boss</em>' : ''}<b>${bn ? bn[0] : t.name}</b><span>${bn ? bn[1] || '' : esc(e.p || t.place)}</span><small>${e.d} m · cave ${e.c}</small></div>`; }).join('') + '</div>'
                  : '<p class="empty">Nothing here yet. Trophies wait in out-of-the-way places: on top of formations, on high shelves, and at the summit of the giant in each chamber.</p>') +
     '<div class="row"><button class="primary" id="cDone">Close</button></div></div>';
-  overlay.querySelectorAll('canvas').forEach(cv2 => { const c2 = cv2.getContext('2d'); drawTrophy(c2, mkTrophy(list[+cv2.dataset.i].s), 6, 6, 6); });
-  $('cDone').onclick = () => backOut(wasPaused);
+  overlay.querySelectorAll('canvas').forEach(cv2 => { const c2 = cv2.getContext('2d'), e = list[+cv2.dataset.i], t = mkTrophy(e.s, e.v || 1); drawTrophy(c2, t, t.v === 1 ? 6 : 4.5, t.v === 1 ? 6 : 4.5, t.v === 1 ? 6 : 3); });
+  $('cDone').onclick = () => { if (backTo) { const f = backTo; backTo = null; f(); } else backOut(wasPaused); };
 }
 
 // ---------------- bosses: a sealed arena every few hundred metres ----------------
-const B_NAMES = ['Old Sorrow', 'Mother Rook', 'Widow Caw', 'Queen Tatter', 'Hackle', 'The Dowager', 'Long Nell', 'Sister Pinion', 'Auntie Moult', 'Lady Soot', 'Grandmother Gale', 'Dame Cinder'];
-const P_NAMES = ['Knuckle', 'Gravel', 'Thud', 'Rubble', 'Mortar', 'Slab', 'Grist', 'Anvil', 'Cobble', 'Bulwark', 'Boulder', 'Hammer'];
 const bossBusy = () => !!boss && boss.phase !== 'done';
 // strata: each arena you pass lets one more ordinary enemy turn up at once, in rotation
 const extraBirds = () => Math.min(3, Math.ceil(stratum / 3)), extraBrutes = () => Math.min(3, Math.floor((stratum + 1) / 3)), extraLeeches = () => Math.min(3, Math.floor(stratum / 3));
 const inRoom = (A, w) => w.alive && w.y > A.ceilY + 8 && w.y <= A.floorY + 6;
+// Boss names are built from parts, so no two runs meet the same cast. Matriarchs are old birds with family titles; Wyrms are
+// hungers; Crowns are things that hang; Queens drink; Golems are dry; Rivals are pens. Higher tiers earn an epithet.
+const pick = (r, a) => a[r() * a.length | 0];
+const BN = {
+  birdTitle: ['Mother', 'Widow', 'Dame', 'Auntie', 'Sister', 'Grandmother', 'Lady', 'Old', 'Queen', 'Madam', 'Cousin', 'Great-Aunt'],
+  bird: ['Rook', 'Caw', 'Tatter', 'Pinion', 'Moult', 'Soot', 'Gale', 'Cinder', 'Hackle', 'Quill', 'Shriek', 'Talon', 'Mourn', 'Nettle', 'Bramble', 'Sorrow', 'Nell', 'Gullet', 'Wren', 'Crake'],
+  wyrmA: ['Old', 'Mother', 'Grandfather', 'Sister', 'Deep', 'Long', 'Blind', 'Root'], wyrmB: ['Gnaw', 'Burrow', 'Hunger', 'Tooth', 'Mouth', 'Delve', 'Gullet', 'Furrow', 'Grind', 'Tunnel', 'Swallow', 'Maw', 'Gristle', 'Wormwood'],
+  crownA: ['Hanging', 'Needle', 'Thorned', 'Low', 'Glass', 'Weeping', 'Iron', 'Hundred-Toothed', 'Patient', 'Dripping', 'Hollow', 'Salt'], crownB: ['Court', 'Throne', 'Crown', 'Chandelier', 'Ceiling', 'Canopy', 'Rain', 'Tiara', 'Halo'],
+  queenA: ['Mother', 'Lady', 'Madam', 'Queen', 'Great-Aunt', 'Old', 'Duchess', 'Saint'], queenB: ['Sup', 'Mire', 'Sip', 'Ooze', 'Slake', 'Gulp', 'Seep', 'Quaff', 'Brine', 'Dregs', 'Swill', 'Tipple'],
+  golem: ['Pumice', 'Chalk', 'Thirst', 'Dust', 'Blotter', 'Drywall', 'Plaster', 'Pith', 'Felt', 'Cork', 'Loofah', 'Clay'], golemT: ['the Dry', 'the Parched', 'the Thirsty', 'Father', 'Old', 'the Hollow', 'the Patient', 'the Porous'],
+  rivalA: ['Red', 'Scarlet', 'Crimson', 'Rust', 'Correcting', 'Second', 'Other', 'Left', 'Teacher\'s', 'Editor\'s', 'Careless', 'Borrowed'], rivalB: ['Pen', 'Quill', 'Hand', 'Stroke', 'Line', 'Draft', 'Margin', 'Mark', 'Brush', 'Pencil'],
+  pack: ['Knuckle', 'Gravel', 'Thud', 'Rubble', 'Mortar', 'Slab', 'Grist', 'Anvil', 'Cobble', 'Bulwark', 'Boulder', 'Hammer', 'Shale', 'Flint', 'Clod', 'Tumble'],
+  epithet: ['the Elder', 'the Patient', 'the Twice-Returned', 'of the Low Road', 'the Unhurried', 'Who Waits', 'the Third', 'the Fourth', 'Again', 'the Famished', 'the Undrowned', 'the Ninth'],
+};
+function matriarchName(r) { const u = r(); return u < 0.55 ? pick(r, BN.birdTitle) + ' ' + pick(r, BN.bird) : u < 0.8 ? 'The ' + pick(r, ['Dowager', 'Matron', 'Abbess', 'Crone', 'Governess', 'Beldam']) + ' ' + pick(r, BN.bird) : 'Long ' + pick(r, BN.bird); }
 function nameBoss(A) {
-  const r = mulberry32(A.seed), place = T_PLACE[r() * T_PLACE.length | 0];
-  if (A.type === 'pack') { A.count = Math.min(6, 2 + A.tier); A.title = 'The ' + P_NAMES[r() * P_NAMES.length | 0] + ' Pack'; A.sub = A.count + ' Brutes of ' + place; }
-  else if (A.type === 'wyrm') { A.title = W_NAMES[r() * W_NAMES.length | 0]; A.sub = 'Wyrm of ' + place; }
-  else if (A.type === 'crown') { A.title = C_NAMES[r() * C_NAMES.length | 0]; A.sub = 'Crown of ' + place; }
-  else if (A.type === 'queen') { A.title = Q_NAMES[r() * Q_NAMES.length | 0]; A.sub = 'Leech Queen of ' + place; }
-  else if (A.type === 'golem') { A.title = G_NAMES[r() * G_NAMES.length | 0]; A.sub = 'Sponge Golem of ' + place; }
-  else if (A.type === 'rival') { A.title = R_NAMES[r() * R_NAMES.length | 0]; A.sub = 'Rival of ' + place; }
-  else if (A.type === 'twins') { const i1 = r() * B_NAMES.length | 0, i2 = (i1 + 1 + (r() * (B_NAMES.length - 1) | 0)) % B_NAMES.length; A.title = B_NAMES[i1].replace(/^The /, '') + ' & ' + B_NAMES[i2].replace(/^The /, ''); A.sub = 'Twin Matriarchs of ' + place; }
-  else { A.title = B_NAMES[r() * B_NAMES.length | 0]; A.sub = 'Matriarch of ' + place; }
+  const r = mulberry32(A.seed), place = regionAt(A.ceilY).name, ep = A.tier >= 2 && r() < 0.6 ? ' ' + pick(r, BN.epithet) : '';
+  if (A.type === 'pack') { A.count = Math.min(6, 2 + A.tier); A.title = 'The ' + pick(r, BN.pack) + (r() < 0.3 ? '-' + pick(r, BN.pack) : '') + ' Pack'; A.sub = A.count + ' Brutes of ' + place; }
+  else if (A.type === 'wyrm') { A.title = (r() < 0.7 ? pick(r, BN.wyrmA) + ' ' : 'The ') + pick(r, BN.wyrmB) + ep; A.sub = 'Wyrm of ' + place; }
+  else if (A.type === 'crown') { A.title = 'The ' + pick(r, BN.crownA) + ' ' + pick(r, BN.crownB) + ep; A.sub = 'Crown of ' + place; }
+  else if (A.type === 'queen') { A.title = pick(r, BN.queenA) + ' ' + pick(r, BN.queenB) + ep; A.sub = 'Leech Queen of ' + place; }
+  else if (A.type === 'golem') { const g = pick(r, BN.golem), t = pick(r, BN.golemT); A.title = t.startsWith('the') ? g + ' ' + t : t + ' ' + g + ep; A.sub = 'Sponge Golem of ' + place; }
+  else if (A.type === 'rival') { A.title = 'The ' + pick(r, BN.rivalA) + ' ' + pick(r, BN.rivalB) + ep; A.sub = 'Rival of ' + place; }
+  else if (A.type === 'twins') { let a = matriarchName(r), b; do b = matriarchName(r); while (b === a); A.title = a + ' & ' + b; A.sub = 'Twin Matriarchs of ' + place; }
+  else { A.title = matriarchName(r) + ep; A.sub = 'Matriarch of ' + place; }
 }
 function eraseInk(x, y, rad, keepTough) {              // ink torn away at once; unbreakable ink can be spared
   const c0 = Math.max(0, (x - rad) >> 2), c1 = Math.min(COLS - 1, (x + rad) >> 2), r0 = Math.max(0, (y - rad) >> 2), r1 = (y + rad) >> 2;
@@ -2127,7 +1811,7 @@ function openGate(A) {
 }
 function endFight(won, why) {
   const A = boss.A, m = boss.m;
-  boss.phase = 'done'; boss.t = 0; boss.won = won; A.state = 'done'; A.won = won; stratum++; hudC = {};
+  boss.phase = 'done'; boss.t = 0; boss.won = won; A.state = 'done'; A.won = won; stratum++; hudC = {}; carveStratum(A.floorY + 36);
   for (let i = brutes.length - 1; i >= 0; i--) if (brutes[i].pack) { const b = brutes[i]; puff(b.x, b.y - 10, '#a8997c', 16, 160); brutes.splice(i, 1); }     // any Brutes left dig themselves away
   if (m && m.state !== 'dead') { m.state = 'leave'; m.path = null; sfx.flutter(); }
   if (BOSSX[A.type] && BOSSX[A.type].end) BOSSX[A.type].end(boss, A, won);
@@ -2381,14 +2065,9 @@ function drawBossBar() {                               // screen space, along th
   ctx.fillStyle = boss.clock < 15 && Math.sin(T * 10) > 0 ? '#d6402b' : '#7d1741'; ctx.fillRect(x + 12, y + 27, (w - 24) * k, 5);
 }
 
-const W_NAMES = ['Old Gnaw', 'The Undermaw', 'Mother Burrow', 'Grub King', 'The Delver', 'Sister Tunnel', 'Gristle', 'The Long Hunger', 'Root-Eater', 'Wormwood', 'Deep Tooth', 'The Quiet Mouth'];
 // ---------------- more arena bosses: each is { start, update, draw, end } ----------------
 const BOSSX = {};
 const ARENA_TYPES = ['matriarch', 'wyrm', 'crown', 'queen', 'golem', 'rival', 'twins'], EVENT_KINDS = ['raid', 'flock', 'swarm', 'drought', 'grinder', 'stampede'];
-const C_NAMES = ['The Hanging Court', 'Old Chandelier', 'The Needle Throne', 'Rain-of-Teeth', 'The Stalactite King', 'The Thorned Crown', 'Drip-Drip', 'The Low Ceiling'];
-const Q_NAMES = ['Mother Sup', 'The Thirsty Queen', 'Lady Mire', 'Queen Sip', 'Great-Aunt Ooze', 'The Green Widow', 'Madam Slake', 'Old Gulper'];
-const G_NAMES = ['Pumice', 'The Dry Giant', 'Old Blotter', 'Thirst', 'The Parched One', 'Chalk', 'Dust-Father', 'Drywall'];
-const R_NAMES = ['The Red Pen', 'The Other Hand', 'The Corrector', 'Scarlet Quill', 'The Strikethrough', 'Marginalia', 'The Censor', 'Second Draft'];
 let arenaOrder = [], roamOrder = [];
 function buildOrders() {            // which boss and which event comes when: shuffled from the cave seed
   const sh = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = boRng() * (i + 1) | 0, t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
@@ -2643,7 +2322,7 @@ const evKind = () => raidOn() ? raid.kind : '';
 const droughtOn = () => raidOn() && raid.kind === 'drought' && raid.t > 2.5;
 const EV_COL = { raid: '#9a3412', stampede: '#c2410c', flock: '#23211e', swarm: '#2f6b3a', drought: '#a37612', grinder: '#4a4032' };
 function nameRaid(R) {
-  const r = mulberry32(R.seed), place = T_PLACE[r() * T_PLACE.length | 0], pn = P_NAMES[r() * P_NAMES.length | 0], adj = T_ADJ[r() * T_ADJ.length | 0], k = R.k; R.kind = R.kind || 'raid';
+  const r = mulberry32(R.seed), place = regionAt(R.row * CELL).name, pn = BN.pack[r() * BN.pack.length | 0], adj = T_ADJ[r() * T_ADJ.length | 0], k = R.k; R.kind = R.kind || 'raid';
   if (R.kind === 'raid') {
     R.count = Math.min(5, 2 + k); R.ragers = k >= 2 ? Math.min(R.count, k - 1) : 0; R.title = 'The ' + pn + ' Warband'; R.goal = 'leave them all behind';
     R.sub = (R.count - R.ragers ? (R.count - R.ragers) + (R.count - R.ragers === 1 ? ' Brute' : ' Brutes') : '') + (R.ragers && R.count - R.ragers ? ' and ' : '') + (R.ragers ? R.ragers + (R.ragers === 1 ? ' Rager' : ' Ragers') : '') + ' of ' + place;
@@ -2659,7 +2338,7 @@ function announceStratum() {
   say('Stratum ' + (stratum + 1) + ': ' + more + (TUNE.strataCost && handCost() > Math.min(TUNE.handMax, TUNE.handCost + TUNE.handStep * handN + TUNE.strataCost * was) ? ', hands cost ' + handCost() : ''), '#1c2d6b');
 }
 function finishEvent(R, won, note) {
-  R.state = 'done'; R.t = 0; R.won = won; stratum++; hudC = {};
+  R.state = 'done'; R.t = 0; R.won = won; stratum++; hudC = {}; carveStratum(maxY + 44);
   if (won) {
     stats.raids++; pendingChest++; sfx.bossWin();
     const now = performance.now(); freezeUntil = now + 100; slowUntil2 = now + 1100;
@@ -2872,8 +2551,8 @@ function drawWyrm(w) {
 const levelFor = (k, n) => k === 'tough' ? (n >= 3 ? TUNE.toughMaxFor : n === 2 ? TUNE.toughL2For : TUNE.toughL1For) : (n >= 3 ? TUNE.burstFor : n === 2 ? TUNE.lvl2For : TUNE.lvl1For);
 const say = (text, col) => { notes.push({ text, col: col || '#23211e', life: 2.4 }); if (notes.length > 3) notes.shift(); };
 const CARD_TEXT = {
-  last: ['', 'Ink lives 6 s', 'Ink lives 10 s, and each layer adds 3 s', 'Ink holds until this timer ends, then all of it dries at once'],
-  wide: ['', 'Brush twice as wide', 'Brush over three times as wide', 'A giant roller: one swipe is a highway'],
+  last: ['', 'Ink lives 11 s instead of 8', 'Ink lives 16 s, and each layer adds 3 s', 'Everything you draw holds until 16 s after this timer ends, then all of it dries at once'],
+  wide: ['', 'A broad, soft brush: a fall onto wide ink can be half again as long', 'Falls onto wide ink can be 2\u00bd times as long, and never daze', 'Pillow: no fall onto wide ink hurts, and a long drop sends blots off running'],
   tough: ['', 'Brutes chew it half as fast', 'Brutes cannot chew it. Leeches drink a third less', 'Crusher: shut any enemy inside ink and it is squeezed out of the cave. Unbreakable too'],
 };
 const ICON = {
@@ -2925,7 +2604,7 @@ function pickCard(i) {
   } else if (k === 'echo') { echoN = Math.max(echoN, T) + TUNE.specialFor; say('Echo: ' + Math.round(echoN - T) + ' s', '#1a8fa8'); sfx.burst(); }
   else if (k === 'res') { resUntil = T + TUNE.resFor; inkLeft = inkCap(); say('Reservoir: bigger ink tank', '#1f7a6f'); sfx.pickup(1); }
   else if (lvl[k] < 2) { lvl[k]++; until[k] = T + levelFor(k, lvl[k]); say(NAME[k] + ' ' + lvl[k], TCOL[k]); sfx.levelUp(lvl[k]); }
-  else { burst[k] = T + levelFor(k, 3); burstOn[k] = true; say(k === 'tough' ? 'Tough MAX: shut enemies in ink to squeeze them out!' : NAME[k] + ' MAX!', TCOL[k]); sfx.burst(); shakeT = Math.max(shakeT, 0.15); }
+  else { burst[k] = T + levelFor(k, 3); burstOn[k] = true; say(k === 'tough' ? 'Strong MAX: shut enemies in ink to squeeze them out!' : NAME[k] + ' MAX!', TCOL[k]); sfx.burst(); shakeT = Math.max(shakeT, 0.15); }
 }
 function updateEchoes() {          // as each part of an echoed line is really gone, fresh ink pours back into its outline, for as long again
   for (let i = echoes.length - 1; i >= 0; i--) {
@@ -3030,16 +2709,15 @@ function newWorld(s) {
   drops = 0; hand = null; fadeY = -1e9; flockHigh = 0; slime = new Map(); notes = [];
   pickups = []; birds = []; popups = []; queue = []; nextBird = 0; slowUntil = 0; shakeT = 0; stepAcc = 0; tickN = 0;
   rings = []; brutes = []; nextBrute = 0; leeches = []; nextLeech = 0;
-  arenas = []; boss = null; raids = []; raid = null; stratum = 0; boRng = mulberry32(seed ^ 0x0b055e5); bossFirst = boRng() < 0.5 ? 0 : 1; nextBoss = 20 + Math.round(TUNE.bossEvery * 4 * (0.82 + boRng() * 0.18)); buildOrders();
+  arenas = []; boss = null; raids = []; raid = null; stratum = 0; carvings = []; recordAt = best; regions = []; regRng = mulberry32(seed ^ 0x7e91a); boRng = mulberry32(seed ^ 0x0b055e5); bossFirst = boRng() < 0.5 ? 0 : 1; nextBoss = 20 + Math.round(TUNE.bossEvery * 4 * (0.82 + boRng() * 0.18)); buildOrders();
   forms = []; trophies = []; chRng = mulberry32(seed ^ 0x0c4a3be); nextChamber = 400 + (chRng() * 200 | 0); reelQ = []; slowUntil2 = 0; freezeUntil = 0;
   wick = []; crumbles = []; spikes = []; stakes = []; mushrooms = []; biomes = []; biomeRng = mulberry32(seed ^ 0x0b10e5); rowPal = new Map(); walkRng = mulberry32(seed ^ 0x5bd1e995); drawing = false;
-  stats = { pickups: 0, birds: 0, blocks: 0, rescues: 0, blasts: 0, brutes: 0, knocked: 0, leeches: 0, drained: 0, bounces: 0, spikes: 0, collapses: 0, drops: 0, hands: 0, faded: 0, chests: 0, trophies: 0, crushed: 0, bosses: 0, raids: 0 }; fxDone = 0; retreats = [];
+  stats = { softLands: 0, pickups: 0, birds: 0, blocks: 0, rescues: 0, blasts: 0, brutes: 0, knocked: 0, leeches: 0, drained: 0, bounces: 0, spikes: 0, collapses: 0, drops: 0, hands: 0, faded: 0, chests: 0, trophies: 0, crushed: 0, bosses: 0, raids: 0 }; fxDone = 0; retreats = [];
   for (let k = 0; k < TUNE.walkers; k++) queue.push({ T: 0.6 + k * TUNE.spawnEvery, x: HATCH_X, y: HATCH_Y, dir: 1 });
   deathLog = []; T = 0; inkLeft = TUNE.inkMax; camY = 0; autoOff = 0; panY = 0; viewY = 0; viewV = 0; jumpTo = null; catchS = 0; groupsNow = []; camX = Math.max(0, Math.min(W - VW, HATCH_X - VW * 0.3)); maxY = 0; accT = 0; paused = false;
   genBand();
-  $('bPause').textContent = 'Pause';
 }
-function startGame(s) { leaveHome(); sfx.init(); cloudInit(); newWorld(s); state = 'play'; overlay.className = 'hide'; hudC = {}; }
+function startGame(s) { leaveHome(); backTo = null; sfx.init(); cloudInit(); newWorld(s); state = 'play'; overlay.className = 'hide'; hudC = {}; }
 function gameOver() {
   state = 'over'; cur = null;
   const d = depthM(), isBest = d > best;
@@ -3069,16 +2747,28 @@ function abandonRun() {                                    // end the paused run
   const d = depthM(); if (d > best) { best = d; saveBest(); }
   newWorld(randSeed()); state = 'ready'; hudC = {};
 }
+let phoneWarned = false;
 function showHome() {
-  if (hand) return;
+  if (hand) return; backTo = null;
   if (state === 'play' && !paused) togglePause();
   homeOpen = true; document.body.classList.add('athome');
+  if (compact && !phoneWarned && state !== 'play') {        // a phone: say so once. It is a mouse-drawing game, made for a big screen
+    phoneWarned = true; cur = null; drawing = false;
+    overlay.className = 'homebg';
+    overlay.innerHTML = `<div class="card"><h2>Wet Ink wants a bigger screen</h2>
+      <p style="margin:4px 0 10px">This is a drawing game: it is made for a computer with a mouse, or a tablet. On a phone the cave is too small to see the dangers coming.</p>
+      <p class="small" style="margin:0 0 14px">Open <b>${SHARE_URL.replace('https://', '')}</b> on a computer or tablet.</p>
+      <div class="row"><button class="primary" id="kYes">Try anyway</button><button id="kNo">Copy the link</button></div></div>`;
+    $('kYes').onclick = showHome;
+    $('kNo').onclick = async () => { try { await navigator.clipboard.writeText(SHARE_URL); $('kNo').textContent = 'Copied'; } catch (e) { $('kNo').textContent = SHARE_URL.replace('https://', ''); } };
+    return;
+  }
   cur = null; drawing = false;
   const run = runWaiting(), pl = curPlayer(), many = profiles.list.length > 1 || pl.name !== 'Player 1';
   overlay.className = 'homebg';
   overlay.innerHTML = `<div class="home">
     <div class="corner l"><button id="hPlayer" title="Players">${many ? '&#9786; ' + escH(pl.name) + ' &#9662;' : '+ Add player'}</button></div>
-    <div class="corner r"><button id="hMusic" title="Music (N)">Music ${music.isOn() ? 'on' : 'off'}</button><button id="hSound" title="Sound (M)">&#9834; ${soundOn ? 'on' : 'off'}</button></div>
+    <div class="corner r"><button id="hSound" title="Sound (M)">&#9834; ${soundOn ? 'on' : 'off'}</button></div>
     <div class="left">${TITLE_ART.length ? `<img class="title" id="hArt" alt="Wet Ink" src="${escH(TITLE_ART[0])}">` : '<canvas class="title" id="hArt" width="256" height="128" aria-label="Wet Ink"></canvas>'}
     <div class="bestline">${many ? escH(pl.name) + ' · ' : ''}Best <b>${best} m</b>${run ? ' · this run <b>' + depthM() + ' m</b>' : ''}</div></div>
     <div class="menu">
@@ -3087,7 +2777,7 @@ function showHome() {
       <button id="hCab">Trophies <small>${cab.length}</small></button>
       <button id="hShare">Share with QR code</button>
     </div>
-    <div class="ver">test 32</div></div>`;
+    <div class="ver">${VERSION}</div></div>`;
   $('hGo').onclick = () => { if (runWaiting()) { leaveHome(); overlay.className = 'hide'; if (paused) togglePause(); } else startGame(state === 'ready' ? seed : randSeed()); };
   if (run) $('hNew').onclick = () => confirmCard('Start a new game?', `Your current run (${depthM()} m) will end. Its depth still counts toward your best.`, 'End run and start', () => { abandonRun(); startGame(seed); }, showHome);
   $('hHelp').onclick = () => showHelp(true);
@@ -3095,7 +2785,6 @@ function showHome() {
   $('hShare').onclick = showShare;
   $('hPlayer').onclick = () => showPlayers();
   $('hSound').onclick = () => { toggleSound(); $('hSound').innerHTML = '&#9834; ' + (soundOn ? 'on' : 'off'); };
-  $('hMusic').onclick = toggleMusic;
   clearInterval(homeTimer); homeFrame = 0; drawTitleFrame();
   homeTimer = setInterval(() => { if (!document.hidden) { homeFrame++; drawTitleFrame(); } }, TITLE_MS);
 }
@@ -3225,18 +2914,17 @@ function showHelp(fromIntro) {
     <li>Birds come after 15 m. Block a dive with ink to stun the bird, then loop it while it's dazed. Three cages send it off.</li>
     <li>Steer clear of the <b style="color:var(--red)">red spiked bombs</b>.</li>
     <li>After 60 m a <b>Brute</b> drops in. It can't be hurt by falls: wall it in with ink and leave it behind above the screen.</li>
-    <li>Collect <b>drops</b>. Four open a hand of three upgrade cards.</li>
-    <li><b>Looking around:</b> two fingers on the screen (or the mouse wheel) slide the view up and down. While paused, drag to look. Looking never changes what the cave does: enemies, the Fade and rewards follow the flock, not your view.</li>
-    <li><b>Cam</b> (or V) picks who runs the camera. <b>Auto</b> follows the flock. <b>Dial</b> and <b>Strip</b> leave it to you, with a control on the right wall: spin the dial, or drag the strip like a page. The arrow buttons above and below it (or the up and down arrow keys) jump straight to a separated group of blots. Leave the view alone with the middle of the flock off screen and, after a warning, it catches up by itself.</li>
+    <li>Collect <b>drops</b>. Four open a hand of three upgrade cards. The three bars at the top are your upgrade trees: each segment is a level, and the lit one drains as its clock runs.</li>
+    <li><b>The camera is yours.</b> The strip on the right wall drags like a page, and the mouse wheel slides the view. The arrow buttons above and below the strip (or the up and down arrow keys) jump straight to a separated group of blots. Leave the view with the middle of the flock off screen and, after a warning, it catches up on its own. Looking never changes what the cave does: enemies, the Fade and rewards follow the flock, not your view.</li>
     <li>Run the tank dry and the pen stays dry for 2 s. Below half a tank, ink refills much faster.</li>
     <li>Don't leave blots far behind: the page above you fades.</li>
     <li><b>&#8962; Home</b> (or H / Esc) pauses the run; Continue picks it up again.</li></ul>
     <h3 style="margin:10px 0 0;font-size:16px">Everything else</h3>
     <ul>
       <li><b>Ink</b> is solid only while wet. A line dries in the order you drew it, so start each stroke where the flock steps first. Ink dries from the outside in: go over a line, or draw lines side by side, and every extra layer adds about 2 s.</li>
-      <li><b>Drops</b> lie around the cave. When you have enough, a hand of three cards opens as soon as you lift your pen; each hand costs a little more than the last. Cards: <b>Lasting</b> (ink lives longer, turning from indigo to wine; at MAX everything you draw holds until the countdown ends, then dries all at once), <b>Wide</b> (a broader brush for the same ink), <b>Tough</b> (glossy ink Brutes and leeches struggle with; lasts 90 s, then 60 s at level 2; at MAX, 30 s in which any enemy you shut inside ink is crushed), <b>Reinforcements</b> (+6 blots), or <b>Reservoir</b> (a bigger, full ink tank for a while).</li>
+      <li><b>Drops</b> lie around the cave. When you have enough, a hand of three cards opens as soon as you lift your pen; each hand costs a little more than the last. Cards: <b>Time</b> (ink lives longer, turning from indigo to wine; at MAX everything you draw holds until 16 s after the countdown ends, then dries all at once), <b>Wide</b> (a broader brush that is also a soft landing: a fall onto wide ink can be 1\u00bd times as long as a deadly one, 2\u00bd times at level 2 with no daze, and at MAX nothing that lands on it is hurt), <b>Strong</b> (glossy ink Brutes and leeches struggle with; lasts 90 s, then 60 s at level 2; at MAX, 30 s in which any enemy you shut inside ink is crushed), <b>Reinforcements</b> (+6 blots), or <b>Reservoir</b> (a bigger, full ink tank for a while).</li>
       <li><b>Chests</b> sit on some gold shelves. A blot that reaches one opens a free hand holding a special card. <b>Echo</b> lasts 20 seconds and sometimes turns up in ordinary hands too: every line you draw leaves a shimmering outline, and as each part of the line dries (or is chewed or drunk), fresh ink pours back into it once, with the same width, toughness and life. Everything you draw lasts twice as long.</li>
-      <li>Every level runs on a clock shown on its chip: level 1 lasts 45 s, level 2 30 s, and MAX is a 15 s burst. When a clock runs out the track steps down one level. Keep finding drops to keep the stack up.</li>
+      <li>Every level runs on its own clock, shown on the bars at the top: level 1 lasts 45 s, level 2 30 s, and MAX is a 15 s burst (Strong runs 90, 60 and 30). When a clock runs out the track steps down one level and that level's clock starts fresh, so taking the next level just before the old one runs out is two for one.</li>
       <li><b>The fade:</b> the page goes blank 60 m above the deepest point the middle of your flock has reached. Blots still up there are lost, and so are Brutes and leeches.</li>
       <li><b>Falls</b> past the red dots kill. A short dash halfway down splits one deadly fall into two safe ones.</li>
       <li><b>Birds</b> (3 health) hover, screech and dive along a red line. Ink across the line stuns them for 4 s. Draw a closed loop around a <i>stunned</i> bird to take a health point; it gets faster each time. A loop around a bird that isn't stunned only holds it. Trapping a bird that carries a blot makes it drop it.</li>
@@ -3261,9 +2949,9 @@ function showHelp(fromIntro) {
       <li><b>Music (test):</b> a placeholder piece that follows the game instead of a script. More instruments join as trouble builds, it turns tense when the flock is in danger, it changes again for a boss, and it stops: for the hush before a boss, after a win, and dead when several blots are lost at once. The small panel at the bottom left shows what it is doing. N switches it off. Tuning (T) has a volume slider and buttons to hear each part.</li>
       <li><b>Bombs</b> are rare and bad. A blot who touches one explodes after 5 s, taking nearby blots and rock with it. Tap it to set it off early, ideally far from the flock.</li>
     </ul>
-    <p class="small">Keys: 1 2 3 pick a card · C trophies · T tuning · Space pause · H or Esc home · V camera · R retry · M sound · N music</p>
+    <p class="small">Keys: 1 2 3 pick a card · Space pause · C trophies · H or Esc home · R retry · M sound · arrows jump between groups</p>
     <div class="row"><button class="primary" id="oBack">${fromIntro || state !== 'play' ? 'Back' : 'Resume'}</button></div></div>`;
-  $('oBack').onclick = () => backOut(wasPaused);
+  $('oBack').onclick = () => { if (backTo) { const f = backTo; backTo = null; f(); } else backOut(wasPaused); };
 }
 
 // ---------------- rendering ----------------
@@ -3335,6 +3023,61 @@ function getChunk(k) {
   chunks.set(k, ch);
   return ch;
 }
+// Carved text: a pale cut with a dark shadow below it, like letters chiselled into the rock. Quiet by design.
+function carve(text, x, y, size, align, alpha) {
+  ctx.font = '700 ' + size + 'px Georgia, "Times New Roman", serif'; ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle';
+  ctx.globalAlpha = alpha == null ? 0.85 : alpha;
+  ctx.fillStyle = 'rgba(255,250,236,.9)'; ctx.fillText(text, x, y - 0.8);
+  ctx.fillStyle = 'rgba(98,84,60,.95)'; ctx.fillText(text, x, y + 0.6);
+  ctx.globalAlpha = 1;
+}
+function carveV(text, x, y, size, alpha) {           // the same cut, running down a wall
+  ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 2); carve(text, 0, 0, size, 'left', alpha); ctx.restore();
+}
+function carveLine(text, x0, y, w, strong) {         // a centred inscription with a hairline cut either side of it
+  const t = text; ctx.font = '700 ' + (strong ? 13 : 12) + 'px Georgia, "Times New Roman", serif';
+  const tw = ctx.measureText(t).width + 26, cxm = x0 + w / 2;
+  ctx.globalAlpha = 0.7; ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(98,84,60,.6)'; ctx.setLineDash([1, 5]); ctx.beginPath(); ctx.moveTo(x0 + 40, y + 0.5); ctx.lineTo(cxm - tw / 2, y + 0.5); ctx.moveTo(cxm + tw / 2, y + 0.5); ctx.lineTo(x0 + w - 40, y + 0.5); ctx.stroke(); ctx.setLineDash([]);
+  carve(t, cxm, y, strong ? 13 : 12, 'center', 0.9);
+}
+// The cave's reaches: every 60 to 140 m a new named stretch begins, its name cut across the rock. Each reach carries a few
+// inscriptions left by whoever came before. Trophies and bosses are "of" the reach they turn up in.
+const INSCR = ['MIND THE DROP', 'BIRDS BELOW', 'HERE BE BRUTES', 'THE PAGE FADES', 'NO INK PAST THIS POINT', 'TURN BACK (WE DID NOT)', 'ONE BLOT CAME BACK', 'FOR THE SEVEN',
+  'DRAW FASTER', 'WET IS SOLID', 'DRY IS AIR', 'THE FLOCK PASSED HERE', 'KEEP LEFT', 'KEEP RIGHT', 'THE INK REMEMBERS', 'WHO DRAWS THE DRAWER', 'COUNT THEM AGAIN', 'WE WERE SIXTEEN',
+  'DO NOT FEED THE LEECH', 'STILL FALLING', 'ALMOST', 'NOT YET', 'DEEPER', 'THIS WAY DOWN', 'SORRY ABOUT THE BOMB', 'I MEANT TO CATCH THAT ONE', 'IT GETS WIDER', 'IT DOES NOT GET EASIER',
+  'THE WALL WAS HERE FIRST', 'LEFT-HANDED PASSAGE', 'A SHORT LINE SAVES A LONG FALL', 'THICK LINES LAST', 'THE BIRD LIES', 'LISTEN FOR THE THUD', 'SIXTEEN WENT DOWN', 'MIND THE GAP IN THE FLOOR',
+  'NOTHING UP THERE NOW', 'THE DRIP KEEPS TIME', 'HOME IS UP', 'NO ONE READS THESE', 'YOU ARE THE PEN', 'WE DREW A DOOR HERE ONCE', 'BRUTES CANNOT READ', 'SPIKES ABOVE', 'SOFT LANDING, THEY SAID'];
+const INSCR_DEEP = ['THE INK IS OLDER THAN THE ROCK', 'EVERY LINE IS A PROMISE', 'THE FLOCK DOES NOT STOP', 'BELOW THIS, ONLY DRAWING', 'THE PAGE HAS NO BOTTOM', 'WE ARE ALL BLOTS',
+  'THE CAVE DRAWS BACK', 'NOBODY HAS BEEN DEEPER (THIS WAS A LIE)', 'THE LAST FERRYMAN TURNED HERE', 'IT IS QUIET IN THE WINE INK', 'DRAW WHAT YOU CAN BEAR TO LOSE'];
+function regionAt(y) {
+  const m = (y - bands[0].F * CELL) / M;
+  while (!regions.length || regions[regions.length - 1].m1 <= m) {
+    const last = regions[regions.length - 1], m0 = last ? last.m1 : 0, len = 60 + (regRng() * 80 | 0);
+    let name; do name = T_PLACE[regRng() * T_PLACE.length | 0]; while (last && name === last.name);
+    const notes = [], n = 1 + (regRng() * 3 | 0);
+    for (let k = 0; k < n; k++) {
+      const u = regRng(), deep = m0 > 400 && u < 0.3, pool = deep ? INSCR_DEEP : INSCR;
+      let text = u > 0.88 ? 'TO ' + T_PLACE[regRng() * T_PLACE.length | 0].toUpperCase() + ' \u2193' : u > 0.8 ? tally(2 + (regRng() * 14 | 0)) : pool[regRng() * pool.length | 0];
+      notes.push({ m: m0 + 10 + regRng() * (len - 20), side: regRng() < 0.5 ? 'L' : 'R', text, size: 9 + (regRng() * 3 | 0) });
+    }
+    regions.push({ m0, m1: m0 + len, name, notes });
+  }
+  let i = regions.length - 1; while (regions[i].m0 > m) i--;
+  return regions[i];
+}
+function tally(n) { let s = ''; for (let k = 0; k < n; k++) s += (k % 5 === 4 ? '/ ' : '|'); return s.trim(); }
+function drawRegions(cam, cx) {
+  const base = bands[0].F * CELL, mTop = (cam - base) / M, mBot = (cam + VH - base) / M;
+  regionAt(cam + VH);                                 // make sure the reaches in view exist
+  for (const R of regions) {
+    if (R.m1 < mTop - 2 || R.m0 > mBot + 2) continue;
+    if (R.m0 > 0 && R.m0 >= mTop - 14 && R.m0 <= mBot + 2) carveV(R.name.toUpperCase(), cx + 15, base + R.m0 * M + 6, 13, 0.9);          // the reach's name runs down the left wall from its border
+    for (const q of R.notes) if (q.m >= mTop - 14 && q.m <= mBot + 1) carveV(q.text, q.side === 'L' ? cx + 15 : cx + VW - 15, base + q.m * M, q.size, 0.72);   // notes run down either wall
+  }
+}
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX'];
+function carveStratum(y) { const n = stratum + 1; carvings.push({ y: Math.round(y), text: 'STRATUM ' + (ROMAN[n] || n) }); }
 const mix = (a, b, t) => `rgb(${a[0] + (b[0] - a[0]) * t | 0},${a[1] + (b[1] - a[1]) * t | 0},${a[2] + (b[2] - a[2]) * t | 0})`;
 function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
@@ -3544,10 +3287,16 @@ function renderView() {
   ctx.fillStyle = '#4a4032'; rr(HATCH_X - 16, HATCH_Y - 26, 32, 10, 3); ctx.fill();
   ctx.fillStyle = '#7d705a'; ctx.fillRect(HATCH_X - 12, HATCH_Y - 16, 3, 6); ctx.fillRect(HATCH_X + 9, HATCH_Y - 16, 3, 6);
 
-  // depth marks every 10 m
-  ctx.font = '10px system-ui'; ctx.fillStyle = '#a8997c'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  // the writing on the walls: depth marks every 10 m, the record you are chasing, and each stratum, all cut into the rock
   const base = bands[0].F * CELL, m0 = Math.max(1, Math.ceil((cam - base) / (10 * M)));
-  for (let m = m0; base + m * 10 * M < cam + VH; m++) ctx.fillText(m * 10 + ' m', cx + 30, base + m * 10 * M);
+  for (let m = m0; base + m * 10 * M < cam + VH; m++) {
+    const y = base + m * 10 * M;
+    carve(m * 10 + ' m', cx + 30, y, 10, 'left');
+    if (recordAt >= 50 && m * 10 !== recordAt && m % 15 === 0) carve('BEST ' + recordAt + ' m', cx + VW - 30, y, 10, 'right', 0.7);     // a reminder now and then, on the far wall
+  }
+  if (recordAt >= 20) { const ry = base + recordAt * M; if (ry > cam - 20 && ry < cam + VH + 20) carveLine('YOUR RECORD \u00b7 ' + recordAt + ' m', cx, ry, VW); }
+  for (const cv of carvings) if (cv.y > cam - 20 && cv.y < cam + VH + 20) carveLine(cv.text, cx, cv.y, VW, true);
+  drawRegions(cam, cx);
 
   // deadly drops: grey dots = still safe to catch here, red dots = too late
   ctx.lineWidth = 2;
@@ -3664,7 +3413,7 @@ function renderView() {
     ctx.fillStyle = 'rgba(245,238,223,.38)'; ctx.fillRect(0, 0, VW, VH);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(255,253,246,.9)';
     ctx.font = '700 22px system-ui'; ctx.strokeText('Paused', VW / 2, VH / 2 - 12); ctx.fillStyle = '#23211e'; ctx.fillText('Paused', VW / 2, VH / 2 - 12);
-    ctx.font = '600 13px system-ui'; ctx.strokeText('drag to look around', VW / 2, VH / 2 + 12); ctx.fillStyle = '#766c5b'; ctx.fillText('drag to look around', VW / 2, VH / 2 + 12);
+    ctx.font = '600 13px system-ui'; ctx.strokeText('Space or the Resume button to carry on \u00b7 drag to look around', VW / 2, VH / 2 + 12); ctx.fillStyle = '#766c5b'; ctx.fillText('Space or the Resume button to carry on \u00b7 drag to look around', VW / 2, VH / 2 + 12);
   }
 
   if (frameN++ % 6 === 0) {
@@ -3672,85 +3421,30 @@ function renderView() {
     const tb = $('tube'); tb.classList.toggle('dry', T < dryUntil); tb.classList.toggle('sip', sipping); tb.classList.toggle('drought', droughtOn());
     hud();
     $('sFlock').textContent = flockCount();
-    $('sDepth').textContent = depthM() + ' m';
-    $('sBest').textContent = Math.max(best, state === 'play' ? depthM() : 0) + ' m';
   }
 }
 
 let hudC = {}, pendingChest = 0;
 const setIf = (key, val, fn) => { if (hudC[key] !== val) { hudC[key] = val; fn(val); } };     // touch the page only when something changed
 const DROP_SVG = '<svg viewBox="0 0 12 14"><path d="M6 0C8 4 11 6 11 9a5 5 0 0 1-10 0C1 6 4 4 6 0z"/></svg>';
+const TREE_EL = { last: 'tLast', wide: 'tWide', tough: 'tTough' };
 function hud() {
-  for (const k of TRACKS) {                       // pips for the level, and the seconds the current level has left
-    const el = $(k === 'last' ? 'cLast' : k === 'wide' ? 'cWide' : 'cTough'), on = T < burst[k];
-    const left = on ? Math.ceil(burst[k] - T) : lvl[k] ? Math.ceil(until[k] - T) : 0;
-    setIf('c' + k, lvl[k] + (on ? 'm' : '') + left, () => {
-      const pips = el.querySelectorAll('i'); pips[0].className = lvl[k] >= 1 ? 'on' : ''; pips[1].className = lvl[k] >= 2 ? 'on' : '';
-      el.classList.toggle('max', on); el.querySelector('em').textContent = left ? left : '';
+  for (const k of TRACKS) {                       // the tree bars: one segment per level; the live level's segment drains as its clock runs out
+    const el = $(TREE_EL[k]), on = T < burst[k], n = on ? 3 : lvl[k];
+    const total = n ? levelFor(k, n) : 1, leftF = on ? burst[k] - T : n ? until[k] - T : 0, left = Math.max(0, Math.ceil(leftF));
+    const frac = n ? Math.max(0, Math.min(1, leftF / total)) : 0, pct = Math.round(frac * 50) * 2;      // 2 % steps: the page is touched only when the bar visibly moves
+    setIf('t' + k, n + (on ? 'm' : '') + ':' + left + ':' + pct, () => {
+      const segs = el.querySelectorAll('.segs i');
+      segs.forEach((sg, i) => { const L = i + 1; sg.className = L < n ? 'full' : L === n ? 'run' : ''; sg.firstChild.style.width = L < n ? '100%' : L === n ? pct + '%' : '0%'; });
+      el.classList.toggle('lit', n > 0); el.classList.toggle('max', on); el.classList.toggle('low', n > 0 && leftF < 6);
+      el.querySelector('em').textContent = n ? left + 's' : '';
     });
   }
-  setIf('str', stratum, v => { $('sStr').textContent = v + 1; });
-  setIf('cab', cab.length, v => { $('sCab').textContent = v; });
   setIf('echo', Math.max(0, Math.ceil(echoN - T)), v => { const el = $('cEcho'); el.style.display = v ? '' : 'none'; el.textContent = 'Echo ' + v + 's'; });
   const resLeft = T < resUntil ? Math.ceil(resUntil - T) : 0;
   setIf('res', resLeft, v => { const el = $('cRes'); el.style.display = v ? '' : 'none'; el.textContent = '+' + TUNE.resBoost + '% ' + v; $('tube').classList.toggle('big', !!v); });
   const need = handCost();
   setIf('open', drops + '/' + need, () => { const b = $('bOpen'); b.innerHTML = DROP_SVG + drops + '/' + need; });
-}
-const TUNE_UI = [
-  ['musTense', 'Music: turns tense above tension', 0.2, 0.95, 0.02], ['musCalm', 'Music: back to calm below tension', 0.05, 0.9, 0.02], ['musCut', 'Music: stops dead when this many are lost at once (0 = never)', 0, 12, 1],
-  ['camIdle', 'Your camera: catches up after (s) without scrolling', 0.5, 15, 0.5], ['camWarn', 'Your camera: warning before it moves (s)', 0, 3, 0.1],
-  ['camAccel', 'Your camera: catch-up acceleration', 100, 3000, 50], ['camTop', 'Your camera: catch-up top speed', 400, 6000, 100],
-  ['dialGear', 'Dial: gearing (negative flips direction)', -6, 6, 0.25], ['dialFric', 'Dial: how fast a spin dies (lower = longer)', 0.2, 6, 0.1],
-  ['dropRate', 'Drops in the cave (x)', 0.2, 3, 0.1],
-  ['handCost', 'First hand costs', 2, 15, 1], ['handStep', 'Each hand after costs more by', 0, 5, 1], ['handMax', 'Most a hand can cost', 3, 30, 1],
-  ['enemyDrops', 'Drops per enemy sent away', 0, 5, 1],
-  ['specialFor', 'Echo card: seconds', 5, 60, 1], ['joinN', 'Reinforcements card: blots', 2, 12, 1],
-  ['bossEvery', 'A boss arena every (m)', 60, 800, 20], ['bossClock', 'Boss fight clock (s)', 30, 180, 5], ['strataCost', 'Hand costs more per boss passed', 0, 3, 1],
-  ['formRate', 'Formations: chance per floor', 0, 1, 0.05], ['trophyRate', 'Trophies outside chambers (x)', 0, 4, 0.25],
-  ['specialOdds', 'Special card odds in a hand', 0, 2, 0.05], ['chestOdds', 'Gold shelves holding a chest', 0, 1, 0.05],
-  ['lvl1For', 'Lasting/Wide level 1 lasts (s)', 5, 120, 5], ['lvl2For', 'Lasting/Wide level 2 lasts (s)', 5, 120, 5], ['burstFor', 'Lasting/Wide MAX lasts (s)', 3, 60, 1],
-  ['toughL1For', 'Tough level 1 lasts (s)', 5, 180, 5], ['toughL2For', 'Tough level 2 lasts (s)', 5, 180, 5], ['toughMaxFor', 'Tough MAX (crusher) lasts (s)', 5, 90, 5],
-  ['resBoost', 'Reservoir: tank bigger by (%)', 10, 200, 10], ['resFor', 'Reservoir lasts (s)', 10, 180, 5],
-  ['inkMax', 'Ink tank', 40, 300, 10], ['inkRegen', 'Ink refill per second', 1, 20, 0.5],
-  ['dryLock', 'Pen dry after running out (s)', 0, 6, 0.5], ['lowAt', 'Fast refill below (share of tank)', 0, 1, 0.05], ['lowBoost', 'Fast refill speed (x)', 1, 5, 0.25], ['leechDrain', 'Leech drinks (ink/s)', 0, 12, 0.5],
-];
-const TKEYS = TUNE_UI.map(u => u[0]).concat(['forceArena', 'forceEvent', 'slimeSound']);
-const TUNE_SEL = { forceArena: ['All of them, in turn', 'Matriarch', 'Wyrm', 'Crown', 'Leech Queen', 'Sponge Golem', 'Rival', 'Twins'], forceEvent: ['All of them, in turn', 'Brute raid', 'Flock of birds', 'Leech swarm', 'Drought', 'Grinder', 'Rager stampede'] };
-const TUNE_DEF = {}; for (const k of TKEYS) TUNE_DEF[k] = TUNE[k];
-try { const sv = JSON.parse(localStorage.getItem('wetink_tune13') || '{}'); for (const k of TKEYS) if (typeof sv[k] === 'number') TUNE[k] = sv[k]; } catch (e) {}
-function saveTune() { try { const o = {}; for (const k of TKEYS) o[k] = TUNE[k]; localStorage.setItem('wetink_tune13', JSON.stringify(o)); } catch (e) {} }
-function showTune() {
-  if (hand) return;
-  const wasPaused = paused; if (state === 'play' && !paused) togglePause();
-  overlay.className = '';
-  overlay.innerHTML = '<div class="tune"><h2>Tuning</h2><p>Changes apply now and are saved on this device. Drop amount applies to floors not generated yet.</p>' +
-    [['forceArena', 'Test: which arena boss'], ['forceEvent', 'Test: which roaming event']].map(([k, label]) => `<label>${label}<select data-k="${k}">${TUNE_SEL[k].map((n, i) => `<option value="${i}"${TUNE[k] === i ? ' selected' : ''}>${n}</option>`).join('')}</select></label>`).join('') +
-    '<p>Boss and event picks apply from the next cave: use Retry this cave or New cave at the bottom. To meet them sooner, lower "A boss arena every".</p>' +
-    '<p style="margin:8px 0 2px"><b>Music (test):</b> ' + (music.isOn() && soundOn ? 'tap a part to hear it in full; it changes on the next bar line, as it does in the game. Drag the tension slider down to hear instruments leave. <b>By hand</b> lets the slider pick the part too, the way the game does. <b>Game</b> hands it back.' : 'the music is switched off. Turn it on with N, or on the Home screen.') + '</p>' +
-    '<div class="row" style="margin:0 0 6px;flex-wrap:wrap">' + [['auto', 'Game'], ['hand', 'By hand'], ['calm', 'Calm'], ['tense', 'Tense'], ['boss', 'Boss'], ['off', 'Silence']].map(([k, n]) => `<button data-mus="${k}"${music.mode() === k ? ' class="primary"' : ''}>${n}</button>`).join('') + '</div>' +
-    `<label>Tension by hand<b id="tv_mx">${Math.round(music.info().X * 100)}</b><input type="range" id="tMx" min="0" max="100" step="1" value="${Math.round(music.info().X * 100)}"></label>` +
-    '<p style="margin:6px 0 2px">What it does when something happens:</p><div class="row" style="margin:0 0 6px;flex-wrap:wrap">' + [['loss', 'Blot lost'], ['cut', 'Many lost at once'], ['boss', 'Boss arrives'], ['win', 'Boss beaten'], ['over', 'Game over']].map(([k, n]) => `<button data-mt="${k}">${n}</button>`).join('') + '</div>' +
-    `<label>Music volume<b id="tv_mv">${Math.round(music.vol() * 100)}</b><input type="range" id="tMv" min="0" max="100" step="5" value="${Math.round(music.vol() * 100)}"></label>` +
-    `<div class="row" style="margin:0 0 12px"><button id="tMm">Music panel (bottom left): ${music.meterOn() ? 'on' : 'off'}</button></div>` +
-    '<p style="margin:8px 0 2px"><b>Slime splat:</b> tap to hear one; the last one you tap is used in the game.</p><div class="row" style="margin:0 0 10px">' + [1, 2, 3].map(n => `<button data-slime="${n}"${TUNE.slimeSound === n ? ' class="primary"' : ''}>${['Gloop', 'Squirt', 'Jelly'][n - 1]}</button>`).join('') + '<button id="tBlot">Blot splat (to compare)</button></div>' +
-    TUNE_UI.map(([k, label, lo, hi, st]) => `<label>${label}<b id="tv_${k}">${TUNE[k]}</b><input type="range" min="${lo}" max="${hi}" step="${st}" value="${TUNE[k]}" data-k="${k}"></label>`).join('') +
-    '<div class="row"><button class="primary" id="tDone">Done</button><button id="tRetry">Retry this cave</button><button id="tNew">New cave</button><button id="tReset">Reset all</button></div></div>';
-  overlay.querySelectorAll('select').forEach(el => { el.onchange = () => { TUNE[el.dataset.k] = +el.value; saveTune(); }; });
-  const musMark = () => overlay.querySelectorAll('[data-mus]').forEach(o => o.classList.toggle('primary', o.dataset.mus === music.mode()));
-  const musMode = (k, x) => { sfx.init(); music.audition(k, x); musMark(); };
-  overlay.querySelectorAll('[data-mus]').forEach(b => { b.onclick = () => { const k = b.dataset.mus; if (k === 'calm' || k === 'tense' || k === 'boss') { $('tMx').value = 100; $('tv_mx').textContent = 100; } musMode(k, +$('tMx').value / 100); }; });      // a named part plays in full; drag the slider down to hear its instruments leave
-  $('tMx').oninput = () => { $('tv_mx').textContent = $('tMx').value; musMode(music.mode() === 'auto' ? 'hand' : music.mode(), +$('tMx').value / 100); };
-  overlay.querySelectorAll('[data-mt]').forEach(b => { b.onclick = () => { sfx.init(); music.test(b.dataset.mt); musMark(); }; });
-  $('tMv').oninput = () => { $('tv_mv').textContent = $('tMv').value; music.setVol(+$('tMv').value / 100); };
-  $('tMm').onclick = () => { music.setMeter(!music.meterOn()); $('tMm').textContent = 'Music panel (bottom left): ' + (music.meterOn() ? 'on' : 'off'); };
-  overlay.querySelectorAll('input[type=range][data-k]').forEach(el => { el.oninput = () => { const k = el.dataset.k; TUNE[k] = +el.value; $('tv_' + k).textContent = el.value; hudC = {}; saveTune(); }; });
-  overlay.querySelectorAll('[data-slime]').forEach(b => { b.onclick = () => { sfx.init(); TUNE.slimeSound = +b.dataset.slime; saveTune(); overlay.querySelectorAll('[data-slime]').forEach(o => o.classList.toggle('primary', o === b)); sfx.slimeSplat(TUNE.slimeSound); }; });
-  $('tBlot').onclick = () => { sfx.init(); sfx.splat(); };
-  $('tDone').onclick = () => backOut(wasPaused);
-  $('tRetry').onclick = () => { leaveHome(); $('bRetry').onclick(); };
-  $('tNew').onclick = () => { leaveHome(); $('bNew').onclick(); };
-  $('tReset').onclick = () => { Object.assign(TUNE, TUNE_DEF); saveTune(); hudC = {}; showTune(); };
 }
 // ---------------- the player's camera ----------------
 function blotGroups() {                    // up to three groups of blots, split wherever they are too far apart to share a screen
@@ -3920,24 +3614,11 @@ const scEnd = e => {
   scDrag = null; scrolled();
 };
 sc.addEventListener('pointerup', scEnd); sc.addEventListener('pointercancel', scEnd);
-const CAM_NAMES = { auto: 'Auto', dial: 'Dial', strip: 'Strip' };
-function applyCam() {
-  const k = mine() ? scrollUI : 'auto';
-  cv.parentElement.classList.toggle('scroll', mine());
-  $('bCam').textContent = 'Cam: ' + CAM_NAMES[k];
-  try { localStorage.setItem('wetink_cam', k); } catch (e) {}
-  fit();
-}
-function cycleCam() {                       // Auto -> Dial -> Strip -> Auto; the view stays where it is across the switch
-  const at = camY + viewOff(), k = mine() ? scrollUI : 'auto', next = k === 'auto' ? 'dial' : k === 'dial' ? 'strip' : 'auto';
-  if (next === 'auto') { camMode = 'auto'; panY = 0; } else { camMode = 'mine'; scrollUI = next; viewY = Math.max(0, at); viewV = 0; jumpTo = null; scDrag = null; scrolled(); }
-  applyCam();
-}
+function applyCam() { cv.parentElement.classList.toggle('scroll', mine()); fit(); }
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
   const sim = now < freezeUntil ? 0 : now < slowUntil2 ? dt * 0.4 : dt;       // a trophy buys a held breath and a second of slow motion
   if (state === 'play' && !paused && !hand) { accT += sim; while (accT >= STEP && state === 'play') { tick(STEP); accT -= STEP; } }
-  try { music.frame(dt); } catch (err) { if (!music.err) { music.err = err; console.error(err); } }      // the music may never stop the game
   if (mine()) camFrame(dt, now);
   else if (panY && !paused && !panning && !drawing && now - panIdle > 2500) { panY *= Math.exp(-dt * 5); if (Math.abs(panY) < 0.5) panY = 0; }      // the view drifts back to the flock
   render();
@@ -3978,46 +3659,67 @@ const pointerEnd = e => {
 };
 cv.addEventListener('pointerup', pointerEnd);
 cv.addEventListener('pointercancel', pointerEnd);
-cv.addEventListener('wheel', e => { if (state !== 'play' || hand) return; e.preventDefault(); panBy(Math.max(-160, Math.min(160, e.deltaY)) * 0.9); }, { passive: false });
+// the wheel moves a target and the view glides to it (camFrame), so each notch of a mechanical wheel is a short smooth slide, not a jolt
+function wheelBy(d) { const from = jumpTo != null ? jumpTo : viewY; jumpTo = Math.max(0, Math.min(viewMax(), from + d)); viewV = 0; scrolled(); }
+cv.addEventListener('wheel', e => {
+  if (state !== 'play' || hand) return; e.preventDefault();
+  const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaMode === 2 ? e.deltaY * 300 : e.deltaY;      // lines or pages (Firefox) into pixels
+  wheelBy(Math.max(-160, Math.min(160, dy)) * TUNE.wheelStep);
+}, { passive: false });
 cv.addEventListener('pointerleave', () => { pointer = null; });
 
-function togglePause() { if (state !== 'play' || hand || homeOpen) return; paused = !paused; cur = null; drawing = false; drawId = null; lookY = null; panIdle = 0; $('bPause').textContent = paused ? 'Resume' : 'Pause'; }
+function togglePause() { if (state !== 'play' || hand || homeOpen) return; paused = !paused; cur = null; drawing = false; drawId = null; lookY = null; panIdle = 0; $('bPause').innerHTML = paused ? '&#9654;<span class="lbl">Resume</span>' : '&#10074;&#10074;<span class="lbl">Pause</span>'; $('bPause').classList.toggle('on', paused); }
 $('bPause').onclick = togglePause;
 $('bOpen').onclick = () => { sfx.init(); openHand(); };
-$('bTune').onclick = showTune;
-$('bCab').onclick = showCabinet;
-$('bHelp').onclick = () => { if (hand) return; showHelp(state !== 'play'); };
 $('bHome').onclick = showHome;
-$('bCam').onclick = cycleCam;
-const toggleSound = () => { sfx.init(); soundOn = sfx.toggle(); $('bSound').innerHTML = '<span class="lbl">Sound</span>&#9834; ' + (soundOn ? 'on' : 'off'); };
-$('bSound').onclick = toggleSound;
-const musicLabel = () => { $('bMusic').innerHTML = '<span class="lbl">Music</span>&#9835; ' + (music.isOn() ? 'on' : 'off'); const b = $('hMusic'); if (b) b.textContent = 'Music ' + (music.isOn() ? 'on' : 'off'); };
-const toggleMusic = () => { sfx.init(); music.toggle(); musicLabel(); };
-$('bMusic').onclick = toggleMusic; musicLabel();
+const toggleSound = () => { sfx.init(); soundOn = sfx.toggle(); };
+// The menu: everything that is not needed every second lives here, so the bar stays a HUD. Opening it pauses the run.
+function showMenu(wasPausedBefore) {
+  if (hand || homeOpen) return;
+  const wasPaused = wasPausedBefore != null ? wasPausedBefore : paused; if (state === 'play' && !paused) togglePause();
+  overlay.className = '';
+  overlay.innerHTML = `<div class="card menu-card"><h2>Wet Ink</h2>
+    <p class="small" style="margin:0">Cave #${seed} · ${depthM()} m · stratum ${stratum + 1} · best ${Math.max(best, depthM())} m</p>
+    <div class="mrow">
+      <button class="primary wide" id="mBack">${state === 'play' ? 'Back to the cave' : 'Close'}</button>
+      <button id="mSound">&#9834; Sound ${soundOn ? 'on' : 'off'}</button>
+      <button id="mCab">Trophies <small>${cab.length}</small></button>
+      <button id="mHelp">How to play</button>
+      <button id="mHome">&#8962; Home</button>
+      <button id="mRetry">Retry this cave</button>
+      <button id="mNew">New cave</button>
+    </div>
+    <p class="small" style="margin:10px 0 0">Keys: Space pause · 1 2 3 pick a card · C trophies · H or Esc home · R retry · M sound · arrows jump between groups</p></div>`;
+  $('mBack').onclick = () => backOut(wasPaused);
+  $('mSound').onclick = () => { toggleSound(); $('mSound').innerHTML = '&#9834; Sound ' + (soundOn ? 'on' : 'off'); };
+  $('mCab').onclick = () => { backTo = () => showMenu(wasPaused); showCabinet(); };
+  $('mHelp').onclick = () => { backTo = () => showMenu(wasPaused); showHelp(state !== 'play'); };
+  $('mHome').onclick = showHome;
+  const fresh = (go, what) => { if (state === 'play' && depthM() > 20) confirmCard(what + '?', `Your current run (${depthM()} m) will end. Its depth still counts toward your best.`, 'End run and ' + what.toLowerCase(), go, showMenu); else go(); };
+  $('mRetry').onclick = () => fresh(() => startGame(seed), 'Retry this cave');
+  $('mNew').onclick = () => fresh(() => startGame(randSeed()), 'Start a new cave');
+}
+$('bMenu').onclick = () => showMenu();
 const quietly = p => { if (p && p.catch) p.catch(() => {}); };
 document.addEventListener('visibilitychange', () => { const ac = sfx.ctx(); if (!ac) return; try { quietly(document.hidden ? ac.suspend() : ac.resume()); } catch (e) {} });      // the game stops when its tab is hidden, so the music must too
 document.addEventListener('pointerdown', () => { const ac = sfx.ctx(); if (ac && ac.state !== 'running' && !document.hidden) { try { quietly(ac.resume()); } catch (e) {} } }, true);      // some phones only let sound restart on a touch
-$('bRetry').onclick = () => startGame(seed);
-$('bNew').onclick = () => startGame(randSeed());
 window.addEventListener('keydown', e => {
   if (hand) { if (e.key >= '1' && e.key <= '3') pickCard(+e.key - 1); return; }
   if (e.target && e.target.tagName === 'INPUT') return;           // typing a player's name
-  if (homeOpen) { if (e.key === 'm' || e.key === 'M') { toggleSound(); const b = $('hSound'); if (b) b.innerHTML = '&#9834; ' + (soundOn ? 'on' : 'off'); } else if (e.key === 'n' || e.key === 'N') toggleMusic(); else if (e.key === 'Enter' && $('hGo')) $('hGo').click(); return; }
+  if (homeOpen) { if (e.key === 'm' || e.key === 'M') { toggleSound(); const b = $('hSound'); if (b) b.innerHTML = '&#9834; ' + (soundOn ? 'on' : 'off'); } else if (e.key === 'Enter' && $('hGo')) $('hGo').click(); return; }
   if ((e.key === 'h' || e.key === 'H' || e.key === 'Escape') && state === 'play' && overlay.className === 'hide') { showHome(); return; }
-  if (e.key === 'v' || e.key === 'V') { cycleCam(); return; }
+  if (e.key === 'Escape' && overlay.className !== 'hide' && !homeOpen && state === 'play' && overlay.querySelector('.menu-card')) { backOut(false); return; }
   if (mine() && state === 'play' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); jumpGroup(e.key === 'ArrowUp' ? -1 : 1); return; }
   if (e.key === ' ') { e.preventDefault(); togglePause(); }
-  else if (e.key === 't' || e.key === 'T') showTune();
   else if (e.key === 'c' || e.key === 'C') showCabinet();
-  else if (e.key === 'r' || e.key === 'R') startGame(seed);
+  else if (e.key === 'r' || e.key === 'R') { if (state !== 'play' || depthM() <= 20) startGame(seed); else showMenu(); }
   else if (e.key === 'm' || e.key === 'M') toggleSound();
-  else if (e.key === 'n' || e.key === 'N') toggleMusic();
 });
 
-// small hook used for automated testing and tuning from the console
-window.__wetink = {
+// test hook for automated playtesting: only on the private staging build (it is a cheat on the public site)
+if (window.WETINK_DEV) window.__wetink = {
   TUNE,
-  music: () => music.info(), musicMode: (k, x) => music.audition(k, x), musicTest: n => music.test(n), musicTrack: dt => music.track(dt), tension: why => music.tension(why), musicTap: () => music.tap(), musicErr: () => music.err ? String(music.err.stack || music.err) : '', bossEnd(won) { if (boss && boss.phase === 'fight') endFight(!!won); },
+  bossEnd(won) { if (boss && boss.phase === 'fight') endFight(!!won); },
   start: s => startGame(s == null ? seed : s),
   shelves: n => { for (let k = 0; k < n; k++) genBand(); return gaps.filter(g => g.isl && g.cols[1] - g.cols[0] - 1 < 14).map(g => { checkGap(g); return { y: g.rows[0] * CELL, x: g.cols[0] * CELL, deadly: [g.dead[0].deadly, g.dead[1].deadly] }; }); },
   look: y => { viewY = y; panY = y - camY - autoOff; lastScroll = performance.now(); },
@@ -4043,7 +3745,7 @@ window.__wetink = {
   blast(x, y) { explode(x, y); }, decals: () => decals.length, retreats: () => retreats.length,
   arenas: () => arenas.map(a => ({ k: a.k, type: a.type, tier: a.tier, side: a.side, state: a.state, won: a.won, ready: a.ready, c0: a.c0, c1: a.c1, x0: a.x0, x1: a.x1, floorRow: a.floorRow, floorY: a.floorY, ceilRow: a.ceilRow, ceilY: a.ceilY, gate: a.gate, pits: a.pits, title: a.title, sub: a.sub, count: a.count, band: a.band })),
   boss: () => boss ? { type: boss.type, phase: boss.phase, t: boss.t, clock: boss.clock, left: boss.left, beat: boss.beat, won: boss.won, m: boss.m ? { x: boss.m.x, y: boss.m.y, state: boss.m.state, hp: boss.m.hp, t: boss.m.t, tell: boss.m.tell, eaten: boss.m.eaten, stunFor: boss.m.stunFor, path: boss.m.path, face: boss.m.face } : null } : null,
-  stratum: () => stratum, setStratum(n) { stratum = n; hudC = {}; }, handCost: () => handCost(), caps: () => ({ birds: (depthM() > 150 ? 2 : 1) + extraBirds(), brutes: 1 + extraBrutes(), leeches: 1 + extraLeeches() }),
+  stratum: () => stratum, setStratum(n) { stratum = n; hudC = {}; }, carve: y => carveStratum(y), setRecord(m) { recordAt = m; }, regions: () => regions, handCost: () => handCost(), caps: () => ({ birds: (depthM() > 150 ? 2 : 1) + extraBirds(), brutes: 1 + extraBrutes(), leeches: 1 + extraLeeches() }),
   forceRaid(k, kind) { const R = { kind: kind || 'raid', k, row: (maxY >> 2) + 2, state: 'wait', seed: (Math.random() * 4294967296) >>> 0 }; nameRaid(R); raids.push(R); return R.title + ' / ' + R.sub; },
   bx: () => { if (!boss) return null; const o = { type: boss.type, phase: boss.phase, hp: boss.hp, hpMax: boss.hpMax, clock: boss.clock };
     if (boss.c) { const c = boss.c; o.c = { state: c.state, t: c.t, tell: c.tell, marks: c.marks.map(m => ({ x: m.x, d: m.d, done: !!m.done })), shards: c.shards.length, eyeX: c.eyeX, eyeY: c.eyeY, eaten: c.eaten, pat: c.pat }; }
