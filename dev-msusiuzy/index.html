@@ -204,7 +204,9 @@ const TUNE = {
   fatalFall: 136,     // px; a longer fall kills
   maxStepUp: 12, maxStepDown: 12,   // px a walker can step without turning or falling
   inkMax: 50, inkRegen: 6.5,        // ink units, units per second (the tank was 100 when ink dried in 4 s; now it lasts twice as long, so half the tank)
-  dryLock: 2,         // seconds the pen stays dry after the tank runs empty (the penalty for running out)
+  dryLock: 1.5,       // seconds the pen stays dry after the tank runs empty (the penalty for running out)
+  dryRefill: 4,       // after running dry, the tank refills this many times faster until it is back to dryTo: running out is a short sharp stop, not a long slog
+  dryTo: 0.6,         // share of the tank the fast recovery fills to
   lowWarn: 0.25,      // below this share of the tank the pen warns: a scratchy sound once, and the tube turns amber
   sputterAt: 0.12,    // below this share the pen sputters: thinner, broken line
   penNormal: 600,     // the pen pours ink at a fixed rate. At this speed (px/s) the line is the standard 8 px; twice as fast gives a 4 px hairline for half the ink, and slowing down swells it to 12 px
@@ -221,7 +223,7 @@ const TUNE = {
   flowSide: 0.25,     // pour: how runny the ink is (chance per tick that a resting drop slides sideways; 0 = thick as paste)
   flowSet: 0.35,      // pour: seconds a drop must lie still before it sets into ordinary ink
   flowDrop: 240,      // pour: px a drop may fall before it is lost
-  lowAt: 0.5, lowBoost: 2.5,        // below this share of the tank, ink refills this many times faster
+  lowAt: 0.5, lowBoost: 1,          // below this share of the tank, ink refills this many times faster (1 = off: a nearly empty tank is no longer topped up quickly, so careful players do run out)
   fuseSpeed: 48,      // px per second the drying front travels along a stroke
   birdFromDepth: 15,  // metres before the first bird shows up
   birdFly: 62, birdDive: 72, birdLift: 26,   // px per second (walkers do 32)
@@ -334,7 +336,7 @@ const overlay = $('overlay');
 // ---------------- state ----------------
 let seed = 1, rng, terrain, ink, bands, gaps, nextF, chunks, prevGaps;
 let walkers, spawned, nextSpawn, cur, particles, decals, live, tag;
-let dryUntil = 0, sipping = false, sipWarned = new WeakSet();
+let dryUntil = 0, recovering = false, sipping = false, sipWarned = new WeakSet();
 let lvl, burst, burstOn, until, drops, handN, resUntil, echoN, spreadN = 0, echoes, hand = null, fadeY, flockHigh, slime, notes, coinT = 0, coinN = 0;
 const eff = k => T < burst[k] ? 3 : lvl[k];
 const inkCap = () => TUNE.inkMax * (T < resUntil ? 1 + TUNE.resBoost / 100 : 1);
@@ -903,7 +905,7 @@ function occupied() {                     // the ink cells each blot stands in
   for (const w of walkers) if (w.alive) occ.push({ c0: (w.x - 3) >> 1, c1: (w.x + 3) >> 1, r0: (w.y - BODY) >> 1, r1: (w.y - 1) >> 1 });
   return occ;
 }
-function goDry() { if (T < dryUntil) return; dryUntil = T + TUNE.dryLock; flashInk(); say('Pen dry!', '#b3261e'); sfx.inkOut(); hudC = {}; }
+function goDry() { if (T < dryUntil) return; dryUntil = T + TUNE.dryLock; recovering = true; flashInk(); say('Pen dry!', '#b3261e'); sfx.inkOut(); hudC = {}; }
 let lowSaid = false;    // the warning sounds once each time the tank falls below the line
 const inkLow = () => inkLeft < inkCap() * TUNE.lowWarn, sputtering = () => inkLeft < inkCap() * TUNE.sputterAt;
 function flashInk() { const t = $('tube'); t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash'); }
@@ -2834,7 +2836,8 @@ function tick(rdt) {                     // rdt is real time. In half-time the c
   if (TUNE.spray && cur && drawing && !paused) updateSpray(rdt);
   if (fluid.length) updateFluid(dt);
   const wasLow = lowSaid; lowSaid = inkLow(); if (lowSaid && !wasLow && T > 1) { sfx.inkLow(); flashInk(); }
-  inkLeft = Math.min(inkCap(), inkLeft + TUNE.inkRegen * (inkLeft < inkCap() * TUNE.lowAt ? TUNE.lowBoost : 1) * (droughtOn() ? 0.3 : 1) * rdt);   // low tank: refills faster
+  if (recovering && inkLeft >= inkCap() * TUNE.dryTo) recovering = false;
+  inkLeft = Math.min(inkCap(), inkLeft + TUNE.inkRegen * (recovering ? TUNE.dryRefill : inkLeft < inkCap() * TUNE.lowAt ? TUNE.lowBoost : 1) * (droughtOn() ? 0.3 : 1) * rdt);   // ran dry: a fast recovery; otherwise a steady refill
   while (queue.length && T >= queue[0].T) spawn(queue.shift());
   const ys = [];
   let grounded = 0, fuses = 0;
@@ -2891,7 +2894,7 @@ function newWorld(s) {
   terrain = []; ink = []; bands = []; gaps = []; prevGaps = []; nextF = 20; chunks = new Map();
   walkers = []; spawned = 0; cur = null; particles = []; decals = []; live = []; tag = [];
   lvl = { last: 0, wide: 0, tough: 0 }; burst = { last: 0, wide: 0, tough: 0 }; burstOn = { last: false, wide: false, tough: false };
-  until = { last: 0, wide: 0, tough: 0 }; dryUntil = 0; sipping = false; lowSaid = false; fluid = []; flu = []; handN = 0; resUntil = 0; echoN = 0; spreadN = 0; echoes = [];
+  until = { last: 0, wide: 0, tough: 0 }; dryUntil = 0; recovering = false; sipping = false; lowSaid = false; fluid = []; flu = []; handN = 0; resUntil = 0; echoN = 0; spreadN = 0; echoes = [];
   drops = 0; hand = null; fadeY = -1e9; flockHigh = 0; slime = new Map(); notes = [];
   pickups = []; birds = []; popups = []; queue = []; nextBird = 0; halfLeft = 0; shakeT = 0; stepAcc = 0; tickN = 0;
   rings = []; brutes = []; nextBrute = 0; leeches = []; nextLeech = 0;
@@ -3102,7 +3105,7 @@ function showHelp(fromIntro) {
     <li>After 60 m a <b>Brute</b> drops in. It can't be hurt by falls: wall it in with ink and leave it well behind, out of sight above the flock.</li>
     <li>Collect <b>drops</b>. Four open a hand of three upgrade cards. The three bars at the top are your upgrade trees: each segment is a level, and the lit one drains as its clock runs.</li>
     <li><b>The camera is yours.</b> The strip on the right wall drags like a page, and the mouse wheel slides the view. The arrow buttons above and below the strip (or the up and down arrow keys) jump straight to a separated group of blots. Leave the view with the middle of the flock off screen and, after a warning, it catches up on its own. Looking never changes what the cave does: enemies, the Fade and rewards follow the flock, not your view.</li>
-    <li>Run the tank dry and the pen stays dry for 2 s. Below half a tank, ink refills much faster.</li>
+    <li>Ink refills at a steady rate. Run the tank dry and the pen stops for a moment, then refills fast to over half a tank. A quick, thin stroke uses less ink than a slow, thick one.</li>
     <li>Don't leave blots far behind: the page above you fades.</li>
     <li><b>&#8962; Home</b> (or H / Esc) pauses the run; Continue picks it up again.</li></ul>
     <h3 style="margin:10px 0 0;font-size:16px">Everything else</h3>
@@ -3648,7 +3651,7 @@ function hud() {
 }
 // ---------------- tuning (dev build only): sliders for the numbers under test ----------------
 const TUNE_UI = [
-  ['inkMax', 'Ink tank', 20, 200, 5], ['inkRegen', 'Ink refill per second', 1, 20, 0.5], ['dryLock', 'Pen dry after running out (s)', 0, 6, 0.5],
+  ['inkMax', 'Ink tank', 20, 200, 5], ['inkRegen', 'Ink refill per second', 1, 20, 0.5], ['dryLock', 'Pen dry after running out (s)', 0, 6, 0.25], ['dryRefill', 'After running dry: refill speed (x)', 1, 8, 0.25], ['dryTo', 'After running dry: fast refill up to (share of tank)', 0.1, 1, 0.05],
   ['lowAt', 'Fast refill below (share of tank)', 0, 1, 0.05], ['lowBoost', 'Fast refill speed (x)', 1, 5, 0.25],
   ['lowWarn', 'Warning sound below (share of tank)', 0, 1, 0.05], ['sputterAt', 'Pen sputters below (share of tank)', 0, 1, 0.02],
   ['lastLife.0', 'Ink life, plain line: its skin starts to dry after (s)', 1, 20, 0.5], ['lastLife.1', 'Ink life, Time 1 (s)', 1, 30, 0.5], ['lastLife.2', 'Ink life, Time 2 (s)', 1, 40, 0.5], ['lastLife.3', 'Time MAX: holds this long after the burst (s)', 1, 40, 0.5],
@@ -3973,7 +3976,7 @@ if (window.WETINK_DEV) window.__wetink = {
   shelves: n => { for (let k = 0; k < n; k++) genBand(); return gaps.filter(g => g.isl && g.cols[1] - g.cols[0] - 1 < 14).map(g => { checkGap(g); return { y: g.rows[0] * CELL, x: g.cols[0] * CELL, deadly: [g.dead[0].deadly, g.dead[1].deadly] }; }); },
   look: y => { viewY = y; panY = y - camY - autoOff; lastScroll = performance.now(); },
   step(n) { for (let i = 0; i < n && state === 'play'; i++) tick(STEP); },
-  press(x, y, ts) { drawing = true; return strokeStart({ x, y }, ts); }, strokeTo(x, y, ts) { strokeTo({ x, y }, ts); }, pen: () => cur ? { v: cur.v, w: cur.w } : null, half: () => halfLeft, giveHalf(s) { halfLeft = s; }, seeBrute() { for (const b of brutes) { b.seen = true; b.state = 'walk'; b.vy = 0; b.hold = true; } }, release() { cur = null; drawing = false; }, spray: () => cur ? { r: cur.sprayR, still: cur.still, v: cur.v, flowing: cur.flowing } : null, fluid: () => fluid.length,
+  press(x, y, ts) { drawing = true; return strokeStart({ x, y }, ts); }, strokeTo(x, y, ts) { strokeTo({ x, y }, ts); }, pen: () => cur ? { v: cur.v, w: cur.w } : null, half: () => halfLeft, giveHalf(s) { halfLeft = s; }, setInk(v) { inkLeft = v; }, seeBrute() { for (const b of brutes) { b.seen = true; b.state = 'walk'; b.vy = 0; b.hold = true; } }, release() { cur = null; drawing = false; }, spray: () => cur ? { r: cur.sprayR, still: cur.still, v: cur.v, flowing: cur.flowing } : null, fluid: () => fluid.length,
   line(x1, y1, x2, y2) { if (strokeStart({ x: x1, y: y1 })) { strokeTo({ x: x2, y: y2 }); cur = null; } },
   liveCells: () => live.length, renderMs(n) { const t0 = performance.now(); for (let i = 0; i < n; i++) { render(); ctx.getImageData(0, 0, 1, 1); } return (performance.now() - t0) / n; }, inkMs(n) { const t0 = performance.now(); const logic = camY; camY = logic + viewOff(); for (let i = 0; i < n; i++) { drawInk(); ctx.getImageData(0, 0, 1, 1); } camY = logic; return (performance.now() - t0) / n; }, wetCells: () => { let n = 0; for (const k of live) { const ir = (k / ICOLS) | 0; if (ink[ir][k - ir * ICOLS] > T) n++; } return n; }, fine: (x, y) => fineState(Math.floor(x) >> 1, Math.floor(y) >> 1), solidAt: (x, y) => solid(x, y), inkTough: (x, y) => inkTough(x, y), weather: () => weather(),
   brush: () => ({ lvl: { ...lvl }, eff: { last: eff('last'), wide: eff('wide'), tough: eff('tough') }, drops, handN, echoN, spreadN, cost: handCost(), until: { ...until }, resUntil, fadeY, flockHigh, hand, slime: slime.size, pen: brushNow() }),
