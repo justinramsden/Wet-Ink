@@ -249,21 +249,23 @@ const TUNE = {
   lastLife:  [5, 8, 11.5, 13],    // seconds a line lives before its skin starts to dry; its core goes one layer later (so a plain line lasts about 6, 9 and 13 s). [3]: at Time MAX, ink holds until this long after the countdown ends
   lastLayer: [1, 1, 1.5, 1.5],    // seconds each 2 px layer of thickness adds (ink dries from the outside in, a layer at a time)
   dryJitter: 0.8,                 // how grainy the drying is: 0 = whole layers vanish at once, 1 = cell by cell
-  wideSize:  [6, 16, 18, 22],     // brush width in px (ink cost per length stays the same). Wide is mostly about soft landings now, not size
-  wideFall:  [1, 2, 3, 99],       // a fall onto wide ink may be this many times longer than a deadly one onto rock and still be safe
-  wideHaste: 3,                   // Wide MAX: seconds of haste a blot gets from a long drop onto wide ink
+  wideSize:  [6, 16, 18, 18],     // brush width in px at the standard pen speed (ink cost per length stays the same): Wide 1 doubles the line, Wide 2 a little more
+  wideFall:  [1, 1, 2, 2],        // a fall onto ink drawn at this Wide level may be this many times longer than a deadly one onto rock (Wide 2 is the soft landing)
+  paraOpen: 0.4,                  // Wide MAX, parachutes: a falling blot's canopy opens once it has fallen this share of a deadly fall
+  paraSpeed: 55,                  // parachutes: how fast a blot drifts down under its canopy (px/s; a free fall reaches 400)
+  paraGrace: 0.6,                 // parachutes: after landing under a canopy, a blot that falls again within this many seconds still gets one
   toughChew: [2, 1, 0, 0],        // extra seconds of drying per second a brute pushes (0 = it cannot chew)
   toughDrain: [1, 0.5, 0, 0],      // share of its usual thirst a leech gets from this ink
   inkCost: 0.075,     // ink units per px drawn
-  lvl1For: 45, lvl2For: 30, burstFor: 15,   // seconds each level lasts (Lasting and Wide)
+  lvl1For: 45, lvl2For: 30, burstFor: 30,   // seconds each level lasts (Lasting and Wide)
   toughL1For: 90, toughL2For: 60, toughMaxFor: 30,   // Tough lasts longer; at MAX, enemies shut inside ink are crushed
   crushMax: 900,      // biggest pocket (in 4px cells) that still crushes what is inside it
   handCost: 4, handStep: 0, handMax: 10,    // drops for the first hand, extra per hand after, and the most a hand can cost
   dropRate: 1.5,      // multiplier on how many drops lie in the cave (new caves and floors not reached yet)
   enemyDrops: 1,      // drops a beaten bird, leech or Brute gives
   resBoost: 50, resFor: 60,                 // Reservoir: % bigger ink tank, and for how long
-  specialFor: 20, joinN: 6,                 // seconds an Echo card lasts; blots a Reinforcements card adds
-  specialOdds: 0.25,  // weight of each special card in an ordinary hand (the other cards weigh 1.2 to 2)
+  specialFor: 45, joinN: 6,                 // seconds an Echo card lasts; blots a Reinforcements card adds
+  specialOdds: 0.9,   // weight of each special card (Reservoir and Echo) in an ordinary hand; the tree cards weigh 1.2 to 2
   chestOdds: 0.5,     // share of gold shelves that hold a chest instead of +5 walkers
   forceArena: 0, forceEvent: 0,   // testing: 0 = all in turn, otherwise only this arena boss / roaming event
   bossEvery: 300,     // metres between boss arenas
@@ -1258,8 +1260,7 @@ function stepWalk(w) {
     if (ny < 0) { w.dir = -w.dir; return; }
   } else {                                          // open: step level or down, or walk off the edge
     for (let k = 0; k <= TUNE.maxStepDown; k++) if (solid(nx, w.y + k)) { ny = w.y + k; break; }
-    if (ny < 0) { if (inkWide(w.x, w.y) >= 2) { w.dir = -w.dir; return; }      // Wide 2 and up: a blot will not step off this ink into a drop. The line is a holding pen until it dries
-      ny = w.y; off = true; }
+    if (ny < 0) { ny = w.y; off = true; }
   }
   // no headroom: something at least 4 px tall stands in the way. A crumb of drying ink (a single 2 px cell) is not a wall.
   for (let k = 1, run = 0; k <= BODY + 1; k += 2) { if (!solid(nx, ny - k)) run = 0; else if (++run >= 2) { w.dir = -w.dir; return; } }
@@ -1283,7 +1284,11 @@ function updateWalker(w, dt) {
     }
   }
   if (!w.grounded) {
-    w.vy = Math.min(TUNE.terminal, w.vy + TUNE.gravity * dt);
+    // Wide MAX: parachutes. Once a blot has fallen a little, its canopy opens and it drifts down; no fall can hurt it.
+    // A canopy that is open stays open until the blot lands, even if the burst ends on the way down.
+    if (!w.chute && w.vy > 0 && (T < burst.wide || T < w.chuteGrace) && w.y - w.fallStart > TUNE.fatalFall * TUNE.paraOpen) { w.chute = true; puff(w.x, w.y - 16, '#1c2d6b', 3, 40); }
+    w.vy = Math.min(w.chute ? TUNE.paraSpeed : TUNE.terminal, w.vy + TUNE.gravity * dt);
+    if (w.chute && w.vy > TUNE.paraSpeed) w.vy = Math.max(TUNE.paraSpeed, w.vy - TUNE.gravity * 3 * dt);
     w.fy += w.vy * dt;
     if (w.vx) {                                       // thrown sideways by a bounce
       w.ax += w.vx * dt;
@@ -1306,13 +1311,16 @@ function updateWalker(w, dt) {
     if (w.vy > 70) for (const m of mushrooms) if (m.alive && Math.abs(m.x - w.x) <= m.hw && y >= m.y - 10 && y <= m.y + 1 && bounce(w, m)) return;
     if (solid(w.x, y)) {
       w.vx = 0; w.bn = 0;
-      const fell = y - w.fallStart, wl = inkWide(w.x, y), lim = TUNE.fatalFall * TUNE.wideFall[wl];     // wide ink is a soft landing: the deeper the Wide level, the longer a fall it forgives
-      if (fell > lim) kill(w);
+      const fell = y - w.fallStart, wl = inkWide(w.x, y), lim = TUNE.fatalFall * TUNE.wideFall[wl];     // Wide 2 ink is a soft landing: it forgives a longer fall
+      if (w.chute) {                                   // under a canopy: always a gentle landing
+        w.chute = false; w.chuteGrace = T + TUNE.paraGrace; w.grounded = true; w.fy = y; if (y > maxY) maxY = y;
+        if (fell > TUNE.fatalFall * TUNE.dazeFrom) { puff(w.x, w.y - 2, '#1c2d6b', 4, 60); stats.softLands++; }
+      }
+      else if (fell > lim) kill(w);
       else {
         w.grounded = true; w.fy = y; if (y > maxY) maxY = y;
         if (fell > TUNE.fatalFall * TUNE.dazeFrom) {
-          if (wl >= 3) { w.haste = Math.max(w.haste, T + TUNE.wideHaste); puff(w.x, w.y - 2, '#1c2d6b', 6, 90); sfx.pop(); stats.softLands++; }   // Wide MAX: a long drop onto a pad sends it off running
-          else if (wl >= 1) { puff(w.x, w.y - 2, '#1c2d6b', 4, 70); stats.softLands++; }                                                       // Wide ink: lands soft, never dazed
+          if (wl >= 2) { puff(w.x, w.y - 2, '#1c2d6b', 4, 70); stats.softLands++; }                                                       // Wide 2 ink: lands soft, never dazed
           else { w.daze = T + TUNE.dazeFor; sfx.oof(); }
         }
       }
@@ -2725,7 +2733,7 @@ const levelFor = (k, n) => k === 'tough' ? (n >= 3 ? TUNE.toughMaxFor : n === 2 
 const say = (text, col) => { notes.push({ text, col: col || '#23211e', life: 2.4 }); if (notes.length > 3) notes.shift(); };
 const CARD_TEXT = {
   last: ['', () => 'A line lasts about ' + lineLife(1) + ' s instead of ' + lineLife(0), () => 'A line lasts about ' + lineLife(2) + ' s, and thick ink lasts half as long again', () => 'Everything you draw holds until ' + TUNE.lastLife[3] + ' s after this timer ends, then all of it dries at once'],
-  wide: ['', 'A broad, soft brush: a fall onto it can be twice as long, and never dazes', 'Holding pen: blots will not step off this ink into a drop. Falls onto it can be three times as long', 'Pillow: no fall onto this ink hurts, and a long drop sends blots off running. Still a holding pen'],
+  wide: ['', 'A brush twice as broad, for the same ink', 'Broader still, and soft: a fall onto it can be twice as long, and never dazes', 'Parachutes: no blot can die from a fall. Canopies open as they drop and carry them gently down'],
   tough: ['', 'Brutes chew it half as fast, leeches drink half as much, birds that hit it are stunned half as long again', 'Brutes cannot chew it, leeches cannot drink it, birds are stunned twice as long', 'Crusher: shut any enemy inside ink and it is squeezed out of the cave. Unbreakable too'],
 };
 const ICON = {
@@ -2740,7 +2748,7 @@ const ICON = {
 function dealHand(chest) {                // three different cards, picked at random: you cannot simply buy the one you want
   const pool = [];
   for (const k of TRACKS) if (!(T < burst[k])) pool.push({ k, w: lvl[k] >= 2 ? 1.2 : 2 });
-  pool.push({ k: 'walkers', w: 2 }, { k: 'res', w: T < resUntil ? 0.8 : 1.6 });
+  pool.push({ k: 'walkers', w: 2 }, { k: 'res', w: TUNE.specialOdds * (T < resUntil ? 0.5 : 1) });
   const out = [];
   if (chest) out.push('echo');                                      // a chest always holds an Echo
   else pool.push({ k: 'echo', w: TUNE.specialOdds });
@@ -2777,7 +2785,7 @@ function pickCard(i) {
   } else if (k === 'echo') { echoN = Math.max(echoN, T) + TUNE.specialFor; say('Echo: ' + Math.round(echoN - T) + ' s', '#1a8fa8'); sfx.burst(); }
   else if (k === 'res') { resUntil = T + TUNE.resFor; inkLeft = inkCap(); say('Reservoir: bigger ink tank', '#1f7a6f'); sfx.pickup(1); }
   else if (lvl[k] < 2) { lvl[k]++; until[k] = T + levelFor(k, lvl[k]); say(NAME[k] + ' ' + lvl[k], TCOL[k]); sfx.levelUp(lvl[k]); }
-  else { burst[k] = T + levelFor(k, 3); burstOn[k] = true; say(k === 'tough' ? 'Strong MAX: shut enemies in ink to squeeze them out!' : NAME[k] + ' MAX!', TCOL[k]); sfx.burst(); shakeT = Math.max(shakeT, 0.15); }
+  else { burst[k] = T + levelFor(k, 3); burstOn[k] = true; say(k === 'tough' ? 'Strong MAX: shut enemies in ink to squeeze them out!' : k === 'wide' ? 'Wide MAX: parachutes!' : NAME[k] + ' MAX!', TCOL[k]); sfx.burst(); shakeT = Math.max(shakeT, 0.15); }
 }
 function updateEchoes() {          // as each part of an echoed line is really gone, fresh ink pours back into its outline, for as long again
   for (let i = echoes.length - 1; i >= 0; i--) {
@@ -3100,9 +3108,9 @@ function showHelp(fromIntro) {
     <h3 style="margin:10px 0 0;font-size:16px">Everything else</h3>
     <ul>
       <li><b>Ink</b> is solid only while wet. A line dries in the order you drew it, so start each stroke where the flock steps first. Ink dries from the outside in, a thin skin at a time: a plain line loses its skin first and its heart about a second later, and every extra 2 px of thickness buys about another second. Draw lines side by side to build something that lasts.</li>
-      <li><b>Drops</b> lie around the cave. When you have enough, a hand of three cards opens as soon as you lift your pen; each hand costs a little more than the last. Cards: <b>Time</b> (ink lives longer, turning from indigo to wine; at MAX everything you draw holds until 16 s after the countdown ends, then dries all at once), <b>Wide</b> (a broader brush that is also a soft landing: a fall onto it can be twice as long as a deadly one and never dazes; at level 2 three times, and blots will not step off the end of this ink into a drop, so a line becomes a holding pen; at MAX nothing that lands on it is hurt), <b>Strong</b> (glossy ink every enemy struggles with: Brutes chew it slowly and then not at all, leeches drink less and then nothing, birds that hit it stay stunned longer; lasts 90 s, then 60 s at level 2; at MAX, 30 s in which any enemy you shut inside ink is crushed), <b>Reinforcements</b> (+6 blots), or <b>Reservoir</b> (a bigger, full ink tank for a while).</li>
+      <li><b>Drops</b> lie around the cave. When you have enough, a hand of three cards opens as soon as you lift your pen; each hand costs a little more than the last. Cards: <b>Time</b> (ink lives longer, turning from indigo to wine; at MAX everything you draw holds until 16 s after the countdown ends, then dries all at once), <b>Wide</b> (a brush twice as broad for the same ink; at level 2 broader still, and soft: a fall onto it can be twice as long as a deadly one and never dazes; at MAX, parachutes: no blot can die from a fall, and one still floating when the timer ends lands safely), <b>Strong</b> (glossy ink every enemy struggles with: Brutes chew it slowly and then not at all, leeches drink less and then nothing, birds that hit it stay stunned longer; lasts 90 s, then 60 s at level 2; at MAX, 30 s in which any enemy you shut inside ink is crushed), <b>Reinforcements</b> (+6 blots), or <b>Reservoir</b> (a bigger, full ink tank for a while).</li>
       <li><b>Chests</b> sit on some gold shelves. A blot that reaches one opens a free hand holding a special card. <b>Echo</b> lasts 20 seconds and sometimes turns up in ordinary hands too: every line you draw leaves a shimmering outline, and as each part of the line dries (or is chewed or drunk), fresh ink pours back into it once, with the same width, toughness and life. Everything you draw lasts twice as long.</li>
-      <li>Every level runs on its own clock, shown on the bars at the top: level 1 lasts 45 s, level 2 30 s, and MAX is a 15 s burst (Strong runs 90, 60 and 30). When a clock runs out the track steps down one level and that level's clock starts fresh, so taking the next level just before the old one runs out is two for one.</li>
+      <li>Every level runs on its own clock, shown on the bars at the top: level 1 lasts 45 s, level 2 30 s, and MAX is a 30 s burst (Strong runs 90, 60 and 30). When a clock runs out the track steps down one level and that level's clock starts fresh, so taking the next level just before the old one runs out is two for one.</li>
       <li><b>The fade:</b> the page goes blank 60 m above the deepest point the middle of your flock has reached. Blots still up there are lost, and so are Brutes and leeches.</li>
       <li><b>Falls</b> past the red dots kill. A short dash halfway down splits one deadly fall into two safe ones.</li>
       <li><b>Birds</b> (3 health) hover, screech and dive along a red line. Ink across the line stuns them for 4 s. Draw a closed loop around a <i>stunned</i> bird to take a health point; it gets faster each time. A loop around a bird that isn't stunned only holds it. Trapping a bird that carries a blot makes it drop it.</li>
@@ -3439,7 +3447,13 @@ function drawWalker(w) {
   let col = T < w.slimed ? '#3f8a2c' : '#23211e';
   if (w.bomb) { const left = w.bomb - T; if (Math.sin(T * (left < 2 ? 34 : 16)) > 0) col = '#d6402b'; }
   if (T < w.haste) { ctx.fillStyle = 'rgba(232,170,30,.5)'; ctx.fillRect(x - w.dir * 9 - 2, y - 9, 4, 1.5); ctx.fillRect(x - w.dir * 11 - 2, y - 5, 4, 1.5); }
-  if (!w.grounded && !w.carried) { const f = (y - w.fallStart) / TUNE.fatalFall; if (f > 0.55) col = mix([35, 33, 30], [214, 64, 43], Math.min(1, (f - 0.55) / 0.45)); }
+  if (w.chute) {                                     // a little ink canopy on four strings, swaying
+    const h0 = w.h || 12, sw = Math.sin(T * 3 + w.x * 0.1) * 1.5, cy = y - h0 - 10;
+    ctx.strokeStyle = 'rgba(35,33,30,.55)'; ctx.lineWidth = 0.7; ctx.beginPath();
+    for (const k of [-7, -3, 3, 7]) { ctx.moveTo(x + k + sw, cy); ctx.lineTo(x + k * 0.3, y - h0 + 2); } ctx.stroke();
+    ctx.fillStyle = '#1c2d6b'; ctx.beginPath(); ctx.moveTo(x - 9 + sw, cy); ctx.quadraticCurveTo(x + sw, cy - 11, x + 9 + sw, cy); ctx.quadraticCurveTo(x + sw, cy - 4, x - 9 + sw, cy); ctx.fill();
+  }
+  else if (!w.grounded && !w.carried) { const f = (y - w.fallStart) / TUNE.fatalFall; if (f > 0.55) col = mix([35, 33, 30], [214, 64, 43], Math.min(1, (f - 0.55) / 0.45)); }
   ctx.fillStyle = col;
   const h = w.h || 12, wd = w.wd || 8;
   if (T < w.daze) { ctx.save(); ctx.translate(x, y); ctx.rotate(T < w.stun ? -w.dir * 1.35 : Math.sin(T * 9) * 0.18); ctx.translate(-x, -y); }
@@ -3649,9 +3663,10 @@ const TUNE_UI = [
   ['wheelStep', 'Mouse wheel: cave px per wheel unit', 0.1, 2, 0.05], ['camIdle', 'Camera catches up after (s)', 0.5, 15, 0.5],
   ['lvl1For', 'Time/Wide level 1 lasts (s)', 5, 120, 5], ['lvl2For', 'Time/Wide level 2 lasts (s)', 5, 120, 5], ['burstFor', 'Time/Wide MAX lasts (s)', 3, 60, 1],
   ['toughL1For', 'Strong level 1 lasts (s)', 5, 180, 5], ['toughL2For', 'Strong level 2 lasts (s)', 5, 180, 5], ['toughMaxFor', 'Strong MAX lasts (s)', 5, 90, 5],
-  ['wideHaste', 'Wide MAX: haste after a long drop (s)', 0, 8, 0.5], ['fatalFall', 'Deadly fall (px)', 60, 300, 4],
+  ['paraSpeed', 'Parachutes: drift speed (px/s)', 15, 200, 5], ['paraOpen', 'Parachutes: canopy opens after (share of a deadly fall)', 0, 1, 0.05], ['paraGrace', 'Parachutes: a landed blot keeps one for (s)', 0, 3, 0.1],
+  ['resFor', 'Reservoir lasts (s)', 10, 120, 5], ['specialFor', 'Echo lasts (s)', 5, 90, 5], ['fatalFall', 'Deadly fall (px)', 60, 300, 4],
   ['handCost', 'First hand costs', 2, 15, 1], ['handMax', 'Most a hand can cost', 3, 30, 1], ['strataCost', 'Hand costs more per stratum', 0, 3, 1], ['dropRate', 'Drops in the cave (x)', 0.2, 3, 0.1],
-  ['specialOdds', 'Echo odds in a hand', 0, 2, 0.05], ['chestOdds', 'Gold shelves holding a chest', 0, 1, 0.05], ['bossEvery', 'A boss arena every (m)', 60, 800, 20], ['trophyRate', 'Trophies outside chambers (x)', 0, 4, 0.25],
+  ['specialOdds', 'Reservoir and Echo odds in a hand', 0, 2, 0.05], ['chestOdds', 'Gold shelves holding a chest', 0, 1, 0.05], ['bossEvery', 'A boss arena every (m)', 60, 800, 20], ['trophyRate', 'Trophies outside chambers (x)', 0, 4, 0.25],
 ];
 const TKEYS = TUNE_UI.map(u => u[0]).concat(['forceArena', 'forceEvent']);
 const TUNE_SEL = { forceArena: ['All of them, in turn', 'Matriarch', 'Wyrm', 'Crown', 'Leech Queen', 'Sponge Golem', 'Rival', 'Twins'], forceEvent: ['All of them, in turn', 'Brute raid', 'Flock of birds', 'Leech swarm', 'Drought', 'Grinder', 'Rager stampede'] };
@@ -3995,7 +4010,7 @@ if (window.WETINK_DEV) window.__wetink = {
   packBrutes: () => brutes.filter(b => b.pack).map(b => ({ x: b.x, y: b.y, state: b.state, dir: b.dir })), pending: () => pendingChest,
   forms: () => forms.map(f => ({ ...f })), bands: () => bands.map(b => ({ F: b.F, d: b.d, chamber: !!b.chamber })),
   trophies: () => trophies.map(t => ({ x: t.x, y: t.y, taken: t.taken })), cab: () => cab.slice(), trophyOf: sd => { const t = mkTrophy(sd); return { name: t.name, place: t.place, fam: t.fam, cells: Array.from(t.g).filter(v => v).length }; },
-  dropWalker(x, y, dir) { walkers.push({ x, y, fy: y, dir: dir || 1, grounded: false, vy: 0, fallStart: y, alive: true, acc: 0, haste: 0, bomb: 0, carried: null, spd: 1, h: 12, wd: 8, daze: 0, stun: 0, vx: 0, ax: 0, bn: 0, slimed: 0 }); },
+  chutes: () => walkers.filter(w => w.alive && w.chute).length, dropWalker(x, y, dir) { walkers.push({ x, y, fy: y, dir: dir || 1, grounded: false, vy: 0, fallStart: y, alive: true, acc: 0, haste: 0, bomb: 0, carried: null, spd: 1, h: 12, wd: 8, daze: 0, stun: 0, vx: 0, ax: 0, bn: 0, slimed: 0 }); },
   audit() {                                 // check every formation against the safety rules
     const bad = [], sOf = c => { for (let r = 2; r < terrain.length; r++) if (terrain[r][c]) return r; return -1; };
     for (const f of forms) {
