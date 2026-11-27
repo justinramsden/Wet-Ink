@@ -50,6 +50,9 @@
   .tune label input{grid-column:1 / 3;width:100%;accent-color:var(--ink)} .tune label b{text-align:right;font-variant-numeric:tabular-nums}
   .tune select{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:7px;background:#fff;grid-column:2 / 3;justify-self:end;min-width:0}
   .tune .row{display:flex;gap:8px;margin-top:10px} .tune button.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+  .tune.changes{width:min(980px,96%)} .tune.changes h2{font-size:24px} .tune.changes h2 small{font-size:15px;color:var(--muted);font-weight:600}
+  .tune.changes table{border-collapse:collapse;width:100%;font-size:19px;margin:6px 0} .tune.changes td{padding:7px 10px;border-bottom:1px solid var(--line)}
+  .tune.changes td b{font-size:22px;color:var(--ink)} .tune.changes td:nth-child(3){color:var(--muted)} .tune.changes td.key{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;color:var(--muted)}
   .chip{display:inline-flex;align-items:center;gap:2px;font-size:12px;font-weight:700;padding:1px 5px;border-radius:7px;border:1px solid var(--line);background:#f8f4ea;font-variant-numeric:tabular-nums}
   .chip u{text-decoration:none;margin-right:1px} .chip em{font-style:normal;font-size:11px}
   .chip i{display:inline-block;width:7px;height:7px;border-radius:50%;border:1.3px solid currentColor;opacity:.45}
@@ -215,7 +218,7 @@ const TUNE = {
   halfRate: 0.5,      // the half-time pickup: the whole cave runs at this speed (the pen and the ink refill do not slow)
   bruteBehind: 320, bruteBehindFor: 3,   // a Brute is left behind once it is off your view and this many px above the highest blot, for this many seconds
   toughStun: [1, 1.5, 2, 2],      // a bird that hits Strong ink stays stunned this many times longer
-  spray: 2,           // the airbrush, while the button is held: 0 off, 1 pool (hold still: a growing disc), 2 bleed (ink wells out of the pen and spreads; more the slower it moves), 3 pour (ink drips from the pen, runs and sets)
+  spray: 0,           // the airbrush (off by default: holding still messed up slow lines), while the button is held: 0 off, 1 pool (hold still: a growing disc), 2 bleed (ink wells out of the pen and spreads; more the slower it moves), 3 pour (ink drips from the pen, runs and sets)
   sprayAfter: 0.14,   // pool: seconds the pen must be still. Bleed and pour: how quickly the flow starts once the pen slows (s)
   sprayRate: 800,     // px^2 of ink a second at full flow (about 10 ink a second)
   spraySlow: 70,      // bleed and pour: the pen speed (px/s) at which the flow stops; the slower the pen, the more wells out
@@ -269,7 +272,7 @@ const TUNE = {
   specialFor: 45, joinN: 6,                 // seconds an Echo card lasts; blots a Reinforcements card adds
   specialOdds: 0.9,   // weight of each special card (Reservoir and Echo) in an ordinary hand; the tree cards weigh 1.2 to 2
   chestOdds: 0.5,     // share of gold shelves that hold a chest instead of +5 walkers
-  forceArena: 0, forceEvent: 0,   // testing: 0 = all in turn, otherwise only this arena boss / roaming event
+  forceArena: 0, forceEvent: 0,   // testing: 0 = random order, otherwise only this arena boss / roaming event
   bossEvery: 300,     // metres between boss arenas
   bossClock: 75,      // seconds before a boss gives up and the gate opens anyway
   strataCost: 1,      // extra drops a hand costs for each boss arena you have passed
@@ -2251,12 +2254,16 @@ function drawBossBar() {                               // screen space, along th
 const BOSSX = {};
 const ARENA_TYPES = ['matriarch', 'wyrm', 'crown', 'queen', 'golem', 'rival', 'twins'], EVENT_KINDS = ['raid', 'flock', 'swarm', 'drought', 'grinder', 'stampede'];
 let arenaOrder = [], roamOrder = [];
-function buildOrders() {            // which boss and which event comes when: shuffled from the cave seed
-  const sh = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = boRng() * (i + 1) | 0, t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
-  arenaOrder = [bossFirst ? 'matriarch' : 'wyrm', ...sh([bossFirst ? 'wyrm' : 'matriarch', 'crown', 'queen', 'golem', 'rival'])];
-  for (let c = 0; c < 10; c++) arenaOrder.push(...sh(['twins', 'wyrm', 'crown', 'queen', 'golem', 'rival', 'matriarch']));
-  roamOrder = ['raid', ...sh(['flock', 'grinder', 'swarm', 'drought'])];
-  for (let c = 0; c < 10; c++) roamOrder.push(...sh(['raid', 'flock', 'grinder', 'swarm', 'drought', 'stampede']));
+// Which boss and which event comes when: a fresh random order every run (even a retry of the same cave), with no repeat until
+// all have been met. The Twins wait for the second round. The cave's shape still comes from its seed.
+function buildOrders() {
+  const r = mulberry32((Math.random() * 4294967296) >>> 0);
+  const sh = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = r() * (i + 1) | 0, t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+  const lap = (list, prev) => { let a; do a = sh(list); while (prev && a[0] === prev && list.length > 1); return a; };      // never the same one twice in a row across rounds
+  arenaOrder = lap(['matriarch', 'wyrm', 'crown', 'queen', 'golem', 'rival']);
+  for (let c = 0; c < 10; c++) arenaOrder.push(...lap(['twins', 'wyrm', 'crown', 'queen', 'golem', 'rival', 'matriarch'], arenaOrder[arenaOrder.length - 1]));
+  roamOrder = lap(['raid', 'flock', 'grinder', 'swarm', 'drought']);
+  for (let c = 0; c < 10; c++) roamOrder.push(...lap(['raid', 'flock', 'grinder', 'swarm', 'drought', 'stampede'], roamOrder[roamOrder.length - 1]));
 }
 const roomBlots = A => walkers.filter(w => w.alive && !w.carried && w.x > A.x0 && w.x < A.x1 && w.y > A.floorY - 26 && w.y <= A.floorY + 4);
 const stars = (x, y, n, rad, ph) => { ctx.font = '13px system-ui'; ctx.fillStyle = '#c98a00'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; for (let k = 0; k < n; k++) ctx.fillText('✦', x + Math.cos(ph * 6 + k * 6.283 / n) * rad, y + Math.sin(ph * 6 + k * 6.283 / n) * 4); };
@@ -3672,14 +3679,40 @@ const TUNE_UI = [
   ['specialOdds', 'Reservoir and Echo odds in a hand', 0, 2, 0.05], ['chestOdds', 'Gold shelves holding a chest', 0, 1, 0.05], ['bossEvery', 'A boss arena every (m)', 60, 800, 20], ['trophyRate', 'Trophies outside chambers (x)', 0, 4, 0.25],
 ];
 const TKEYS = TUNE_UI.map(u => u[0]).concat(['forceArena', 'forceEvent']);
-const TUNE_SEL = { forceArena: ['All of them, in turn', 'Matriarch', 'Wyrm', 'Crown', 'Leech Queen', 'Sponge Golem', 'Rival', 'Twins'], forceEvent: ['All of them, in turn', 'Brute raid', 'Flock of birds', 'Leech swarm', 'Drought', 'Grinder', 'Rager stampede'] };
+const TUNE_SEL = { forceArena: ['Random (default)', 'Matriarch', 'Wyrm', 'Crown', 'Leech Queen', 'Sponge Golem', 'Rival', 'Twins'], forceEvent: ['Random (default)', 'Brute raid', 'Flock of birds', 'Leech swarm', 'Drought', 'Grinder', 'Rager stampede'] };
 // a key like 'lastLife.1' is one entry of a list. The two layer sliders each move a pair (plain + Time 1, Time 2 + MAX).
 const tget = k => { const [a, i] = k.split('.'); return i == null ? TUNE[a] : TUNE[a][+i]; };
 const tset = (k, v) => { const [a, i] = k.split('.'); if (i == null) TUNE[a] = v; else { TUNE[a][+i] = v; if (a === 'lastLayer') TUNE[a][+i + 1] = v; } };
 const TUNE_DEF = {}; for (const k of TKEYS) TUNE_DEF[k] = tget(k);
 const DEV = !!window.WETINK_DEV;
-if (DEV) { try { const sv = JSON.parse(localStorage.getItem('wetinkdev_tune15') || '{}'); for (const k of TKEYS) if (typeof sv[k] === 'number') tset(k, sv[k]); } catch (e) {} }
-function saveTune() { try { const o = {}; for (const k of TKEYS) o[k] = tget(k); localStorage.setItem('wetinkdev_tune15', JSON.stringify(o)); } catch (e) {} }
+// Only the sliders you have moved are saved, so a new default in a later build still reaches you.
+// The old save (tune15) stored every slider, which froze the defaults of its day; from it we keep only real changes.
+const OLD15 = { dryLock: 2, lowBoost: 2.5, burstFor: 15, specialOdds: 0.25, spray: 2 };      // defaults that have changed since tune15 was written
+if (DEV) {
+  try {
+    let sv = JSON.parse(localStorage.getItem('wetinkdev_tune16') || 'null');
+    if (!sv) {
+      const old = JSON.parse(localStorage.getItem('wetinkdev_tune15') || '{}'); sv = {};
+      for (const k of TKEYS) if (typeof old[k] === 'number' && old[k] !== (k in OLD15 ? OLD15[k] : TUNE_DEF[k])) sv[k] = old[k];
+      localStorage.setItem('wetinkdev_tune16', JSON.stringify(sv)); localStorage.removeItem('wetinkdev_tune15');
+    }
+    for (const k of TKEYS) if (typeof sv[k] === 'number') tset(k, sv[k]);
+  } catch (e) {}
+}
+const changed = () => TKEYS.filter(k => tget(k) !== TUNE_DEF[k]);
+function saveTune() { try { const o = {}; for (const k of changed()) o[k] = tget(k); localStorage.setItem('wetinkdev_tune16', JSON.stringify(o)); } catch (e) {} }
+// One screen with every setting you have changed, in big print: for a photo from a phone.
+function showChanges() {
+  const lab = k => { const u = TUNE_UI.find(q => q[0] === k); return u ? u[1] : k === 'forceArena' ? 'Test: which arena boss' : k === 'forceEvent' ? 'Test: which roaming event' : k; };
+  const val = (k, v) => TUNE_SEL[k] ? TUNE_SEL[k][v] : v;
+  const ks = changed(), d = new Date();
+  overlay.className = '';
+  overlay.innerHTML = `<div class="tune changes"><h2>My changes <small>${ks.length} of ${TKEYS.length} \u00b7 build ${VERSION} \u00b7 ${d.toISOString().slice(0, 10)}</small></h2>` +
+    (ks.length ? '<table>' + ks.map(k => `<tr><td>${lab(k)}</td><td><b>${val(k, tget(k))}</b></td><td>was ${val(k, TUNE_DEF[k])}</td><td class="key">${k}</td></tr>`).join('') + '</table>'
+               : '<p style="font-size:18px">Everything is at its default.</p>') +
+    '<div class="row"><button class="primary" id="xBack">Back to tuning</button></div></div>';
+  $('xBack').onclick = () => { const f = backTo; showTune(); backTo = f; };
+}
 function showTune() {
   if (!DEV || hand) return;
   const wasPaused = paused; if (state === 'play' && !paused) togglePause();
@@ -3688,12 +3721,15 @@ function showTune() {
     [['forceArena', 'Test: which arena boss'], ['forceEvent', 'Test: which roaming event']].map(([k, label]) => `<label>${label}<select data-k="${k}">${TUNE_SEL[k].map((n, i) => `<option value="${i}"${TUNE[k] === i ? ' selected' : ''}>${n}</option>`).join('')}</select></label>`).join('') +
     '<p style="margin:8px 0 2px"><b>Sounds:</b></p><div class="row" style="margin:0 0 10px;flex-wrap:wrap"><button data-snd="inkLow">Ink low</button><button data-snd="inkOut">Ran out</button><button data-snd="sputter">Sputter</button><button data-snd="spray">Spray</button><button data-snd="splat">Blot splat</button></div>' +
     TUNE_UI.map(([k, label, lo, hi, st]) => `<label>${label}<b id="tv_${k}">${tget(k)}</b><input type="range" min="${lo}" max="${hi}" step="${st}" value="${tget(k)}" data-k="${k}"></label>`).join('') +
-    '<div class="row"><button class="primary" id="tDone">Done</button><button id="tReset">Reset all</button></div></div>';
-  overlay.querySelectorAll('select').forEach(el => { el.onchange = () => { TUNE[el.dataset.k] = +el.value; saveTune(); }; });
+    '<div class="row"><button class="primary" id="tDone">Done</button><button id="tShow">My changes (' + changed().length + ')</button><button id="tReset">Reset all</button></div></div>';
+  overlay.querySelectorAll('select').forEach(el => { el.onchange = () => { TUNE[el.dataset.k] = +el.value; saveTune(); $('tShow').textContent = $('tShow2').textContent = 'My changes (' + changed().length + ')'; }; });
   overlay.querySelectorAll('[data-snd]').forEach(b => { b.onclick = () => { sfx.init(); sfx[b.dataset.snd](); }; });
-  overlay.querySelectorAll('input[type=range][data-k]').forEach(el => { el.oninput = () => { const k = el.dataset.k; tset(k, +el.value); $('tv_' + k).textContent = el.value; hudC = {}; saveTune(); }; });
+  overlay.querySelectorAll('input[type=range][data-k]').forEach(el => { el.oninput = () => { const k = el.dataset.k; tset(k, +el.value); $('tv_' + k).textContent = el.value; hudC = {}; saveTune(); $('tShow').textContent = $('tShow2').textContent = 'My changes (' + changed().length + ')'; }; });
   $('tDone').onclick = () => { if (backTo) { const f = backTo; backTo = null; f(); } else backOut(wasPaused); };
   $('tReset').onclick = () => { for (const k of TKEYS) tset(k, TUNE_DEF[k]); saveTune(); hudC = {}; const f = backTo; showTune(); backTo = f; };
+  $('tShow').onclick = showChanges;
+  const top = '<div class="row" style="margin:0 0 8px"><button id="tShow2">My changes (' + changed().length + ')</button></div>';
+  overlay.querySelector('.tune p').insertAdjacentHTML('afterend', top); $('tShow2').onclick = showChanges;
 }
 // ---------------- the player's camera ----------------
 function blotGroups() {                    // up to three groups of blots, split wherever they are too far apart to share a screen
