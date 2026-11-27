@@ -204,8 +204,8 @@ const TUNE = {
   fatalFall: 136,     // px; a longer fall kills
   maxStepUp: 12, maxStepDown: 12,   // px a walker can step without turning or falling
   inkMax: 50, inkRegen: 6.5,        // ink units, units per second (the tank was 100 when ink dried in 4 s; now it lasts twice as long, so half the tank)
-  dryLock: 1.5,       // seconds the pen stays dry after the tank runs empty (the penalty for running out)
-  dryRefill: 4,       // after running dry, the tank refills this many times faster until it is back to dryTo: running out is a short sharp stop, not a long slog
+  dryLock: 0.5,       // seconds the pen stays dry after the tank runs empty: a brief sting, short enough that a quick hand can still save a falling blot
+  dryRefill: 1,       // after running dry, the tank refills this many times faster until it is back to dryTo (1 = off: empty means careful drawing until you can rest)
   dryTo: 0.6,         // share of the tank the fast recovery fills to
   lowWarn: 0.25,      // below this share of the tank the pen warns: a scratchy sound once, and the tube turns amber
   sputterAt: 0.12,    // below this share the pen sputters: thinner, broken line
@@ -3105,7 +3105,7 @@ function showHelp(fromIntro) {
     <li>After 60 m a <b>Brute</b> drops in. It can't be hurt by falls: wall it in with ink and leave it well behind, out of sight above the flock.</li>
     <li>Collect <b>drops</b>. Four open a hand of three upgrade cards. The three bars at the top are your upgrade trees: each segment is a level, and the lit one drains as its clock runs.</li>
     <li><b>The camera is yours.</b> The strip on the right wall drags like a page, and the mouse wheel slides the view. The arrow buttons above and below the strip (or the up and down arrow keys) jump straight to a separated group of blots. Leave the view with the middle of the flock off screen and, after a warning, it catches up on its own. Looking never changes what the cave does: enemies, the Fade and rewards follow the flock, not your view.</li>
-    <li>Ink refills at a steady rate. Run the tank dry and the pen stops for a moment, then refills fast to over half a tank. A quick, thin stroke uses less ink than a slow, thick one.</li>
+    <li>Ink refills at a steady rate, even while you draw, and a full tank takes longer to come back than a line takes to dry. Run it dry and the pen stops for half a second; after that, draw small and smart until the tank recovers. A quick, thin stroke uses less ink than a slow, thick one.</li>
     <li>Don't leave blots far behind: the page above you fades.</li>
     <li><b>&#8962; Home</b> (or H / Esc) pauses the run; Continue picks it up again.</li></ul>
     <h3 style="margin:10px 0 0;font-size:16px">Everything else</h3>
